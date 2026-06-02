@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, clientes, documentos, perfiles, riesgo, activacion, auditoria
+from app.routers import (
+    auth, clientes, documentos, perfiles, riesgo, activacion,
+    auditoria, beneficiarios, observaciones, admin
+)
 
 app = FastAPI(
     title="DDC/KYC Inmobiliario API",
-    description="API para Debida Diligencia de Clientes en el sector inmobiliario panameño",
-    version="1.0.0"
+    description="API para Debida Diligencia de Clientes en el sector inmobiliario panameno",
+    version="1.1.0"
 )
 
 app.add_middleware(
@@ -23,8 +26,11 @@ app.include_router(perfiles.router)
 app.include_router(riesgo.router)
 app.include_router(activacion.router)
 app.include_router(auditoria.router)
+app.include_router(beneficiarios.router)
+app.include_router(observaciones.router)
+app.include_router(admin.router)
 
 
 @app.get("/")
 def raiz():
-    return {"mensaje": "DDC/KYC API en funcionamiento"}
+    return {"mensaje": "DDC/KYC API v1.1 en funcionamiento"}

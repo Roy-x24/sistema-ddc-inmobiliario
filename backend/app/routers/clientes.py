@@ -8,7 +8,7 @@ from app.models.persona_juridica import PersonaJuridica
 from app.models.representante_legal import RepresentanteLegal
 from app.models.beneficiario_final import BeneficiarioFinal
 from app.schemas.cliente import PersonaNaturalCreate, PersonaJuridicaCreate, ClienteListItem
-from app.routers.auth import obtener_usuario_actual
+from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
 from app.services.estado_service import verificar_documentos_para_revision
@@ -17,15 +17,12 @@ from sqlalchemy import or_, func
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
 
-def verificar_rol_empleado(usuario: Usuario):
-    if usuario.rol not in ("empleado", "administrador"):
-        raise HTTPException(status_code=403, detail="Solo empleados pueden realizar esta acción")
-
-
 @router.post("/natural")
-def registrar_persona_natural(datos: PersonaNaturalCreate, db: Session = Depends(obtener_db), usuario: Usuario = Depends(obtener_usuario_actual)):
-    verificar_rol_empleado(usuario)
-
+def registrar_persona_natural(
+    datos: PersonaNaturalCreate,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("registrar_cliente"))
+):
     cliente = Cliente(
         tipo_cliente="NATURAL",
         es_pep=datos.es_pep,
@@ -47,23 +44,30 @@ def registrar_persona_natural(datos: PersonaNaturalCreate, db: Session = Depends
         direccion=datos.direccion,
         telefono=datos.telefono,
         correo=datos.correo,
-        ocupacion=datos.ocupacion
+        ocupacion=datos.ocupacion,
+        fuente_ingresos=datos.fuente_ingresos,
+        rango_ingresos=datos.rango_ingresos,
+        proposito_transaccion=datos.proposito_transaccion,
+        origen_fondos=datos.origen_fondos,
+        monto_estimado=datos.monto_estimado
     )
     db.add(pn)
     db.commit()
 
     registrar_auditoria(db, usuario.correo, "CREAR_CLIENTE", str(cliente.id_cliente), None, "PENDIENTE")
-
     return {"id_cliente": str(cliente.id_cliente), "estado": cliente.estado}
 
 
 @router.post("/juridica")
-def registrar_persona_juridica(datos: PersonaJuridicaCreate, db: Session = Depends(obtener_db), usuario: Usuario = Depends(obtener_usuario_actual)):
-    verificar_rol_empleado(usuario)
-
+def registrar_persona_juridica(
+    datos: PersonaJuridicaCreate,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("registrar_cliente"))
+):
     cliente = Cliente(
         tipo_cliente="JURIDICA",
         es_pep=datos.es_pep,
+        estado="PENDIENTE_BF",
         registrado_por=usuario.correo
     )
     db.add(cliente)
@@ -101,14 +105,14 @@ def registrar_persona_juridica(datos: PersonaJuridicaCreate, db: Session = Depen
             nacionalidad=b.nacionalidad,
             porcentaje_participacion=b.porcentaje_participacion,
             tipo_control=b.tipo_control,
-            es_pep=b.es_pep
+            es_pep=b.es_pep,
+            es_relevante=(b.porcentaje_participacion >= 25)
         )
         db.add(bf)
 
     db.commit()
 
-    registrar_auditoria(db, usuario.correo, "CREAR_CLIENTE", str(cliente.id_cliente), None, "PENDIENTE")
-
+    registrar_auditoria(db, usuario.correo, "CREAR_CLIENTE", str(cliente.id_cliente), None, "PENDIENTE_BF")
     return {"id_cliente": str(cliente.id_cliente), "estado": cliente.estado}
 
 
@@ -120,7 +124,7 @@ def listar_clientes(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual)
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
 ):
     query = db.query(Cliente).filter(Cliente.eliminado == False)
 
@@ -167,7 +171,11 @@ def listar_clientes(
 
 
 @router.get("/{id}")
-def detalle_cliente(id: str, db: Session = Depends(obtener_db), usuario: Usuario = Depends(obtener_usuario_actual)):
+def detalle_cliente(
+    id: str,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
     cliente = db.query(Cliente).filter(Cliente.id_cliente == id, Cliente.eliminado == False).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
@@ -178,6 +186,7 @@ def detalle_cliente(id: str, db: Session = Depends(obtener_db), usuario: Usuario
         "estado": cliente.estado,
         "nivel_riesgo": cliente.nivel_riesgo,
         "es_pep": cliente.es_pep,
+        "requiere_reevaluacion": cliente.requiere_reevaluacion,
         "fecha_registro": str(cliente.fecha_registro),
         "registrado_por": cliente.registrado_por
     }
@@ -196,7 +205,12 @@ def detalle_cliente(id: str, db: Session = Depends(obtener_db), usuario: Usuario
                 "direccion": pn.direccion,
                 "telefono": pn.telefono,
                 "correo": pn.correo,
-                "ocupacion": pn.ocupacion
+                "ocupacion": pn.ocupacion,
+                "fuente_ingresos": pn.fuente_ingresos,
+                "rango_ingresos": pn.rango_ingresos,
+                "proposito_transaccion": pn.proposito_transaccion,
+                "origen_fondos": pn.origen_fondos,
+                "monto_estimado": float(pn.monto_estimado)
             }
     else:
         pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == id).first()
@@ -218,7 +232,7 @@ def detalle_cliente(id: str, db: Session = Depends(obtener_db), usuario: Usuario
                     for r in rl
                 ],
                 "beneficiarios_finales": [
-                    {"nombre_completo": b.nombre_completo, "numero_documento": b.numero_documento, "nacionalidad": b.nacionalidad, "porcentaje_participacion": float(b.porcentaje_participacion), "tipo_control": b.tipo_control, "es_pep": b.es_pep}
+                    {"nombre_completo": b.nombre_completo, "numero_documento": b.numero_documento, "nacionalidad": b.nacionalidad, "porcentaje_participacion": float(b.porcentaje_participacion), "tipo_control": b.tipo_control, "es_pep": b.es_pep, "es_relevante": b.es_relevante, "estado_validacion": b.estado_validacion}
                     for b in bf
                 ]
             }
