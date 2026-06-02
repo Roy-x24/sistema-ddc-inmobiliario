@@ -22,9 +22,10 @@ class PerfilFinancieroResponse(BaseModel):
 
 
 class PerfilTransaccionalCreate(BaseModel):
-    proposito_compra: str
-    monto_estimado: float
-    tipo_transaccion: str
+    monto_total_propiedad: float
+    metodo_pago_predominante: str
+    tipo_operacion: str
+    banco_origen_fondos: Optional[str] = None
     tiene_financiamiento: bool = False
     banco_financiamiento: Optional[str] = None
     monto_financiamiento: Optional[float] = None
@@ -32,9 +33,10 @@ class PerfilTransaccionalCreate(BaseModel):
 
 class PerfilTransaccionalResponse(BaseModel):
     id_perfil: str
-    proposito_compra: str
-    monto_estimado: float
-    tipo_transaccion: str
+    monto_total_propiedad: float
+    metodo_pago_predominante: str
+    tipo_operacion: str
+    banco_origen_fondos: Optional[str]
     tiene_financiamiento: bool
     banco_financiamiento: Optional[str]
     monto_financiamiento: Optional[float]
