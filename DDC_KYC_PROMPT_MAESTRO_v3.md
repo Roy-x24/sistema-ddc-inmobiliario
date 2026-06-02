@@ -1319,25 +1319,25 @@ Todos deben soportar estados: deshabilitado / cargando / error / enfoque.
 
 | Módulo | Estado | Notas |
 |--------|--------|-------|
-| Auth — Login básico JWT | ✅ Existe (v2) | Actualizar: agregar refresh token y sesión única |
-| Auth — Refresh Token | ❌ Falta | Issue #13 |
-| Auth — RBAC backend | ❌ Falta | Issue #14 |
-| Auth — Inactividad frontend | ❌ Falta | Issue #15 |
-| Tailwind tokens base | ❌ Falta | Issue #16 |
-| Componentes UI base | ❌ Falta | Issue #17 |
-| routeConfig + AppShell + AdminShell | ❌ Falta | Issue #18 |
-| Modelo expediente (estados nuevos) | ❌ Falta | Issue #19 — agregar PENDIENTE_BF, OBSERVADO, BLOQUEADO, requiere_reevaluacion |
-| Registro PN/PJ | ✅ Existe (v2) | Revisar validaciones y campos nuevos de perfil transaccional |
-| Almacén documental con hash SHA-256 | ❌ Falta | Issue #21 |
-| Bandeja OC — verificar/rechazar docs | ✅ Parcial (v2) | Agregar auditoría de descarga/visualización |
-| Perfil transaccional (campos inmobiliarios) | ✅ Parcial (v2) | Actualizar campos según Issue #23 |
-| Beneficiario Final con validación OC | ❌ Falta | Issue #24 |
-| Matriz de riesgo versionada | ❌ Falta | Issue #25 — reemplaza lógica qualitativa de v2 |
-| UI Admin — matriz de riesgo | ❌ Falta | Issue #26 |
-| Observaciones accionables | ❌ Falta | Issue #27 |
-| Activación/bloqueo/rechazo con reglas | ❌ Falta | Issue #28 |
-| Auditoría administrativa separada | ❌ Falta | Issue #29 |
-| Exportación CSV auditoría | ❌ Falta | Issue #30 |
-| Seed demo determinista | ❌ Falta | Issue #31 |
-| Playwright E2E base | ❌ Falta | Issue #32 |
-| Gap analysis / documentación viva | ❌ Falta | Issue #33 |
+| Auth — Login con refresh token y sesión única | ✅ Implementado (v3) | `POST /auth/login` devuelve access + refresh; revoca sesiones previas; SHA-256 en BD |
+| Auth — Refresh Token | ✅ Implementado (v3) | `POST /auth/refresh` verifica hash en BD; interceptor Axios automático |
+| Auth — RBAC backend | ✅ Implementado (v3) | `core/rbac.py` con acciones y roles; 403 si no aplica |
+| Auth — Inactividad frontend | ✅ Implementado (v3) | 30 min de inactividad → logout + redirige a `/sesion-expirada` |
+| Tailwind tokens base | ✅ Implementado (v3) | `tailwind.config.js` con colors: fondo, sidebar, acento, riesgo |
+| Componentes UI base | ✅ Implementado (v3) | 11 componentes en `components/ui/` + EstadoBadge + RiesgoIndicador |
+| routeConfig + AppShell + AdminShell | ✅ Implementado (v3) | `routeConfig.js`, `AppShell.jsx`, `AdminShell.jsx` con navegación por rol |
+| Modelo expediente (estados nuevos) | ✅ Implementado (v3) | `PENDIENTE_BF`, `OBSERVADO`, `BLOQUEADO`, `requiere_reevaluacion` en `cliente.py` e `init.sql` |
+| Registro PN/PJ | ✅ Implementado (v3) | PN inicia en `PENDIENTE`; PJ inicia en `PENDIENTE_BF`; campos inmobiliarios en perfil transaccional |
+| Almacén documental con hash SHA-256 | ✅ Implementado (v3) | `documentos.py` calcula hash al subir; guarda en `/app/uploads/` con UUID |
+| Bandeja OC — verificar/rechazar/descargar docs | ✅ Implementado (v3) | Auditoría de descarga (`DESCARGAR_DOCUMENTO`), visualización, aprobación y rechazo |
+| Perfil transaccional (campos inmobiliarios) | ✅ Implementado (v3) | `monto_total_propiedad`, `metodo_pago_predominante`, `tipo_operacion`, `banco_origen_fondos`, financiamiento |
+| Beneficiario Final con validación OC | ✅ Implementado (v3) | Empleado captura; OC aprueba/rechaza con motivo; PJ sin BF aprobado no avanza |
+| Matriz de riesgo versionada | ✅ Implementado (v3) | `versiones_matriz_riesgo` + `factores_riesgo`; motor usa versión activa; seed base en `init.sql` |
+| UI Admin — matriz de riesgo | ✅ Implementado (v3) | `admin/MatrizRiesgo.jsx`; Admin edita pesos, activa/desactiva factores, publica versiones |
+| Observaciones accionables | ✅ Implementado (v3) | OC crea → Empleado responde → OC cierra; bloquean activación si hay abiertas |
+| Activación/bloqueo/rechazo con reglas | ✅ Implementado (v3) | Checklist completo: docs, perfiles, riesgo, observaciones, BF, confirmación ALTO; bloqueo/desbloqueo desde ACTIVO |
+| Auditoría administrativa separada | ✅ Implementado (v3) | Tabla `auditorias_admin`; registra login/logout, cambios de matriz, exportaciones CSV |
+| Exportación CSV auditoría | ✅ Implementado (v3) | Auditor y Admin exportan CSV expediente; Admin exporta CSV admin |
+| Seed demo determinista | ✅ Implementado (v3) | `seed_demo.py` crea usuarios demo con bcrypt; 5 usuarios en `init.sql` |
+| Playwright E2E base | ✅ Implementado (v3) | `playwright.config.js`, `smoke.spec.js`, `flujo_pn.spec.js`, `flujo_pj_bf.spec.js` |
+| Documentación viva (README, Manual, v3) | ✅ Implementado (v3) | README.md, MANUAL_USUARIO.md y este archivo actualizados a v3 |
