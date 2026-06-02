@@ -2,41 +2,65 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
-import Tabla from '../components/ui/Tabla';
-import Boton from '../components/ui/Boton';
-import Input from '../components/ui/Input';
-import Alerta from '../components/ui/Alerta';
+import { UserCheck, Plus, AlertCircle, CheckCircle2, XCircle, User, Flag } from 'lucide-react';
 
 export default function BeneficiarioFinal() {
-  const { id } = useParams();
+  const { id: urlId } = useParams();
   const { usuario } = useAuth();
+  const [clientes, setClientes] = useState([]);
+  const [clienteId, setClienteId] = useState(urlId || '');
   const [beneficiarios, setBeneficiarios] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ nombre_completo: '', numero_documento: '', nacionalidad: '', porcentaje_participacion: '', tipo_control: 'directo', es_pep: false });
+  const [form, setForm] = useState({
+    nombre_completo: '',
+    numero_documento: '',
+    nacionalidad: '',
+    porcentaje_participacion: '',
+    tipo_control: 'directo',
+    es_pep: false
+  });
 
-  const fetchBF = async () => {
+  useEffect(() => {
+    api.get('/clientes/?limit=9999').then(res => setClientes(res.data || []));
+  }, []);
+
+  useEffect(() => {
+    if (clienteId) fetchBF(clienteId);
+  }, [clienteId]);
+
+  useEffect(() => {
+    if (urlId) setClienteId(urlId);
+  }, [urlId]);
+
+  const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
+  const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
+
+  const fetchBF = async (cid) => {
+    setLoading(true);
     try {
-      const res = await api.get(`/clientes/${id}/beneficiarios`);
-      setBeneficiarios(res.data);
+      const res = await api.get(`/clientes/${cid}/beneficiarios`);
+      setBeneficiarios(res.data || []);
     } catch {
-      setError('Error al cargar beneficiarios');
+      setBeneficiarios([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchBF();
-  }, [id]);
-
   const agregar = async () => {
+    if (!clienteId) return showError('Seleccione un cliente');
     try {
-      await api.post(`/clientes/${id}/beneficiarios`, { ...form, porcentaje_participacion: parseFloat(form.porcentaje_participacion) });
+      await api.post(`/clientes/${clienteId}/beneficiarios`, {
+        ...form,
+        porcentaje_participacion: parseFloat(form.porcentaje_participacion)
+      });
       setForm({ nombre_completo: '', numero_documento: '', nacionalidad: '', porcentaje_participacion: '', tipo_control: 'directo', es_pep: false });
-      fetchBF();
-    } catch {
-      setError('Error al registrar beneficiario');
+      showMensaje('Beneficiario final registrado');
+      fetchBF(clienteId);
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Error al registrar beneficiario');
     }
   };
 
@@ -44,60 +68,154 @@ export default function BeneficiarioFinal() {
     try {
       if (accion === 'aprobar') {
         await api.patch(`/clientes/beneficiarios/${bfId}/aprobar`);
+        showMensaje('Beneficiario aprobado');
       } else {
         const motivo = prompt('Motivo de rechazo:');
         if (!motivo) return;
         await api.patch(`/clientes/beneficiarios/${bfId}/rechazar?motivo=${encodeURIComponent(motivo)}`);
+        showMensaje('Beneficiario rechazado');
       }
-      fetchBF();
-    } catch {
-      setError('Error al validar beneficiario');
+      fetchBF(clienteId);
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Error al validar beneficiario');
     }
   };
 
-  const columns = [
-    { key: 'nombre_completo', label: 'Nombre' },
-    { key: 'numero_documento', label: 'Documento' },
-    { key: 'porcentaje_participacion', label: '%' },
-    { key: 'tipo_control', label: 'Control' },
-    { key: 'estado_validacion', label: 'Estado' },
-    {
-      key: 'acciones',
-      label: 'Acciones',
-      render: (row) =>
-        usuario.rol === 'oficial_cumplimiento' && row.estado_validacion === 'PENDIENTE' ? (
-          <div className="flex gap-2">
-            <button onClick={() => validar(row.id, 'aprobar')} className="text-xs font-medium text-green-700 hover:underline">Aprobar</button>
-            <button onClick={() => validar(row.id, 'rechazar')} className="text-xs font-medium text-red-700 hover:underline">Rechazar</button>
-          </div>
-        ) : null,
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">Beneficiarios Finales</h1>
-      {error && <Alerta variant="error">{error}</Alerta>}
-      {usuario.rol === 'empleado' && (
-        <div className="grid grid-cols-1 gap-4 rounded-xl border bg-white p-5 shadow-sm md:grid-cols-3">
-          <Input label="Nombre completo" value={form.nombre_completo} onChange={(e) => setForm({ ...form, nombre_completo: e.target.value })} />
-          <Input label="Documento" value={form.numero_documento} onChange={(e) => setForm({ ...form, numero_documento: e.target.value })} />
-          <Input label="Nacionalidad" value={form.nacionalidad} onChange={(e) => setForm({ ...form, nacionalidad: e.target.value })} />
-          <Input label="% Participacion" type="number" value={form.porcentaje_participacion} onChange={(e) => setForm({ ...form, porcentaje_participacion: e.target.value })} />
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Tipo de control</label>
-            <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value={form.tipo_control} onChange={(e) => setForm({ ...form, tipo_control: e.target.value })}>
-              <option value="directo">Directo</option>
-              <option value="indirecto">Indirecto</option>
-              <option value="representacion">Representacion</option>
-            </select>
+    <div className="animate-fade-in-up">
+      <div style={{ marginBottom: 8 }}>
+        <h1 style={{ fontSize: 28 }}>Beneficiarios Finales</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Registro y validación de UBOs</p>
+      </div>
+
+      {mensaje && (
+        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CheckCircle2 className="h-4 w-4" />
+          {mensaje}
+        </div>
+      )}
+      {error && (
+        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <div style={{ marginBottom: 20, marginTop: 24 }}>
+        <label className="label-upper">Cliente</label>
+        <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="select-field" style={{ minWidth: 320 }}>
+          <option value="">Seleccione un cliente</option>
+          {clientes.map(c => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre || c.id_cliente}</option>)}
+        </select>
+      </div>
+
+      {clienteId && usuario?.rol === 'empleado' && (
+        <div className="card" style={{ padding: 24, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Nombre completo</label>
+              <input value={form.nombre_completo} onChange={(e) => setForm({ ...form, nombre_completo: e.target.value })} className="input-field" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Documento</label>
+              <input value={form.numero_documento} onChange={(e) => setForm({ ...form, numero_documento: e.target.value })} className="input-field" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Nacionalidad</label>
+              <input value={form.nacionalidad} onChange={(e) => setForm({ ...form, nacionalidad: e.target.value })} className="input-field" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>% Participación</label>
+              <input type="number" value={form.porcentaje_participacion} onChange={(e) => setForm({ ...form, porcentaje_participacion: e.target.value })} className="input-field" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Tipo de control</label>
+              <select className="select-field" style={{ width: '100%' }} value={form.tipo_control} onChange={(e) => setForm({ ...form, tipo_control: e.target.value })}>
+                <option value="directo">Directo</option>
+                <option value="indirecto">Indirecto</option>
+                <option value="representacion">Representación</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', paddingBottom: 10 }}>
+                <input type="checkbox" checked={form.es_pep} onChange={e => setForm({ ...form, es_pep: e.target.checked })} />
+                <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Es PEP</span>
+              </label>
+            </div>
           </div>
-          <div className="flex items-end">
-            <Boton onClick={agregar}>Agregar BF</Boton>
+          <div style={{ marginTop: 16 }}>
+            <button onClick={agregar} className="btn-primary">
+              <Plus className="h-4 w-4" /> Agregar beneficiario final
+            </button>
           </div>
         </div>
       )}
-      {loading ? <p className="text-sm text-gray-500">Cargando...</p> : <Tabla columns={columns} data={beneficiarios} />}
+
+      {loading && <p style={{ color: 'var(--text-muted)', padding: 24 }}>Cargando beneficiarios...</p>}
+
+      {!loading && beneficiarios.length === 0 && clienteId && (
+        <div className="empty-state">
+          <div className="empty-state-icon"><UserCheck className="h-6 w-6" /></div>
+          Sin beneficiarios finales registrados.
+        </div>
+      )}
+
+      {!loading && beneficiarios.length > 0 && (
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Documento</th>
+                <th>%</th>
+                <th>Control</th>
+                <th>PEP</th>
+                <th>Estado</th>
+                <th style={{ textAlign: 'right' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {beneficiarios.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/10 text-gold">
+                        <User className="h-3.5 w-3.5" />
+                      </div>
+                      <span style={{ fontWeight: 600 }}>{row.nombre_completo}</span>
+                    </div>
+                  </td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 13 }}>{row.numero_documento}</td>
+                  <td>{row.porcentaje_participacion}%</td>
+                  <td><span className="badge" style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.2)' }}>{row.tipo_control}</span></td>
+                  <td>{row.es_pep ? <span className="badge" style={{ backgroundColor: 'rgba(220,38,38,0.1)', color: '#F87171', border: '1px solid rgba(220,38,38,0.2)' }}><Flag className="h-3 w-3" /> PEP</span> : '—'}</td>
+                  <td>
+                    <span className="badge" style={{
+                      backgroundColor: row.estado_validacion === 'APROBADO' ? 'rgba(22,163,74,0.1)' : row.estado_validacion === 'RECHAZADO' ? 'rgba(220,38,38,0.1)' : 'rgba(212,175,55,0.1)',
+                      color: row.estado_validacion === 'APROBADO' ? '#16A34A' : row.estado_validacion === 'RECHAZADO' ? '#F87171' : '#D4AF37',
+                      border: `1px solid ${row.estado_validacion === 'APROBADO' ? 'rgba(22,163,74,0.2)' : row.estado_validacion === 'RECHAZADO' ? 'rgba(220,38,38,0.2)' : 'rgba(212,175,55,0.2)'}`
+                    }}>{row.estado_validacion}</span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    {usuario.rol === 'oficial_cumplimiento' && row.estado_validacion === 'PENDIENTE' ? (
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => validar(row.id, 'aprobar')} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
+                        </button>
+                        <button onClick={() => validar(row.id, 'rechazar')} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
+                          <XCircle className="h-3.5 w-3.5" /> Rechazar
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{row.validado_por || '—'}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

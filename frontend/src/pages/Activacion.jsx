@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import api from '../api/axiosConfig';
 import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
+import { AlertTriangle, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function Activacion() {
   const [clientes, setClientes] = useState([]);
   const [errores, setErrores] = useState([]);
+  const [mensaje, setMensaje] = useState('');
+  const [confirmando, setConfirmando] = useState({});
 
   const cargar = async () => {
     const res = await api.get('/clientes/?limit=9999');
@@ -16,14 +19,33 @@ export default function Activacion() {
 
   const mostrarErrores = (lista) => {
     setErrores(lista);
-    setTimeout(() => setErrores([]), 8000);
+    setMensaje('');
+    setTimeout(() => setErrores([]), 10000);
+  };
+
+  const mostrarMensaje = (texto) => {
+    setMensaje(texto);
+    setErrores([]);
+    setTimeout(() => setMensaje(''), 4000);
   };
 
   const activar = async (id) => {
+    const cliente = clientes.find(c => c.id_cliente === id);
+    const necesitaConfirmacion = cliente?.nivel_riesgo === 'ALTO';
+    const conf = necesitaConfirmacion ? confirmando[id] : true;
+
+    if (necesitaConfirmacion && !conf) {
+      mostrarErrores(['Riesgo ALTO: debe marcar la confirmación manual adicional para activar este cliente.']);
+      return;
+    }
+
     if (!window.confirm('¿Confirma que desea activar este cliente?')) return;
     setErrores([]);
     try {
-      await api.patch(`/clientes/${id}/activar`);
+      await api.patch(`/clientes/${id}/activar`, null, {
+        params: { confirmacion_alto: conf ? true : false }
+      });
+      mostrarMensaje('Cliente activado exitosamente');
       cargar();
     } catch (err) {
       console.error('Error al activar:', err);
@@ -49,6 +71,7 @@ export default function Activacion() {
     setErrores([]);
     try {
       await api.patch(`/clientes/${id}/rechazar?motivo=${encodeURIComponent(motivo)}`);
+      mostrarMensaje('Cliente rechazado');
       cargar();
     } catch (err) {
       console.error('Error al rechazar:', err);
@@ -66,17 +89,17 @@ export default function Activacion() {
         <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Gestión de aprobación y rechazo de expedientes</p>
       </div>
 
+      {mensaje && (
+        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CheckCircle2 className="h-4 w-4" />
+          {mensaje}
+        </div>
+      )}
+
       {errores.length > 0 && (
-        <div style={{
-          marginTop: 20,
-          marginBottom: 20,
-          padding: 20,
-          borderRadius: 'var(--radius-md)',
-          backgroundColor: 'rgba(220, 38, 38, 0.08)',
-          border: '1px solid rgba(220, 38, 38, 0.25)',
-          color: '#F87171'
-        }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div className="error-banner">
+          <div className="error-banner-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle className="h-4 w-4" />
             No se puede activar — Requisitos pendientes
           </div>
           <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.8 }}>
@@ -107,15 +130,29 @@ export default function Activacion() {
                 <td><EstadoBadge estado={c.estado} /></td>
                 <td>{c.nivel_riesgo ? <RiesgoIndicador nivel={c.nivel_riesgo} /> : '-'}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <button onClick={() => activar(c.id_cliente)} className="btn-primary" style={{ padding: '8px 16px', fontSize: 12, background: 'linear-gradient(135deg, #16A34A, #15803d)' }}>Activar</button>
-                    <button onClick={() => rechazar(c.id_cliente)} className="btn-secondary" style={{ padding: '8px 16px', fontSize: 12, backgroundColor: 'rgba(220,38,38,0.1)', color: '#F87171', borderColor: 'rgba(220,38,38,0.2)' }}>Rechazar</button>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {c.nivel_riesgo === 'ALTO' && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', marginRight: 4 }}>
+                        <input
+                          type="checkbox"
+                          checked={!!confirmando[c.id_cliente]}
+                          onChange={e => setConfirmando({ ...confirmando, [c.id_cliente]: e.target.checked })}
+                        />
+                        Confirmar ALTO
+                      </label>
+                    )}
+                    <button onClick={() => activar(c.id_cliente)} className="btn-success" style={{ padding: '8px 16px', fontSize: 12 }}>
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Activar
+                    </button>
+                    <button onClick={() => rechazar(c.id_cliente)} className="btn-danger" style={{ padding: '8px 16px', fontSize: 12 }}>
+                      <XCircle className="h-3.5 w-3.5" /> Rechazar
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
             {pendientes.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Sin clientes pendientes de activación.</td></tr>
+              <tr><td colSpan={5} className="empty-state">Sin clientes pendientes de activación.</td></tr>
             )}
           </tbody>
         </table>

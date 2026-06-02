@@ -1,44 +1,92 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import EstadoBadge from '../components/EstadoBadge';
+import { FileText, Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip } from 'lucide-react';
 
 export default function Documentos() {
+  const params = useParams();
+  const urlId = params.id;
+
   const [clientes, setClientes] = useState([]);
-  const [clienteId, setClienteId] = useState('');
+  const [clienteId, setClienteId] = useState(urlId || '');
   const [docs, setDocs] = useState([]);
   const [archivo, setArchivo] = useState(null);
   const [tipo, setTipo] = useState('DOCUMENTO_IDENTIDAD');
+  const [mensaje, setMensaje] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/clientes/?limit=9999').then(res => setClientes(res.data || []));
   }, []);
 
+  useEffect(() => {
+    if (clienteId) cargarDocs(clienteId);
+  }, [clienteId]);
+
+  useEffect(() => {
+    if (urlId) setClienteId(urlId);
+  }, [urlId]);
+
+  const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
+  const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
+
   const cargarDocs = async (id) => {
     if (!id) return;
-    const res = await api.get(`/clientes/${id}/documentos`);
-    setDocs(res.data || []);
+    try {
+      const res = await api.get(`/clientes/${id}/documentos`);
+      setDocs(res.data || []);
+    } catch {
+      setDocs([]);
+    }
   };
 
   const subir = async () => {
-    if (!clienteId || !archivo) return alert('Seleccione cliente y archivo');
+    if (!clienteId || !archivo) return showError('Seleccione cliente y archivo');
     const formData = new FormData();
     formData.append('tipo_documento', tipo);
     formData.append('archivo', archivo);
-    await api.post(`/clientes/${clienteId}/documentos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-    setArchivo(null);
-    cargarDocs(clienteId);
+    try {
+      await api.post(`/clientes/${clienteId}/documentos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setArchivo(null);
+      showMensaje('Documento subido correctamente');
+      cargarDocs(clienteId);
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Error al subir documento');
+    }
   };
 
   const verificar = async (docId) => {
-    await api.patch(`/clientes/documentos/${docId}/verificar`);
-    cargarDocs(clienteId);
+    try {
+      await api.patch(`/clientes/documentos/${docId}/verificar`);
+      showMensaje('Documento verificado');
+      cargarDocs(clienteId);
+    } catch {
+      showError('Error al verificar documento');
+    }
   };
 
   const rechazar = async (docId) => {
     const motivo = prompt('Motivo de rechazo');
     if (!motivo) return;
-    await api.patch(`/clientes/documentos/${docId}/rechazar?motivo=${encodeURIComponent(motivo)}`);
-    cargarDocs(clienteId);
+    try {
+      await api.patch(`/clientes/documentos/${docId}/rechazar?motivo=${encodeURIComponent(motivo)}`);
+      showMensaje('Documento rechazado');
+      cargarDocs(clienteId);
+    } catch {
+      showError('Error al rechazar documento');
+    }
+  };
+
+  const descargar = (docId, nombre) => {
+    const base = api.defaults.baseURL || 'http://localhost:8000';
+    const url = `${base}/clientes/documentos/${docId}/descargar`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre || 'documento';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -48,17 +96,30 @@ export default function Documentos() {
         <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Gestión de documentos de expedientes</p>
       </div>
 
+      {mensaje && (
+        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CheckCircle2 className="h-4 w-4" />
+          {mensaje}
+        </div>
+      )}
+      {error && (
+        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
       <div className="card" style={{ padding: 24, marginTop: 24, marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 8 }}>Cliente</label>
-            <select value={clienteId} onChange={e => { setClienteId(e.target.value); cargarDocs(e.target.value); }} className="select-field" style={{ width: '100%' }}>
+            <label className="label-upper">Cliente</label>
+            <select value={clienteId} onChange={e => { setClienteId(e.target.value); }} className="select-field" style={{ width: '100%' }}>
               <option value="">Seleccione un cliente</option>
               {clientes.map(c => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre || c.id_cliente}</option>)}
             </select>
           </div>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 8 }}>Tipo de documento</label>
+            <label className="label-upper">Tipo de documento</label>
             <select value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
               <option value="DOCUMENTO_IDENTIDAD">Documento de identidad</option>
               <option value="COMPROBANTE_INGRESOS">Comprobante de ingresos</option>
@@ -72,10 +133,12 @@ export default function Documentos() {
             </select>
           </div>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 8 }}>Archivo (PDF/JPG/PNG, máx 10MB)</label>
+            <label className="label-upper">Archivo (PDF/JPG/PNG, máx 10MB)</label>
             <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setArchivo(e.target.files[0])} className="input-field" style={{ padding: 10 }} />
           </div>
-          <button onClick={subir} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14 }}>Subir documento</button>
+          <button onClick={subir} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14 }}>
+            <Upload className="h-4 w-4" /> Subir documento
+          </button>
         </div>
       </div>
 
@@ -93,22 +156,38 @@ export default function Documentos() {
             {docs.map(d => (
               <tr key={d.id_documento}>
                 <td>
-                  <div style={{ fontWeight: 600 }}>{d.nombre_archivo}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{d.formato}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold/10 text-gold">
+                      <Paperclip className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{d.nombre_archivo}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{d.formato}</div>
+                    </div>
+                  </div>
                 </td>
                 <td style={{ color: 'var(--text-secondary)' }}>{d.tipo_documento}</td>
                 <td><EstadoBadge estado={d.estado} /></td>
                 <td style={{ textAlign: 'right' }}>
-                  {d.estado === 'PENDIENTE_VERIFICACION' && (
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <button onClick={() => verificar(d.id_documento)} className="btn-primary" style={{ padding: '6px 14px', fontSize: 12, background: 'linear-gradient(135deg, #16A34A, #15803d)' }}>Aprobar</button>
-                      <button onClick={() => rechazar(d.id_documento)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: 12, backgroundColor: 'rgba(220,38,38,0.1)', color: '#F87171', borderColor: 'rgba(220,38,38,0.2)' }}>Rechazar</button>
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button onClick={() => descargar(d.id_documento, d.nombre_archivo)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
+                      <Download className="h-3.5 w-3.5" /> Descargar
+                    </button>
+                    {d.estado === 'PENDIENTE_VERIFICACION' && (
+                      <>
+                        <button onClick={() => verificar(d.id_documento)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
+                        </button>
+                        <button onClick={() => rechazar(d.id_documento)} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
+                          <XCircle className="h-3.5 w-3.5" /> Rechazar
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
-            {docs.length === 0 && <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Sin documentos.</td></tr>}
+            {docs.length === 0 && <tr><td colSpan={4} className="empty-state">Sin documentos registrados.</td></tr>}
           </tbody>
         </table>
       </div>
