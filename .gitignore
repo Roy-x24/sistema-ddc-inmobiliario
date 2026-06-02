@@ -21,9 +21,9 @@ venv/
 # Entorno
 .env
 
-# Lockfiles (opcional — descomenta si quieres versionarlos)
-# pnpm-lock.yaml
-# package-lock.json
+# Lockfiles (ignorados para no ensuciar commits; package.json es suficiente)
+pnpm-lock.yaml
+package-lock.json
 
 # Docker
 .dockerignore
