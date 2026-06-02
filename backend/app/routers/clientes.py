@@ -133,9 +133,25 @@ def listar_clientes(
     if estado:
         query = query.filter(Cliente.estado == estado.upper())
     if busqueda:
+        # Build a subquery for nombre/identificacion matching
+        pn_match = db.query(PersonaNatural).filter(
+            or_(
+                PersonaNatural.nombres.ilike(f"%{busqueda}%"),
+                PersonaNatural.apellidos.ilike(f"%{busqueda}%"),
+                PersonaNatural.numero_documento.ilike(f"%{busqueda}%")
+            )
+        ).subquery()
+        pj_match = db.query(PersonaJuridica).filter(
+            or_(
+                PersonaJuridica.razon_social.ilike(f"%{busqueda}%"),
+                PersonaJuridica.ruc.ilike(f"%{busqueda}%")
+            )
+        ).subquery()
         query = query.filter(
             or_(
                 Cliente.registrado_por.ilike(f"%{busqueda}%"),
+                Cliente.id_cliente.in_(db.query(pn_match.c.id)),
+                Cliente.id_cliente.in_(db.query(pj_match.c.id))
             )
         )
 
