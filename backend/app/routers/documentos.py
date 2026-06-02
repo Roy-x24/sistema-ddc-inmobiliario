@@ -68,7 +68,11 @@ def adjuntar_documento(
 
 
 @router.get("/{id}/documentos", response_model=List[DocumentoResponse])
-def listar_documentos(id: str, db: Session = Depends(obtener_db), usuario: Usuario = Depends(obtener_usuario_actual)):
+def listar_documentos(
+    id: str,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
     docs = db.query(Documento).filter(Documento.id_cliente == id).all()
     return docs
 

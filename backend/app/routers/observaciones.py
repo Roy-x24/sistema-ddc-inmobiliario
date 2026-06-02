@@ -46,7 +46,7 @@ def crear_observacion(
 def listar_observaciones(
     id: str,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual)
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
 ):
     obs = db.query(Observacion).filter(Observacion.id_cliente == id).order_by(Observacion.fecha_creacion.desc()).all()
     return obs

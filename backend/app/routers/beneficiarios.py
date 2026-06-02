@@ -46,7 +46,7 @@ def registrar_beneficiario(
 def listar_beneficiarios(
     id: str,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual)
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
 ):
     bfs = db.query(BeneficiarioFinal).filter(BeneficiarioFinal.id_cliente == id).all()
     return [

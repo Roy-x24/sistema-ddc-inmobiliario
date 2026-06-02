@@ -48,7 +48,7 @@ def registrar_perfil_financiero(
 def obtener_perfil_financiero(
     id: str,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual)
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
 ):
     perfil = db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == id).first()
     if not perfil:
@@ -97,7 +97,7 @@ def registrar_perfil_transaccional(
 def obtener_perfil_transaccional(
     id: str,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual)
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
 ):
     perfil = db.query(PerfilTransaccional).filter(PerfilTransaccional.id_cliente == id).first()
     if not perfil:
