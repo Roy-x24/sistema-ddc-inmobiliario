@@ -1,30 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export default function RutaProtegida({ children, rolesPermitidos }) {
+export default function RutaProtegida({ children, rolesPermitidos = [] }) {
   const { usuario, cargando } = useAuth();
 
   if (cargando) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh',
-        color: 'var(--text-muted)',
-        fontSize: 14,
-        gap: 12
-      }}>
-        <span style={{
-          width: 18,
-          height: 18,
-          border: '2px solid var(--border-medium)',
-          borderTopColor: 'var(--accent-gold)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-          display: 'inline-block'
-        }} />
-        Cargando...
+      <div className="flex h-screen w-full items-center justify-center bg-fondo">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-acento border-t-transparent" />
       </div>
     );
   }
@@ -33,7 +16,7 @@ export default function RutaProtegida({ children, rolesPermitidos }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (rolesPermitidos && !rolesPermitidos.includes(usuario.rol)) {
+  if (rolesPermitidos.length > 0 && !rolesPermitidos.includes(usuario.rol)) {
     return <Navigate to="/no-autorizado" replace />;
   }
 

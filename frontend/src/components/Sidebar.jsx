@@ -1,90 +1,74 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import {
+  LayoutDashboard, Users, FileText, Shield, AlertTriangle,
+  ClipboardList, Settings, LogOut, Briefcase
+} from 'lucide-react';
 
-const rutas = [
-  { path: '/dashboard', label: 'Dashboard', icon: '◆', roles: ['empleado', 'oficial_cumplimiento', 'auditor', 'administrador'] },
-  { path: '/clientes', label: 'Clientes', icon: '◎', roles: ['empleado', 'oficial_cumplimiento', 'auditor', 'administrador'] },
-  { path: '/documentos', label: 'Documentos', icon: '▣', roles: ['empleado', 'oficial_cumplimiento', 'administrador'] },
-  { path: '/perfiles', label: 'Perfiles', icon: '◈', roles: ['empleado', 'administrador'] },
-  { path: '/riesgo', label: 'Riesgo', icon: '◉', roles: ['oficial_cumplimiento', 'auditor', 'administrador'] },
-  { path: '/activacion', label: 'Activación', icon: '✦', roles: ['oficial_cumplimiento', 'administrador'] },
-  { path: '/auditoria', label: 'Auditoría', icon: '◐', roles: ['oficial_cumplimiento', 'auditor', 'administrador'] },
-  { path: '/admin', label: 'Administración', icon: '✶', roles: ['administrador'] },
+const navItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['empleado', 'oficial_cumplimiento', 'auditor', 'admin'] },
+  { label: 'Clientes', icon: Users, path: '/clientes', roles: ['empleado', 'oficial_cumplimiento', 'auditor', 'admin'] },
+  { label: 'Documentos', icon: FileText, path: '/documentos', roles: ['empleado', 'oficial_cumplimiento', 'admin'] },
+  { label: 'Riesgo', icon: Shield, path: '/riesgo', roles: ['oficial_cumplimiento', 'auditor', 'admin'] },
+  { label: 'Activacion', icon: AlertTriangle, path: '/activacion', roles: ['oficial_cumplimiento', 'admin'] },
+  { label: 'Auditoria', icon: ClipboardList, path: '/auditoria', roles: ['oficial_cumplimiento', 'auditor', 'admin'] },
 ];
 
 export default function Sidebar() {
-  const { usuario } = useAuth();
+  const { usuario, cerrarSesion } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const permitidas = rutas.filter(r => r.roles.includes(usuario?.rol));
+  if (!usuario) return null;
+
+  const isAdmin = usuario.rol === 'admin';
 
   return (
-    <aside style={{
-      width: 240,
-      background: 'rgba(11, 15, 25, 0.95)',
-      borderRight: '1px solid var(--border-subtle)',
-      color: 'var(--text-secondary)',
-      padding: '88px 16px 24px',
-      position: 'fixed',
-      top: 0,
-      bottom: 0,
-      left: 0,
-      overflowY: 'auto',
-      zIndex: 40
-    }}>
-      <div style={{
-        fontSize: 10,
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        letterSpacing: '0.12em',
-        color: 'var(--text-muted)',
-        marginBottom: 12,
-        paddingLeft: 12
-      }}>
-        Módulos
+    <aside className="fixed left-0 top-0 z-30 flex h-screen w-60 flex-col bg-sidebar text-white">
+      <div className="flex items-center gap-3 px-6 py-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded bg-acento font-bold text-white">DDC</div>
+        <span className="text-sm font-semibold tracking-wide">KYC Inmobiliario</span>
       </div>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {permitidas.map(r => {
-          const activa = location.pathname.startsWith(r.path);
-          return (
-            <Link
-              key={r.path}
-              to={r.path}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-sm)',
-                textDecoration: 'none',
-                color: activa ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                backgroundColor: activa ? 'rgba(201, 162, 39, 0.08)' : 'transparent',
-                fontWeight: activa ? 700 : 500,
-                fontSize: 14,
-                transition: 'all var(--transition-fast)',
-                borderLeft: activa ? '3px solid var(--accent-gold)' : '3px solid transparent',
-                marginLeft: -3
-              }}
-            >
-              <span style={{ fontSize: 13, opacity: activa ? 1 : 0.6 }}>{r.icon}</span>
-              {r.label}
-            </Link>
-          );
-        })}
+
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {navItems
+          .filter((item) => item.roles.includes(usuario.rol))
+          .map((item) => {
+            const active = location.pathname.startsWith(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  active ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            );
+          })}
       </nav>
 
-      <div style={{
-        position: 'absolute',
-        bottom: 24,
-        left: 16,
-        right: 16,
-        padding: 16,
-        borderRadius: 'var(--radius-md)',
-        background: 'linear-gradient(135deg, rgba(201,162,39,0.08), rgba(59,130,246,0.05))',
-        border: '1px solid rgba(201,162,39,0.15)'
-      }}>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Versión</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-gold)' }}>MVP 1.0</div>
+      <div className="border-t border-white/10 px-3 py-4">
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/admin/matriz')}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors mb-1 ${
+              location.pathname.startsWith('/admin') ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            Matriz de Riesgo
+          </button>
+        )}
+        <button
+          onClick={cerrarSesion}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+        >
+          <LogOut className="h-4 w-4" />
+          Cerrar sesion
+        </button>
       </div>
     </aside>
   );

@@ -1,0 +1,18 @@
+export const routes = [
+  { path: '/login', element: 'Login', public: true },
+  { path: '/sesion-expirada', element: 'SesionExpirada', public: true },
+  { path: '/no-autorizado', element: 'NoAutorizado', public: true },
+  { path: '/dashboard', element: 'Dashboard', roles: ['empleado', 'oficial_cumplimiento', 'auditor', 'admin'] },
+  { path: '/clientes', element: 'ListadoClientes', roles: ['empleado', 'oficial_cumplimiento', 'auditor', 'admin'] },
+  { path: '/clientes/nuevo', element: 'RegistroNatural', roles: ['empleado', 'admin'] },
+  { path: '/clientes/nuevo-juridica', element: 'RegistroJuridica', roles: ['empleado', 'admin'] },
+  { path: '/expediente/:id', element: 'DetalleExpediente', roles: ['empleado', 'oficial_cumplimiento', 'auditor', 'admin'] },
+  { path: '/documentos/:id', element: 'Documentos', roles: ['empleado', 'oficial_cumplimiento', 'admin'] },
+  { path: '/beneficiarios/:id', element: 'BeneficiarioFinal', roles: ['empleado', 'oficial_cumplimiento', 'admin'] },
+  { path: '/perfiles/:id', element: 'Perfiles', roles: ['empleado', 'admin'] },
+  { path: '/riesgo/:id', element: 'Riesgo', roles: ['oficial_cumplimiento', 'auditor', 'admin'] },
+  { path: '/activacion/:id', element: 'Activacion', roles: ['oficial_cumplimiento', 'admin'] },
+  { path: '/observaciones/:id', element: 'Observaciones', roles: ['empleado', 'oficial_cumplimiento', 'admin'] },
+  { path: '/auditoria', element: 'Auditoria', roles: ['oficial_cumplimiento', 'auditor', 'admin'] },
+  { path: '/admin/matriz', element: 'MatrizRiesgo', roles: ['admin'] },
+];
