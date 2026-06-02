@@ -6,8 +6,8 @@ export default function RutaProtegida({ children, rolesPermitidos = [] }) {
 
   if (cargando) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-fondo">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-acento border-t-transparent" />
+      <div className="flex h-screen w-full items-center justify-center bg-cream">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gold border-t-transparent" />
       </div>
     );
   }
@@ -15,6 +15,8 @@ export default function RutaProtegida({ children, rolesPermitidos = [] }) {
   if (!usuario) {
     return <Navigate to="/login" replace />;
   }
+
+  if (usuario.rol === 'admin') return children;
 
   if (rolesPermitidos.length > 0 && !rolesPermitidos.includes(usuario.rol)) {
     return <Navigate to="/no-autorizado" replace />;
