@@ -9,9 +9,10 @@ class PerfilTransaccional(Base):
 
     id_perfil = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     id_cliente = Column(UUID(as_uuid=True), unique=True, nullable=False)
-    proposito_compra = Column(String, nullable=False)
-    monto_estimado = Column(Numeric, nullable=False)
-    tipo_transaccion = Column(String, nullable=False)
+    monto_total_propiedad = Column(Numeric, nullable=False)
+    metodo_pago_predominante = Column(String, nullable=False)
+    tipo_operacion = Column(String, nullable=False)
+    banco_origen_fondos = Column(String, nullable=True)
     tiene_financiamiento = Column(Boolean, default=False)
     banco_financiamiento = Column(String, nullable=True)
     monto_financiamiento = Column(Numeric, nullable=True)

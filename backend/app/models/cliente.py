@@ -12,6 +12,7 @@ class Cliente(Base):
     nivel_riesgo = Column(String, nullable=True)
     estado = Column(String, nullable=False, default="PENDIENTE")
     es_pep = Column(Boolean, default=False)
+    requiere_reevaluacion = Column(Boolean, default=False)
     fecha_registro = Column(TIMESTAMP, server_default=text("NOW()"))
     fecha_actualizacion = Column(TIMESTAMP, server_default=text("NOW()"))
     eliminado = Column(Boolean, default=False)

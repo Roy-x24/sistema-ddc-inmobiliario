@@ -12,6 +12,7 @@ class Documento(Base):
     tipo_documento = Column(String, nullable=False)
     nombre_archivo = Column(String, nullable=False)
     ruta_archivo = Column(String, nullable=False)
+    hash_sha256 = Column(String, nullable=False)
     tamano_bytes = Column(Integer, nullable=True)
     formato = Column(String, nullable=False)
     estado = Column(String, nullable=False, default="PENDIENTE_VERIFICACION")

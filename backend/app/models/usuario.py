@@ -13,3 +13,4 @@ class Usuario(Base):
     password_hash = Column(String, nullable=False)
     rol = Column(String, nullable=False)
     activo = Column(Boolean, default=True)
+    eliminado = Column(Boolean, default=False)
