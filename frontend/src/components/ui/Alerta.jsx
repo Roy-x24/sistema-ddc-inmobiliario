@@ -2,10 +2,10 @@ import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react';
 
 export default function Alerta({ variant = 'info', children, className = '' }) {
   const styles = {
-    info: 'bg-blue-50 text-blue-800 border-blue-200',
-    exito: 'bg-green-50 text-green-800 border-green-200',
-    advertencia: 'bg-yellow-50 text-yellow-800 border-yellow-200',
-    error: 'bg-red-50 text-red-800 border-red-200',
+    info: 'bg-navy-700/10 text-navy-700 border-navy-600/20',
+    exito: 'bg-risk-bajo/10 text-risk-bajo border-risk-bajo/20',
+    advertencia: 'bg-gold/10 text-gold-dark border-gold/20',
+    error: 'bg-risk-alto/10 text-risk-alto border-risk-alto/20',
   };
   const icons = {
     info: Info,
@@ -15,9 +15,9 @@ export default function Alerta({ variant = 'info', children, className = '' }) {
   };
   const Icon = icons[variant];
   return (
-    <div className={`flex items-start gap-3 rounded-lg border p-4 text-sm ${styles[variant]} ${className}`}>
+    <div className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${styles[variant]} ${className}`}>
       <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-      <div>{children}</div>
+      <div className="leading-relaxed">{children}</div>
     </div>
   );
 }

@@ -1,19 +1,21 @@
 export default function Tabla({ columns, data, className = '' }) {
   return (
-    <div className={`overflow-hidden rounded-lg border border-gray-200 shadow-sm ${className}`}>
+    <div className={`overflow-hidden rounded-xl border border-parchment bg-surface shadow-soft ${className}`}>
       <table className="w-full text-left text-sm">
-        <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-600">
-          <tr>
+        <thead>
+          <tr className="border-b border-parchment bg-cream/60">
             {columns.map((col) => (
-              <th key={col.key} className="px-4 py-3">{col.label}</th>
+              <th key={col.key} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                {col.label}
+              </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 bg-white">
+        <tbody className="divide-y divide-parchment">
           {data.map((row, i) => (
-            <tr key={i} className="hover:bg-gray-50">
+            <tr key={i} className="group transition-colors hover:bg-cream/40">
               {columns.map((col) => (
-                <td key={col.key} className="px-4 py-3 text-gray-700">
+                <td key={col.key} className="px-5 py-3.5 text-ink">
                   {col.render ? col.render(row) : row[col.key]}
                 </td>
               ))}
