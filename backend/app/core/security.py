@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+import hashlib
+import secrets
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
@@ -25,6 +27,14 @@ def decodificar_token_jwt(token: str) -> dict:
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido o expirado",
+            detail="Token invalido o expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def generar_refresh_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
