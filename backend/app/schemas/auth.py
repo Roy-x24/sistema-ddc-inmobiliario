@@ -13,6 +13,10 @@ class TokenResponse(BaseModel):
     token_type: str
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 class UsuarioResponse(BaseModel):
     correo: str
     nombre: str
@@ -20,3 +24,25 @@ class UsuarioResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UsuarioCreate(BaseModel):
+    nombre: str
+    correo: str
+    password: str
+    rol: str
+
+
+class UsuarioListItem(BaseModel):
+    id: str
+    nombre: str
+    correo: str
+    rol: str
+    activo: bool
+
+    class Config:
+        from_attributes = True
+
+
+class UsuarioUpdateRol(BaseModel):
+    rol: str
