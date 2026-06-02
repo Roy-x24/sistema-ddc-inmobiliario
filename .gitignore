@@ -20,3 +20,10 @@ venv/
 
 # Entorno
 .env
+
+# Lockfiles (opcional — descomenta si quieres versionarlos)
+# pnpm-lock.yaml
+# package-lock.json
+
+# Docker
+.dockerignore

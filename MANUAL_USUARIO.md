@@ -1,6 +1,6 @@
 # Manual de Usuario — Sistema DDC/KYC Inmobiliario
 
-> Versión 3.0 — Junio 2026
+> Versión 3.1 — Junio 2026
 > Universidad Tecnológica de Panamá (UTP) — Ingeniería de Software
 
 ---
@@ -37,7 +37,7 @@ El sistema viene configurado con 5 usuarios de prueba creados automáticamente a
 | `empleado@ddc.com` | Empleado | `empleado123` | Registrar clientes, adjuntar documentos, registrar perfiles, responder observaciones, registrar BF |
 | `oficial@ddc.com` | Oficial de Cumplimiento | `oficial123` | Verificar documentos, validar BF, ver riesgo, activar/rechazar/bloquear clientes, crear/cerrar observaciones, ver auditoría |
 | `auditor@ddc.com` | Auditor | `auditor123` | Ver riesgo, ver auditoría, consultar clientes, exportar CSV de auditoría expediente |
-| `admin@ddc.com` | Administrador | `admin123` | Gestiona matriz de riesgo, exportar CSV auditoría administrativa |
+| `admin@ddc.com` | Administrador | `admin123` | **Acceso total a todos los paneles operativos y de administración.** Gestiona matriz de riesgo, gestiona usuarios (crear, cambiar rol, eliminar), exportar CSV auditoría administrativa |
 | `demo_empleado@ddc.com` | Empleado | `empleado123` | Usuario adicional para demos y pruebas E2E |
 
 > **Seguridad:** Las contraseñas se almacenan con hash bcrypt. Nunca se guardan en texto plano. El token de acceso expira en 15 minutos; el sistema lo renueva automáticamente. Si no hay actividad durante 30 minutos, la sesión se cierra.
@@ -289,35 +289,55 @@ El Auditor tiene acceso de solo lectura a los registros de trazabilidad y puede 
 
 ### 5.4 Administrador
 
-El Administrador gestiona la matriz de riesgo y la auditoría administrativa.
+El Administrador es un **superusuario** que puede acceder a **todos los paneles operativos** (Dashboard, Clientes, Documentos, Perfiles, Riesgo, Activación, Observaciones, Beneficiarios, Auditoría) **y** a la administración del sistema. No tiene restricciones de permisos.
 
-#### 5.4.1 Gestionar la matriz de riesgo
+#### 5.4.1 Acceder a los paneles operativos como Admin
 1. Inicia sesión como `admin@ddc.com`
-2. El sistema te redirige directamente al **AdminShell** → sección **Matriz de Riesgo**
-3. Visualiza la **versión activa** de la matriz con sus factores:
+2. El sistema te lleva al **Dashboard** general (igual que los demás roles)
+3. El sidebar muestra **todas las opciones del menú**, incluyendo:
+   - Todas las secciones operativas (Clientes, Documentos, Perfiles, Riesgo, Activación, Observaciones, Beneficiarios, Auditoría)
+   - La sección **Administración** (Matriz de Riesgo, Usuarios)
+4. Puedes navegar libremente entre cualquier panel y realizar cualquier acción: registrar clientes, verificar documentos, activar clientes, crear observaciones, etc.
+
+#### 5.4.2 Gestionar usuarios (nuevo)
+1. En el sidebar, ve a **Administración → Usuarios**
+2. Visualiza la tabla de todos los usuarios del sistema con:
+   - Nombre, correo, rol y estado (activo/inactivo)
+3. **Crear un usuario nuevo:**
+   - Haz clic en **Nuevo usuario**
+   - Completa: nombre, correo, contraseña y rol (Empleado, Oficial de Cumplimiento, Auditor o Administrador)
+   - Haz clic en **Crear usuario**
+4. **Cambiar rol de un usuario:**
+   - En la fila del usuario, selecciona el nuevo rol desde el desplegable
+   - El cambio se guarda automáticamente
+5. **Eliminar un usuario:**
+   - Haz clic en el ícono de papelera en la fila del usuario
+   - Confirma la acción
+   - El usuario se marca como eliminado (soft delete) y queda inactivo
+   - **Nota:** No puedes eliminar tu propio usuario
+
+> **Seguridad:** Las contraseñas de usuarios creados desde este panel se almacenan con hash bcrypt automáticamente. Nunca se guardan en texto plano.
+
+#### 5.4.3 Gestionar la matriz de riesgo
+1. En el sidebar, ve a **Administración → Matriz de Riesgo**
+2. Visualiza la **versión activa** de la matriz con sus factores:
    - Nombre del factor, descripción, peso numérico, tipo (positivo/mitigante/bloqueante)
    - Estado activo/inactivo
-4. Para editar un factor:
+3. Para editar un factor:
    - Cambia el valor del **peso** en el campo numérico
    - Presiona Enter o haz clic fuera para guardar
-5. Para activar/desactivar un factor:
+4. Para activar/desactivar un factor:
    - Usa el interruptor de la columna **Activo**
-6. Para publicar una nueva versión:
+5. Para publicar una nueva versión:
    - Haz clic en **Publicar nueva versión**
    - El sistema archiva la versión anterior y activa la nueva
    - Todos los expedientes en `EN_REVISION` o `ACTIVO` se marcan con `requiere_reevaluacion = true`
 
-> **Regla crítica:** El administrador **NO** crea usuarios desde la interfaz en esta versión. Los usuarios se generan vía `init.sql` o `seed_demo.py`.
-
-#### 5.4.2 Ver auditoría administrativa
-1. Desde el **AdminShell**, accede a **Auditoría Administrativa**
-2. Visualiza:
-   - Logins exitosos y fallidos
-   - Cierres de sesión
-   - Publicaciones de matriz
-   - Ediciones de factores
-   - Exportaciones CSV
-3. Puedes exportar CSV de auditoría administrativa
+#### 5.4.4 Ver auditoría administrativa
+1. Desde cualquier panel, accede a **Auditoría** en el menú operativo
+2. Visualiza el historial cronológico de todas las acciones
+3. Puedes filtrar por ID de cliente o ver el historial global
+4. Las acciones de administración (crear usuario, cambiar rol, publicar matriz) también quedan registradas en auditoría
 
 ---
 
@@ -338,21 +358,22 @@ Pantalla de inicio después de iniciar sesión. Muestra:
 - **Feed de acciones recientes:** Últimas acciones registradas en auditoría
 
 ### 6.5 Clientes (Listado)
-Tabla paginada de todos los expedientes con:
-- Búsqueda por nombre o identificación
+Tabla elegante de todos los expedientes con diseño luxury:
+- **Dos botones de registro:** **Persona natural** y **Persona jurídica** (arriba a la derecha)
+- Búsqueda por nombre, apellidos, número de documento, razón social o RUC
 - Filtro por tipo (Natural / Jurídica)
 - Filtro por estado (PENDIENTE, PENDIENTE_BF, EN_REVISION, OBSERVADO, ACTIVO, BLOQUEADO, RECHAZADO)
-- Botón **Ver expediente** para acceder al detalle completo
+- Indicadores visuales de estado y riesgo con badges de color
+- Click en cualquier fila para acceder al detalle completo
+- Botón **Ver expediente** para cada cliente
 
 ### 6.6 Expediente (Detalle)
-Vista completa de toda la información del cliente en pestañas:
-- **General:** Datos identificatorios, estado, riesgo, PEP, fechas
-- **Documentos:** Lista con estado, hash, verificador
-- **Perfiles:** Financiero y transaccional lado a lado
-- **Beneficiarios Finales:** Solo PJ. Tabla con validación OC
-- **Riesgo:** Clasificación calculada con factores aplicados
-- **Observaciones:** Historial de observaciones con estado
-- **Activación:** Panel de acciones para Oficial
+Vista completa de toda la información del cliente con diseño luxury:
+- **Header:** Estado badge, nivel de riesgo, indicador PEP
+- **Barra de acciones contextual:** Botones para navegar rápidamente a Documentos, Perfiles, Riesgo, Observaciones, Beneficiarios y Activación (según el rol del usuario)
+- **Sección General:** Datos identificatorios, estado, riesgo, PEP, fechas, registrado por
+- **Datos específicos:** Grid de información para PN o PJ con representantes y beneficiarios en cards
+- **Ornamentos dorados** separando cada sección
 
 ### 6.7 Nuevo Cliente (Registro)
 Formulario en dos pasos (stepper):
@@ -360,48 +381,84 @@ Formulario en dos pasos (stepper):
 - **Paso 2:** Perfil financiero/transaccional
 
 ### 6.8 Documentos
-Panel de gestión documental por expediente:
-- Selector de tipo de documento
-- Campo para subir archivo (drag & drop)
-- Tabla de documentos subidos con estado, hash SHA-256, tamaño
-- Botones **Aprobar** / **Rechazar** / **Descargar** (solo visible para Oficial)
+Panel de gestión documental por cliente con diseño coherente:
+- Selector de cliente y tipo de documento
+- Campo para subir archivo (PDF, JPG, PNG máx 10MB)
+- Tabla de documentos subidos con:
+  - Icono de clip, nombre del archivo y formato
+  - Estado con badge visual
+  - Botón **Descargar** (disponible para todos los roles con permiso)
+  - Botones **Aprobar** (verde) / **Rechazar** (rojo) (solo visible para Oficial/Admin)
+- Banners de éxito/error animados al realizar acciones
 
 ### 6.9 Perfiles
-Dos paneles lado a lado:
-- **Perfil financiero:** Fuente de ingresos, rango, origen de fondos, patrimonio
-- **Perfil transaccional:** Monto total, método de pago, tipo operación, banco origen, financiamiento
+Dos cards elegantes lado a lado con indicadores de estado:
+- **Perfil financiero:** Fuente de ingresos, rango de ingresos, origen de fondos, patrimonio declarado
+  - Muestra badge "Registrado" si ya existe
+  - Botón **Guardar** / **Actualizar**
+- **Perfil transaccional:** Monto total de la propiedad, método de pago predominante, tipo de operación, banco de origen de fondos, financiamiento bancario
+  - Campos condicionales: banco del préstamo y monto solo si aplica financiamiento
+  - Muestra badge "Registrado" si ya existe
+  - Botón **Guardar** / **Actualizar**
+- Selección de cliente desde desplegable; al cambiar cliente se cargan automáticamente los perfiles existentes
 
 ### 6.10 Riesgo
-Visualización de la clasificación de riesgo calculada automáticamente. Muestra:
-- Nivel (BAJO / ESTÁNDAR / ALTO) con indicador visual
-- Puntaje bruto y final
-- Justificación descriptiva
-- Factores aplicados con desglose de pesos
-- Versión de matriz usada
-- Botón para forzar recálculo
+Visualización elegante de la clasificación de riesgo calculada automáticamente:
+- Nivel (BAJO / ESTÁNDAR / ALTO) con indicador visual y badge
+- Justificación descriptiva en panel destacado
+- Datos en cards: fecha de cálculo, si fue automático, factores aplicados desglosados
+- Botón **Forzar recálculo** con icono de refresh animado
+- Mensaje informativo si aún no se ha calculado el riesgo (faltan perfiles)
 
 ### 6.11 Activación
-Panel de acciones para el Oficial:
-- **Activar:** Si todos los requisitos están completos (incluyendo confirmación ALTO)
-- **Rechazar:** Siempre requiere motivo obligatorio
-- **Bloquear:** Desde ACTIVO, requiere motivo
-- **Desbloquear:** Desde BLOQUEADO
-
-Si faltan requisitos, aparece un panel rojo listando exactamente qué falta.
+Panel de acciones para el Oficial con diseño premium:
+- Tabla de clientes pendientes con estado, riesgo e identificación
+- **Checkbox "Confirmar ALTO":** Aparece solo para clientes con riesgo ALTO; debe marcarse antes de activar
+- Botón **Activar** (verde) con confirmación de ventana
+- Botón **Rechazar** (rojo) que solicita motivo obligatorio
+- Panel de errores detallado en banner rojo si faltan requisitos (documentos, perfiles, observaciones abiertas, BF aprobados, etc.)
+- Banner verde de éxito al activar o rechazar correctamente
 
 ### 6.12 Observaciones
-Tabla de observaciones del expediente:
-- **Empleado:** Puede responder observaciones abiertas
-- **Oficial:** Puede crear observaciones (bloquea activación) y cerrarlas cuando hayan sido respondidas
+Tabla elegante de observaciones del expediente:
+- Selector de cliente desde desplegable
+- **Oficial:** Panel superior para crear nueva observación con campo de texto y botón **Crear**
+- Tabla con: descripción, respuesta, estado (ABIERTA/CERRADA) con badge, creada por (con avatar)
+- **Empleado:** Botón **Responder** (solo en observaciones abiertas sin respuesta)
+- **Oficial:** Botón **Cerrar** (solo en observaciones abiertas que ya tienen respuesta)
+- Banners de éxito/error animados para cada acción
 
-### 6.13 Auditoría
-Tabla cronológica de todas las acciones del sistema. Soporta filtrado por ID de cliente. Botón de **Exportar CSV** (Auditor y Admin).
+### 6.13 Beneficiarios Finales
+Panel para gestionar UBOs de personas jurídicas:
+- Selector de cliente desde desplegable
+- **Empleado:** Formulario en grid para registrar nuevos BF: nombre, documento, nacionalidad, % participación, tipo de control (directo/indirecto/representación), checkbox **¿Es PEP?**
+- Tabla con: avatar, nombre, documento, % participación, control, PEP badge, estado de validación (PENDIENTE/APROBADO/RECHAZADO)
+- **Oficial:** Botones **Aprobar** (verde) / **Rechazar** (rojo) con motivo obligatorio para BF pendientes
+- Badge de estado con colores semánticos
 
-### 6.14 Administración (Matriz de Riesgo)
-Panel exclusivo para el rol Admin:
-- Versión activa de la matriz con factores editables
-- Historial de versiones archivadas
-- Botón para publicar nueva versión
+### 6.14 Auditoría
+Tabla cronológica de todas las acciones del sistema con diseño luxury:
+- Filtrado por ID de cliente (opcional) con campo de texto y botones **Filtrar** / **Ver todo**
+- Columnas: fecha, usuario (con avatar), acción, expediente, cambio (anterior → nuevo)
+- Acciones de administración también visibles (login, logout, crear usuario, cambiar rol, etc.)
+- Botón de **Exportar CSV** (Auditor y Admin)
+
+### 6.15 Administración — Matriz de Riesgo
+Panel exclusivo para el rol Admin con diseño coherente:
+- Card superior con versión activa, indicador de estado y tabla de factores
+- Cada factor: nombre, descripción, tipo (badge), peso editable (campo numérico), estado activo/inactivo (badge)
+- Card inferior con historial de versiones: número, descripción, publicada por, estado (Activa/Inactiva badge)
+- Botón **Publicar** para versiones inactivas (con confirmación)
+- Banners de éxito/error para cada acción
+
+### 6.16 Administración — Usuarios (nuevo)
+Panel de gestión completa de usuarios, solo para Admin:
+- Botón **Nuevo usuario** que despliega formulario de creación (nombre, correo, contraseña, rol desde desplegable)
+- Tabla de usuarios con: avatar, nombre, correo, rol (badge con color según rol), estado (activo/inactivo)
+- **Cambiar rol:** Desplegable en cada fila para cambiar el rol al instante
+- **Eliminar:** Botón de papelera con confirmación (soft delete, no borra físicamente)
+- Validaciones: correo único, rol válido, no permite auto-eliminación
+- Banners de éxito/error para cada acción
 
 ---
 
@@ -468,16 +525,20 @@ Panel exclusivo para el rol Admin:
 | Error / Situación | Causa probable | Solución |
 |-------------------|----------------|----------|
 | "Credenciales incorrectas" | Contraseña errónea o usuario inactivo | Verifica mayúsculas/minúsculas. Si persisten, contacta al Administrador. |
-| "Acceso denegado" | El rol no tiene permiso para esa acción | Cierra sesión e ingresa con un usuario que tenga el rol adecuado. |
+| "Acceso denegado" | El rol no tiene permiso para esa acción | Cierra sesión e ingresa con un usuario que tenga el rol adecuado. Si eres Admin, tienes acceso a todo. |
 | "Token inválido o expirado" | El access token expiró (15 min) | El sistema debería renovarlo automáticamente. Si persiste, cierra sesión y vuelve a iniciar. |
 | "Sesión expirada" | Inactividad mayor a 30 min o refresh token revocado | Inicia sesión nuevamente. |
 | No puedo activar un cliente | Faltan documentos, perfiles, observaciones abiertas o el estado no es EN_REVISION | Revisa el panel de errores que aparece al intentar activar. Completa lo que falta. |
+| "Riesgo ALTO: requiere confirmación manual" | El cliente tiene riesgo ALTO y no marcaste la casilla de confirmación | En la tabla de Activación, marca el checkbox **"Confirmar ALTO"** antes de activar. |
 | "El perfil ya existe" | Ya se registró un perfil financiero o transaccional para ese cliente | Cada cliente solo puede tener un perfil financiero y uno transaccional. |
 | "Documento excede 10 MB" | El archivo es demasiado grande | Comprime el archivo o reduce la resolución de la imagen. |
 | "Formato no permitido" | El archivo no es PDF, JPG ni PNG | Convierte el archivo a uno de los formatos permitidos. |
 | El riesgo no se calcula | Falta uno de los dos perfiles | Registra el perfil financiero y el transaccional. El cálculo es automático. |
 | El expediente PJ no avanza de PENDIENTE_BF | Ningún BF ha sido aprobado por el Oficial | Solicita al Oficial que valide al menos un beneficiario final. |
 | "No se puede activar: observaciones abiertas" | Hay observaciones sin cerrar | Responde las observaciones y solicita al Oficial que las cierre. |
+| No puedo descargar un documento | El backend no está accesible o la ruta es incorrecta | Verifica que el contenedor del backend esté corriendo en http://localhost:8000. |
+| "El correo ya está registrado" | Intentas crear un usuario con un correo existente | Usa un correo diferente o verifica si el usuario ya existe. |
+| "No puede eliminar su propio usuario" | Intentaste eliminar el usuario con el que iniciaste sesión | Inicia sesión con otro usuario admin para eliminar este. |
 
 ---
 
