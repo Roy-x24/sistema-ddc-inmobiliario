@@ -1,0 +1,226 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import List
+from app.database import obtener_db
+from app.models.cliente import Cliente
+from app.models.persona_natural import PersonaNatural
+from app.models.persona_juridica import PersonaJuridica
+from app.models.representante_legal import RepresentanteLegal
+from app.models.beneficiario_final import BeneficiarioFinal
+from app.schemas.cliente import PersonaNaturalCreate, PersonaJuridicaCreate, ClienteListItem
+from app.routers.auth import obtener_usuario_actual
+from app.models.usuario import Usuario
+from app.services.auditoria_service import registrar_auditoria
+from app.services.estado_service import verificar_documentos_para_revision
+from sqlalchemy import or_, func
+
+router = APIRouter(prefix="/clientes", tags=["Clientes"])
+
+
+def verificar_rol_empleado(usuario: Usuario):
+    if usuario.rol not in ("empleado", "administrador"):
+        raise HTTPException(status_code=403, detail="Solo empleados pueden realizar esta acción")
+
+
+@router.post("/natural")
+def registrar_persona_natural(datos: PersonaNaturalCreate, db: Session = Depends(obtener_db), usuario: Usuario = Depends(obtener_usuario_actual)):
+    verificar_rol_empleado(usuario)
+
+    cliente = Cliente(
+        tipo_cliente="NATURAL",
+        es_pep=datos.es_pep,
+        registrado_por=usuario.correo
+    )
+    db.add(cliente)
+    db.commit()
+    db.refresh(cliente)
+
+    pn = PersonaNatural(
+        id=cliente.id_cliente,
+        nombres=datos.nombres,
+        apellidos=datos.apellidos,
+        tipo_documento=datos.tipo_documento,
+        numero_documento=datos.numero_documento,
+        fecha_nacimiento=datos.fecha_nacimiento,
+        nacionalidad=datos.nacionalidad,
+        pais_residencia=datos.pais_residencia,
+        direccion=datos.direccion,
+        telefono=datos.telefono,
+        correo=datos.correo,
+        ocupacion=datos.ocupacion
+    )
+    db.add(pn)
+    db.commit()
+
+    registrar_auditoria(db, usuario.correo, "CREAR_CLIENTE", str(cliente.id_cliente), None, "PENDIENTE")
+
+    return {"id_cliente": str(cliente.id_cliente), "estado": cliente.estado}
+
+
+@router.post("/juridica")
+def registrar_persona_juridica(datos: PersonaJuridicaCreate, db: Session = Depends(obtener_db), usuario: Usuario = Depends(obtener_usuario_actual)):
+    verificar_rol_empleado(usuario)
+
+    cliente = Cliente(
+        tipo_cliente="JURIDICA",
+        es_pep=datos.es_pep,
+        registrado_por=usuario.correo
+    )
+    db.add(cliente)
+    db.commit()
+    db.refresh(cliente)
+
+    pj = PersonaJuridica(
+        id=cliente.id_cliente,
+        razon_social=datos.razon_social,
+        ruc=datos.ruc,
+        tipo_pj=datos.tipo_pj,
+        pais_constitucion=datos.pais_constitucion,
+        actividad_economica=datos.actividad_economica,
+        domicilio_legal=datos.domicilio_legal,
+        telefono=datos.telefono,
+        correo=datos.correo,
+        proposito_adquisicion=datos.proposito_adquisicion
+    )
+    db.add(pj)
+
+    rl = RepresentanteLegal(
+        id_cliente=cliente.id_cliente,
+        nombre_completo=datos.representante_legal.nombre_completo,
+        numero_identificacion=datos.representante_legal.numero_identificacion,
+        cargo=datos.representante_legal.cargo,
+        poderes_otorgados=datos.representante_legal.poderes_otorgados
+    )
+    db.add(rl)
+
+    for b in datos.beneficiarios_finales:
+        bf = BeneficiarioFinal(
+            id_cliente=cliente.id_cliente,
+            nombre_completo=b.nombre_completo,
+            numero_documento=b.numero_documento,
+            nacionalidad=b.nacionalidad,
+            porcentaje_participacion=b.porcentaje_participacion,
+            tipo_control=b.tipo_control,
+            es_pep=b.es_pep
+        )
+        db.add(bf)
+
+    db.commit()
+
+    registrar_auditoria(db, usuario.correo, "CREAR_CLIENTE", str(cliente.id_cliente), None, "PENDIENTE")
+
+    return {"id_cliente": str(cliente.id_cliente), "estado": cliente.estado}
+
+
+@router.get("/", response_model=List[ClienteListItem])
+def listar_clientes(
+    busqueda: str = "",
+    tipo: str = "",
+    estado: str = "",
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual)
+):
+    query = db.query(Cliente).filter(Cliente.eliminado == False)
+
+    if tipo:
+        query = query.filter(Cliente.tipo_cliente == tipo.upper())
+    if estado:
+        query = query.filter(Cliente.estado == estado.upper())
+    if busqueda:
+        query = query.filter(
+            or_(
+                Cliente.registrado_por.ilike(f"%{busqueda}%"),
+            )
+        )
+
+    total = query.count()
+    clientes = query.offset(skip).limit(limit).all()
+
+    resultados = []
+    for c in clientes:
+        nombre = None
+        identificacion = None
+        if c.tipo_cliente == "NATURAL":
+            pn = db.query(PersonaNatural).filter(PersonaNatural.id == c.id_cliente).first()
+            if pn:
+                nombre = f"{pn.nombres} {pn.apellidos}"
+                identificacion = pn.numero_documento
+        else:
+            pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == c.id_cliente).first()
+            if pj:
+                nombre = pj.razon_social
+                identificacion = pj.ruc
+        resultados.append(ClienteListItem(
+            id_cliente=str(c.id_cliente),
+            tipo_cliente=c.tipo_cliente,
+            estado=c.estado,
+            nivel_riesgo=c.nivel_riesgo,
+            fecha_registro=str(c.fecha_registro),
+            registrado_por=c.registrado_por,
+            nombre=nombre,
+            identificacion=identificacion
+        ))
+
+    return resultados
+
+
+@router.get("/{id}")
+def detalle_cliente(id: str, db: Session = Depends(obtener_db), usuario: Usuario = Depends(obtener_usuario_actual)):
+    cliente = db.query(Cliente).filter(Cliente.id_cliente == id, Cliente.eliminado == False).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    data = {
+        "id_cliente": str(cliente.id_cliente),
+        "tipo_cliente": cliente.tipo_cliente,
+        "estado": cliente.estado,
+        "nivel_riesgo": cliente.nivel_riesgo,
+        "es_pep": cliente.es_pep,
+        "fecha_registro": str(cliente.fecha_registro),
+        "registrado_por": cliente.registrado_por
+    }
+
+    if cliente.tipo_cliente == "NATURAL":
+        pn = db.query(PersonaNatural).filter(PersonaNatural.id == id).first()
+        if pn:
+            data["detalle"] = {
+                "nombres": pn.nombres,
+                "apellidos": pn.apellidos,
+                "tipo_documento": pn.tipo_documento,
+                "numero_documento": pn.numero_documento,
+                "fecha_nacimiento": str(pn.fecha_nacimiento),
+                "nacionalidad": pn.nacionalidad,
+                "pais_residencia": pn.pais_residencia,
+                "direccion": pn.direccion,
+                "telefono": pn.telefono,
+                "correo": pn.correo,
+                "ocupacion": pn.ocupacion
+            }
+    else:
+        pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == id).first()
+        rl = db.query(RepresentanteLegal).filter(RepresentanteLegal.id_cliente == id).all()
+        bf = db.query(BeneficiarioFinal).filter(BeneficiarioFinal.id_cliente == id).all()
+        if pj:
+            data["detalle"] = {
+                "razon_social": pj.razon_social,
+                "ruc": pj.ruc,
+                "tipo_pj": pj.tipo_pj,
+                "pais_constitucion": pj.pais_constitucion,
+                "actividad_economica": pj.actividad_economica,
+                "domicilio_legal": pj.domicilio_legal,
+                "telefono": pj.telefono,
+                "correo": pj.correo,
+                "proposito_adquisicion": pj.proposito_adquisicion,
+                "representantes_legales": [
+                    {"nombre_completo": r.nombre_completo, "numero_identificacion": r.numero_identificacion, "cargo": r.cargo, "poderes_otorgados": r.poderes_otorgados}
+                    for r in rl
+                ],
+                "beneficiarios_finales": [
+                    {"nombre_completo": b.nombre_completo, "numero_documento": b.numero_documento, "nacionalidad": b.nacionalidad, "porcentaje_participacion": float(b.porcentaje_participacion), "tipo_control": b.tipo_control, "es_pep": b.es_pep}
+                    for b in bf
+                ]
+            }
+
+    return data

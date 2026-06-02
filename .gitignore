@@ -1,0 +1,21 @@
+# Docker
+uploads/
+
+# Node / pnpm
+node_modules/
+dist/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+
+# Entorno
+.env
