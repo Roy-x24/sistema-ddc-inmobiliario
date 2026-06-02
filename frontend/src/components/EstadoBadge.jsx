@@ -1,29 +1,16 @@
-const config = {
-  PENDIENTE: { bg: 'rgba(217, 119, 6, 0.12)', text: '#FBBF24', border: 'rgba(217, 119, 6, 0.3)' },
-  EN_REVISION: { bg: 'rgba(59, 130, 246, 0.12)', text: '#60A5FA', border: 'rgba(59, 130, 246, 0.3)' },
-  ACTIVO: { bg: 'rgba(22, 163, 74, 0.12)', text: '#4ADE80', border: 'rgba(22, 163, 74, 0.3)' },
-  RECHAZADO: { bg: 'rgba(220, 38, 38, 0.12)', text: '#F87171', border: 'rgba(220, 38, 38, 0.3)' },
-  PENDIENTE_VERIFICACION: { bg: 'rgba(217, 119, 6, 0.12)', text: '#FBBF24', border: 'rgba(217, 119, 6, 0.3)' },
-  VERIFICADO: { bg: 'rgba(22, 163, 74, 0.12)', text: '#4ADE80', border: 'rgba(22, 163, 74, 0.3)' }
-};
-
 export default function EstadoBadge({ estado }) {
-  const estilo = config[estado] || config.PENDIENTE;
+  const map = {
+    PENDIENTE: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    PENDIENTE_BF: 'bg-orange-50 text-orange-700 border-orange-200',
+    EN_REVISION: 'bg-blue-50 text-blue-700 border-blue-200',
+    OBSERVADO: 'bg-purple-50 text-purple-700 border-purple-200',
+    ACTIVO: 'bg-green-50 text-green-700 border-green-200',
+    BLOQUEADO: 'bg-red-50 text-red-700 border-red-200',
+    RECHAZADO: 'bg-gray-100 text-gray-700 border-gray-200',
+  };
   return (
-    <span className="badge" style={{
-      backgroundColor: estilo.bg,
-      color: estilo.text,
-      border: `1px solid ${estilo.border}`,
-      fontFamily: 'var(--font-body)'
-    }}>
-      <span style={{
-        width: 6,
-        height: 6,
-        borderRadius: '50%',
-        backgroundColor: estilo.text,
-        display: 'inline-block'
-      }} />
-      {estado?.replace(/_/g, ' ')}
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${map[estado] || map.PENDIENTE}`}>
+      {estado?.replace('_', ' ')}
     </span>
   );
 }
