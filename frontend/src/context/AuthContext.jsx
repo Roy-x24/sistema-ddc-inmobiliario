@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
     }
     localStorage.clear();
     setUsuario(null);
-    window.location.href = porInactividad ? '/sesion-expirada' : '/login';
+    window.location.href = porInactividad === true ? '/sesion-expirada' : '/login';
   }, []);
 
   return (

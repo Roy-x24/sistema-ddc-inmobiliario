@@ -88,7 +88,7 @@ input, select, textarea {
 
 /* Animaciones */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -108,11 +108,11 @@ input, select, textarea {
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
+  animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .stagger-1 { animation-delay: 0.06s; }
@@ -515,4 +515,38 @@ input[type="file"].input-field::file-selector-button {
   font-weight: 500;
   font-size: 14px;
   word-break: break-word;
+}
+
+/* Sidebar Gooey Effect */
+.sidebar-active-item {
+  position: relative;
+  background-color: #f4f7fb;
+  color: #1e3a8a !important; /* Tailwind text-blue-900 */
+  border-radius: 24px 0 0 24px;
+}
+
+.sidebar-active-item::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -24px;
+  width: 24px;
+  height: 24px;
+  background-color: transparent;
+  border-bottom-right-radius: 24px;
+  box-shadow: 12px 12px 0 12px #f4f7fb;
+  pointer-events: none;
+}
+
+.sidebar-active-item::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -24px;
+  width: 24px;
+  height: 24px;
+  background-color: transparent;
+  border-top-right-radius: 24px;
+  box-shadow: 12px -12px 0 12px #f4f7fb;
+  pointer-events: none;
 }
