@@ -21,7 +21,7 @@ function onTokenRefreshed(newToken) {
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
-  if (token) {
+  if (token && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -32,7 +32,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    if (error.response && error.response.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) {
         localStorage.clear();

@@ -25,7 +25,7 @@ import AdminUsuarios from './pages/admin/AdminUsuarios';
 
 function OperativeLayout({ children }) {
   return (
-    <div className="flex min-h-screen bg-cream">
+    <div className="flex min-h-screen bg-[#f4f7fb] font-sans antialiased text-gray-900">
       <Sidebar />
       <div className="ml-64 flex-1">
         <Navbar />

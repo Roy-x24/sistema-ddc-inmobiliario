@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
-import { Shield } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import gradientImg from '../img/gradient.svg';
 
 export default function Login() {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const { iniciarSesion } = useAuth();
@@ -34,70 +36,98 @@ export default function Login() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-navy-900">
-      {/* Background ambient */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(212,175,55,0.08),_transparent_50%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(11,27,61,1),_transparent_60%)]" />
-      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.85\' numOctaves=\'3\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }} />
-
-      {/* Decorative lines */}
-      <div className="absolute left-0 top-0 h-full w-px bg-gradient-to-b from-transparent via-gold/20 to-transparent" />
-      <div className="absolute right-0 top-0 h-full w-px bg-gradient-to-b from-transparent via-gold/20 to-transparent" />
-
-      <div className="relative z-10 w-full max-w-[440px] animate-fade-in-up">
-        {/* Card */}
-        <div className="rounded-2xl border border-gold/15 bg-navy-800/60 p-10 shadow-elevated backdrop-blur-xl">
-          {/* Header */}
-          <div className="mb-10 text-center">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 shadow-glow">
-              <Shield className="h-7 w-7 text-gold" />
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f7fb] p-6 font-sans">
+      <div className="flex w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+        {/* Left Panel - Image/Gradient */}
+        <div className="relative hidden w-1/2 p-4 md:block">
+          <div className="relative h-full w-full overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-[#02196b] via-blue-800 to-blue-700">
+            <img 
+              src={gradientImg} 
+              alt="Gradient Background" 
+              className="absolute inset-0 h-full w-full object-cover mix-blend-overlay opacity-80"
+            />
+            <div className="absolute inset-0 flex flex-col justify-between p-12">
+              <div className="text-4xl text-white">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v20M2 12h20M4.929 4.929l14.142 14.142M4.929 19.071L19.071 4.929"/>
+                </svg>
+              </div>
+              <div className="text-[#f4f7fb]">
+                <p className="mb-2 text-sm font-medium uppercase tracking-widest opacity-80">Sistema DDC</p>
+                <h1 className="text-4xl font-bold leading-tight text-[#f4f7fb]">
+                  Debida Diligencia<br />
+                  y Cumplimiento<br />
+                  Inmobiliario
+                </h1>
+              </div>
             </div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-cream">DDC/KYC</h1>
-            <div className="ornament mt-3 mb-2 text-gold-muted">
-              <span className="text-[10px] uppercase tracking-[0.2em]">Inmobiliario</span>
-            </div>
-            <p className="text-sm text-gold-muted/70">Debida Diligencia de Clientes</p>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Right Panel - Form */}
+        <div className="flex w-full flex-col justify-center px-8 py-12 md:w-1/2 md:px-16">
+          <div className="mb-8 md:hidden">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M2 12h20M4.929 4.929l14.142 14.142M4.929 19.071L19.071 4.929"/>
+            </svg>
+          </div>
+          
+          <h2 className="mb-2 font-display text-3xl font-bold text-gray-900">Iniciar sesión</h2>
+          <p className="mb-8 text-sm text-gray-500">
+            Accede al sistema para gestionar clientes, expedientes y matrices de riesgo en un solo lugar.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.15em] text-gold-muted">Correo electronico</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">Correo electrónico</label>
               <input
                 type="email"
                 required
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
-                className="w-full rounded-lg border border-gold/20 bg-navy-900/60 px-4 py-3 text-sm text-cream placeholder-gold-muted/30 transition-all focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 placeholder="usuario@ddc.com"
               />
             </div>
-            <div>
-              <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.15em] text-gold-muted">Contrasena</label>
+            
+            <div className="relative">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">Contraseña</label>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gold/20 bg-navy-900/60 px-4 py-3 text-sm text-cream placeholder-gold-muted/30 transition-all focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/15"
-                placeholder="********"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute bottom-3 right-4 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
+
             {error && (
-              <div className="rounded-lg border border-risk-alto/20 bg-risk-alto/10 px-4 py-3 text-center text-sm text-risk-alto">
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-600">
                 {error}
               </div>
             )}
+
             <button
               type="submit"
               disabled={cargando}
-              className="w-full rounded-lg bg-gold py-3 text-sm font-bold uppercase tracking-wider text-navy-900 shadow-glow transition-all hover:bg-gold-light hover:shadow-elevated disabled:opacity-60"
+              className="mt-2 w-full rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 disabled:opacity-70"
             >
-              {cargando ? 'Ingresando...' : 'Iniciar sesion'}
+              {cargando ? 'Ingresando...' : 'Iniciar sesión'}
             </button>
           </form>
 
-          <div className="mt-8 border-t border-gold/10 pt-5 text-center">
-            <p className="text-[11px] text-gold-muted/50">Sujetos Obligados — Ley 23 de 2015</p>
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-500">
+              Sujetos Obligados — Ley 23 de 2015
+            </p>
           </div>
         </div>
       </div>

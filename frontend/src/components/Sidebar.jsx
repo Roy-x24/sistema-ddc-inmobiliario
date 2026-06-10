@@ -42,39 +42,38 @@ export default function Sidebar() {
       <button
         key={key}
         onClick={() => navigate(item.path)}
-        className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+        className={`group flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-all ${
           active
-            ? 'bg-gold/15 text-gold shadow-inner'
-            : 'text-gold-muted hover:bg-white/5 hover:text-cream'
+            ? 'sidebar-active-item'
+            : 'rounded-l-2xl text-blue-100 hover:bg-white/10 hover:text-white'
         }`}
       >
-        <item.icon className={`h-4 w-4 transition-colors ${active ? 'text-gold' : 'text-gold-muted group-hover:text-cream'}`} />
+        <item.icon className={`h-5 w-5 transition-colors ${active ? 'text-blue-900' : 'text-blue-200 group-hover:text-white'}`} />
         {item.label}
-        {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-gold" />}
       </button>
     );
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col bg-navy-800 text-white shadow-elevated">
+    <aside className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col bg-gradient-to-b from-[#02196b] to-blue-800 text-white shadow-xl">
       {/* Brand */}
-      <div className="flex items-center gap-3 border-b border-gold/20 px-6 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 font-display text-sm font-bold text-gold">
+      <div className="flex items-center gap-3 border-b border-white/20 px-6 py-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/40 bg-white/10 font-bold text-white shadow-sm">
           DDC
         </div>
         <div>
-          <span className="block text-sm font-semibold tracking-wide text-cream">KYC Inmobiliario</span>
-          <span className="text-[10px] uppercase tracking-widest text-gold-muted">Compliance Regulatorio</span>
+          <span className="block text-sm font-bold tracking-wide text-white">KYC Inmobiliario</span>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-blue-200">Compliance Regulatorio</span>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-6">
+      <nav className="flex-1 space-y-1 overflow-y-auto pl-4 py-6">
         {isAdmin ? (
           <>
-            <div className="px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-gold-muted/60">Operativo</div>
+            <div className="px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-blue-200">Operativo</div>
             {navItems.map((item) => renderItem(item, item.path))}
-            <div className="px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-gold-muted/60">Administracion</div>
+            <div className="px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-blue-200">Administracion</div>
             {adminItems.map((item) => renderItem(item, 'admin-' + item.path))}
           </>
         ) : (
@@ -85,18 +84,18 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-gold/20 px-3 py-5 space-y-1">
+      <div className="border-t border-white/20 px-4 py-5 space-y-1">
         <div className="px-3 pb-3">
-          <div className="text-[10px] uppercase tracking-widest text-gold-muted">Usuario</div>
-          <div className="truncate text-xs text-cream">{usuario.nombre || usuario.correo}</div>
-          <div className="mt-0.5 text-[10px] text-gold-muted capitalize">{usuario.rol?.replace('_', ' ')}</div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Usuario</div>
+          <div className="truncate text-xs font-bold text-white">{usuario.nombre || usuario.correo}</div>
+          <div className="mt-0.5 text-[10px] font-medium text-blue-100 capitalize">{usuario.rol?.replace('_', ' ')}</div>
         </div>
         <button
           onClick={cerrarSesion}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gold-muted transition-colors hover:bg-white/5 hover:text-cream"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-blue-100 transition-colors hover:bg-white/10 hover:text-white"
         >
-          <LogOut className="h-4 w-4" />
-          Cerrar sesion
+          <LogOut className="h-5 w-5" />
+          Cerrar sesión
         </button>
       </div>
     </aside>
