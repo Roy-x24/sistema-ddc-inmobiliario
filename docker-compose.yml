@@ -44,6 +44,25 @@ services:
       - ./frontend/package.json:/app/package.json
       - node_modules:/app/node_modules
 
+  sonarqube:
+    image: sonarqube:community
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/ddc_db
+      SONAR_JDBC_USERNAME: ddc_user
+      SONAR_JDBC_PASSWORD: ddc_pass
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    depends_on:
+      - db
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+
 volumes:
   postgres_data:
   node_modules:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
