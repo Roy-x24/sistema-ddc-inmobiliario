@@ -1,42 +1,74 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import api from '../api/axiosConfig';
 import { Users, Clock, CheckCircle, AlertTriangle, ShieldAlert, Eye, FileCheck } from 'lucide-react';
 
+const EMPTY_STATS = {
+  total: 0,
+  pendiente: 0,
+  pendiente_bf: 0,
+  en_revision: 0,
+  observado: 0,
+  activo: 0,
+  bloqueado: 0,
+  rechazado: 0
+};
+
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    total: 0, pendiente: 0, pendiente_bf: 0, en_revision: 0,
-    observado: 0, activo: 0, bloqueado: 0, rechazado: 0
-  });
+  const [stats, setStats] = useState(EMPTY_STATS);
   const [reciente, setReciente] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    api.get('/clientes/?limit=9999').then(res => {
-      const data = res.data || [];
-      setStats({
-        total: data.length,
-        pendiente: data.filter(c => c.estado === 'PENDIENTE').length,
-        pendiente_bf: data.filter(c => c.estado === 'PENDIENTE_BF').length,
-        en_revision: data.filter(c => c.estado === 'EN_REVISION').length,
-        observado: data.filter(c => c.estado === 'OBSERVADO').length,
-        activo: data.filter(c => c.estado === 'ACTIVO').length,
-        bloqueado: data.filter(c => c.estado === 'BLOQUEADO').length,
-        rechazado: data.filter(c => c.estado === 'RECHAZADO').length,
-      });
-    });
-    api.get('/auditoria').then(res => {
-      setReciente((res.data || []).slice(0, 10));
-    }).catch(() => {});
+    const controller = new AbortController();
+
+    async function cargarDashboard() {
+      setCargando(true);
+
+      try {
+        const [clientesRes, auditoriaRes] = await Promise.all([
+          api.get('/clientes/?limit=9999', { signal: controller.signal }),
+          api.get('/auditoria', { signal: controller.signal }).catch(() => ({ data: [] }))
+        ]);
+
+        const data = clientesRes.data || [];
+        const resumen = data.reduce((acc, cliente) => {
+          acc.total += 1;
+
+          if (cliente.estado in acc) {
+            acc[cliente.estado.toLowerCase()] += 1;
+          }
+
+          return acc;
+        }, { ...EMPTY_STATS });
+
+        setStats(resumen);
+        setReciente((auditoriaRes.data || []).slice(0, 10));
+      } catch (error) {
+        if (error.name !== 'CanceledError' && error.code !== 'ERR_CANCELED') {
+          setStats(EMPTY_STATS);
+          setReciente([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCargando(false);
+        }
+      }
+    }
+
+    cargarDashboard();
+
+    return () => controller.abort();
   }, []);
 
-  const statCards = [
-    { label: 'Total expedientes', value: stats.total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-    { label: 'Pendientes', value: stats.pendiente + stats.pendiente_bf, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-    { label: 'En revision', value: stats.en_revision, icon: Eye, color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100' },
-    { label: 'Observados', value: stats.observado, icon: AlertTriangle, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
-    { label: 'Activos', value: stats.activo, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
-    { label: 'Bloqueados', value: stats.bloqueado, icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100' },
-    { label: 'Rechazados', value: stats.rechazado, icon: FileCheck, color: 'text-gray-500', bg: 'bg-gray-50', border: 'border-gray-200' },
-  ];
+  const statCards = useMemo(() => [
+    { label: 'Total expedientes', value: stats.total, icon: Users, color: 'text-navy-800', bg: 'bg-navy-700/10', border: 'border-navy-600/20' },
+    { label: 'Pendientes', value: stats.pendiente + stats.pendiente_bf, icon: Clock, color: 'text-gold-dark', bg: 'bg-gold/10', border: 'border-gold/20' },
+    { label: 'En revision', value: stats.en_revision, icon: Eye, color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
+    { label: 'Observados', value: stats.observado, icon: AlertTriangle, color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
+    { label: 'Activos', value: stats.activo, icon: CheckCircle, color: 'text-risk-bajo', bg: 'bg-risk-bajo/10', border: 'border-risk-bajo/20' },
+    { label: 'Bloqueados', value: stats.bloqueado, icon: ShieldAlert, color: 'text-risk-alto', bg: 'bg-risk-alto/10', border: 'border-risk-alto/20' },
+    { label: 'Rechazados', value: stats.rechazado, icon: FileCheck, color: 'text-ink-muted', bg: 'bg-ink-muted/10', border: 'border-ink-muted/20' },
+  ], [stats]);
 
   const actionIcon = (accion) => {
     if (accion.includes('ACTIVAR')) return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -47,7 +79,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="dashboard-smooth space-y-8">
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
@@ -59,12 +91,13 @@ export default function Dashboard() {
         {statCards.map((card, i) => (
           <div
             key={card.label}
-            className={`rounded-2xl border border-gray-100 bg-white p-5 shadow-sm animate-fade-in-up stagger-${i + 1}`}
+            className="dashboard-card luxury-card p-5"
+            style={{ animationDelay: `${i * 45}ms` }}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{card.label}</p>
-                <p className="mt-1 text-3xl font-bold tracking-tight text-gray-900">{card.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">{card.label}</p>
+                <p className="mt-1 font-display text-3xl font-bold tracking-tight text-navy-800">{cargando ? '-' : card.value}</p>
               </div>
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl border ${card.border} ${card.bg}`}>
                 <card.icon className={`h-6 w-6 ${card.color}`} />
@@ -80,8 +113,14 @@ export default function Dashboard() {
           <div className="h-6 w-1.5 rounded-full bg-blue-600" />
           <h3 className="text-lg font-bold text-gray-900">Acciones recientes</h3>
         </div>
-        {reciente.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">Sin registros recientes.</p>
+        {cargando ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="dashboard-skeleton h-14 rounded-lg" />
+            ))}
+          </div>
+        ) : reciente.length === 0 ? (
+          <p className="py-8 text-center text-sm text-ink-muted">Sin registros recientes.</p>
         ) : (
           <div className="space-y-2">
             {reciente.map((r) => (

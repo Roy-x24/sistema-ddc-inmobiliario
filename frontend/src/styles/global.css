@@ -122,6 +122,40 @@ input, select, textarea {
 .stagger-5 { animation-delay: 0.30s; }
 .stagger-6 { animation-delay: 0.36s; }
 
+.dashboard-smooth {
+  animation: fadeIn 0.28s ease-out both;
+}
+
+.dashboard-card {
+  animation: fadeInUp 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.dashboard-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #F3EFE5;
+}
+
+.dashboard-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: shimmer 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-smooth,
+  .dashboard-card,
+  .dashboard-skeleton::after {
+    animation: none;
+  }
+}
+
 /* Gold accent underline for headings */
 .gold-underline {
   position: relative;
