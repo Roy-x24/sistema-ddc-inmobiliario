@@ -9,7 +9,7 @@ from app.models.beneficiario_final import BeneficiarioFinal
 from app.models.observacion import Observacion
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
-from app.services.estado_service import cambiar_estado_cliente, obtener_tipos_obligatorios
+from app.services.estado_service import cambiar_estado_cliente, obtener_tipos_obligatorios, verificar_documentos_para_revision
 from app.services.auditoria_service import registrar_auditoria
 
 router = APIRouter(prefix="/clientes", tags=["Activacion"])
@@ -25,6 +25,10 @@ def activar_cliente(
     cliente = db.query(Cliente).filter(Cliente.id_cliente == id, Cliente.eliminado == False).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    if cliente.estado == "PENDIENTE":
+        verificar_documentos_para_revision(db, id, usuario.correo)
+        db.refresh(cliente)
 
     errores = []
 
