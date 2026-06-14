@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff } from 'lucide-react';
-import gradientImg from '../img/gradient.svg';
+import { Eye, EyeOff, Landmark, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
   const [correo, setCorreo] = useState('');
@@ -23,11 +22,7 @@ export default function Login() {
       const { access_token, refresh_token } = res.data;
       const me = await api.get('/auth/me', { headers: { Authorization: `Bearer ${access_token}` } });
       iniciarSesion(access_token, refresh_token, me.data);
-      if (me.data.rol === 'admin') {
-        navigate('/admin/matriz');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate(me.data.rol === 'admin' ? '/admin/matriz' : '/dashboard');
     } catch (err) {
       setError('Credenciales incorrectas');
     } finally {
@@ -36,101 +31,118 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f4f7fb] p-6 font-sans">
-      <div className="flex w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
-        {/* Left Panel - Image/Gradient */}
-        <div className="relative hidden w-1/2 p-4 md:block">
-          <div className="relative h-full w-full overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-[#02196b] via-blue-800 to-blue-700">
-            <img 
-              src={gradientImg} 
-              alt="Gradient Background" 
-              className="absolute inset-0 h-full w-full object-cover mix-blend-overlay opacity-80"
-            />
-            <div className="absolute inset-0 flex flex-col justify-between p-12">
-              <div className="text-4xl text-white">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2v20M2 12h20M4.929 4.929l14.142 14.142M4.929 19.071L19.071 4.929"/>
-                </svg>
-              </div>
-              <div className="text-[#f4f7fb]">
-                <p className="mb-2 text-sm font-medium uppercase tracking-widest opacity-80">Sistema DDC</p>
-                <h1 className="text-4xl font-bold leading-tight text-[#f4f7fb]">
-                  Debida Diligencia<br />
-                  y Cumplimiento<br />
-                  Inmobiliario
-                </h1>
-              </div>
+    <div className="grid min-h-screen bg-[#08111f] font-sans text-slate-950 md:grid-cols-[1.08fr_0.92fr]">
+      <section className="relative hidden overflow-hidden p-10 text-white md:block">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.38),transparent_32%),radial-gradient(circle_at_78%_30%,rgba(245,158,11,0.24),transparent_34%),linear-gradient(135deg,#08111f,#101827)]" />
+        <div className="relative flex h-full flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 backdrop-blur">
+              <Landmark className="h-6 w-6" />
             </div>
+            <div>
+              <p className="text-sm font-black tracking-wide">DDC KYC</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-teal-100/70">Real Estate Compliance</p>
+            </div>
+          </div>
+
+          <div className="max-w-xl">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-teal-100">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Ley 23 de 2015
+            </div>
+            <h1 className="text-5xl font-black leading-tight tracking-tight text-white">
+              Control inteligente para debida diligencia inmobiliaria.
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">
+              Expedientes, documentos, riesgo y auditoria en una experiencia pensada para operar rapido y decidir con claridad.
+            </p>
+          </div>
+
+          <div className="grid max-w-xl grid-cols-3 gap-3">
+            {['Expedientes', 'Riesgo', 'Auditoria'].map((item) => (
+              <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{item}</p>
+                <p className="mt-2 text-sm font-semibold text-white">Listo para operar</p>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        {/* Right Panel - Form */}
-        <div className="flex w-full flex-col justify-center px-8 py-12 md:w-1/2 md:px-16">
+      <section className="flex items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-md">
           <div className="mb-8 md:hidden">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M2 12h20M4.929 4.929l14.142 14.142M4.929 19.071L19.071 4.929"/>
-            </svg>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
+              <Landmark className="h-6 w-6" />
+            </div>
           </div>
-          
-          <h2 className="mb-2 font-display text-3xl font-bold text-gray-900">Iniciar sesión</h2>
-          <p className="mb-8 text-sm text-gray-500">
-            Accede al sistema para gestionar clientes, expedientes y matrices de riesgo en un solo lugar.
-          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-900">Correo electrónico</label>
-              <input
-                type="email"
-                required
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                placeholder="usuario@ddc.com"
-              />
-            </div>
-            
-            <div className="relative">
-              <label className="mb-2 block text-sm font-semibold text-gray-900">Contraseña</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute bottom-3 right-4 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl shadow-slate-950/10">
+            <p className="text-xs font-black uppercase tracking-widest text-teal-700">Acceso seguro</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Iniciar sesion</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Gestiona clientes, expedientes y matrices de riesgo desde un solo panel.
+            </p>
 
-            {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-600">
-                {error}
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-800">Correo electronico</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    required
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pl-11 text-sm font-semibold text-slate-950 transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/10"
+                    placeholder="usuario@ddc.com"
+                  />
+                </div>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={cargando}
-              className="mt-2 w-full rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 disabled:opacity-70"
-            >
-              {cargando ? 'Ingresando...' : 'Iniciar sesión'}
-            </button>
-          </form>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-800">Contrasena</label>
+                <div className="relative">
+                  <LockKeyhole className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pl-11 pr-12 text-sm font-semibold text-slate-950 transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/10"
+                    placeholder="********"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500">
-              Sujetos Obligados — Ley 23 de 2015
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm font-bold text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={cargando}
+                className="w-full rounded-xl bg-slate-950 py-3.5 text-sm font-black text-white shadow-lg shadow-slate-950/20 transition hover:-translate-y-0.5 hover:bg-teal-700 disabled:translate-y-0 disabled:opacity-70"
+              >
+                {cargando ? 'Ingresando...' : 'Entrar al sistema'}
+              </button>
+            </form>
+
+            <p className="mt-8 text-center text-xs font-semibold text-slate-400">
+              Sujetos Obligados - Ley 23 de 2015
             </p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
