@@ -25,11 +25,11 @@ import AdminUsuarios from './pages/admin/AdminUsuarios';
 
 function OperativeLayout({ children }) {
   return (
-    <div className="flex min-h-screen bg-[#f4f7fb] font-sans antialiased text-gray-900">
+    <div className="app-canvas flex min-h-screen font-sans antialiased text-slate-900">
       <Sidebar />
-      <div className="ml-64 flex-1">
+      <div className="ml-72 flex-1">
         <Navbar />
-        <main className="mt-16 p-8">
+        <main className="mt-20 px-8 pb-10 pt-8">
           {children}
         </main>
       </div>

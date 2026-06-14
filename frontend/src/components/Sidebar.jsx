@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, FileText, FileSpreadsheet, Shield, AlertTriangle,
-  ClipboardList, MessageSquare, UserCheck, LogOut, Settings
+  ClipboardList, MessageSquare, UserCheck, LogOut, Settings, Sparkles
 } from 'lucide-react';
 
 const navItems = [
@@ -42,38 +42,49 @@ export default function Sidebar() {
       <button
         key={key}
         onClick={() => navigate(item.path)}
-        className={`group flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-all ${
+        className={`group flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition-all ${
           active
             ? 'sidebar-active-item'
-            : 'rounded-l-2xl text-blue-100 hover:bg-white/10 hover:text-white'
+            : 'rounded-l-2xl text-slate-300 hover:bg-white/10 hover:text-white'
         }`}
       >
-        <item.icon className={`h-5 w-5 transition-colors ${active ? 'text-blue-900' : 'text-blue-200 group-hover:text-white'}`} />
+        <item.icon className={`h-5 w-5 transition-colors ${active ? 'text-slate-950' : 'text-cyan-100/80 group-hover:text-white'}`} />
         {item.label}
       </button>
     );
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col bg-gradient-to-b from-[#02196b] to-blue-800 text-white shadow-xl">
-      {/* Brand */}
-      <div className="flex items-center gap-3 border-b border-white/20 px-6 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/40 bg-white/10 font-bold text-white shadow-sm">
+    <aside className="fixed left-0 top-0 z-30 flex h-screen w-72 flex-col overflow-hidden bg-[#08111f] text-white shadow-[18px_0_50px_rgba(8,17,31,0.2)]">
+      <div className="absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_30%_10%,rgba(20,184,166,0.32),transparent_42%),radial-gradient(circle_at_80%_0%,rgba(245,158,11,0.2),transparent_36%)]" />
+      <div className="relative flex items-center gap-3 border-b border-white/10 px-6 py-6">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-sm font-black text-white shadow-sm backdrop-blur">
           DDC
         </div>
         <div>
           <span className="block text-sm font-bold tracking-wide text-white">KYC Inmobiliario</span>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-blue-200">Compliance Regulatorio</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-teal-100/80">Compliance Regulatorio</span>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto pl-4 py-6">
+      <div className="relative mx-5 mt-5 rounded-xl border border-white/10 bg-white/[0.06] p-4 shadow-inner">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-300 text-slate-950">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Centro KYC</div>
+            <div className="text-sm font-semibold text-white">Control operativo</div>
+          </div>
+        </div>
+      </div>
+
+      <nav className="relative flex-1 space-y-1 overflow-y-auto pl-4 py-6">
         {isAdmin ? (
           <>
-            <div className="px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-blue-200">Operativo</div>
+            <div className="px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Operativo</div>
             {navItems.map((item) => renderItem(item, item.path))}
-            <div className="px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-blue-200">Administracion</div>
+            <div className="px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Administracion</div>
             {adminItems.map((item) => renderItem(item, 'admin-' + item.path))}
           </>
         ) : (
@@ -83,19 +94,18 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Bottom */}
-      <div className="border-t border-white/20 px-4 py-5 space-y-1">
+      <div className="relative space-y-1 border-t border-white/10 px-4 py-5">
         <div className="px-3 pb-3">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Usuario</div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Usuario</div>
           <div className="truncate text-xs font-bold text-white">{usuario.nombre || usuario.correo}</div>
-          <div className="mt-0.5 text-[10px] font-medium text-blue-100 capitalize">{usuario.rol?.replace('_', ' ')}</div>
+          <div className="mt-0.5 text-[10px] font-medium capitalize text-slate-300">{usuario.rol?.replace('_', ' ')}</div>
         </div>
         <button
           onClick={cerrarSesion}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-blue-100 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-5 w-5" />
-          Cerrar sesión
+          Cerrar sesion
         </button>
       </div>
     </aside>

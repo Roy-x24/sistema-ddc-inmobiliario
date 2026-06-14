@@ -33,20 +33,34 @@ html, body, #root {
 
 body {
   font-family: var(--font-body);
-  background-color: #F7F5F0;
+  background-color: #F3F6F8;
   color: #1A202C;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.018'/%3E%3C/svg%3E");
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   margin: 0;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
   color: #0B1B3D;
+}
+
+.app-canvas {
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.08), transparent 34%),
+    linear-gradient(315deg, rgba(245, 158, 11, 0.08), transparent 30%),
+    #f3f6f8;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
 }
 
 p {
@@ -346,9 +360,9 @@ input, select, textarea {
 /* ─── Card ─── */
 .card {
   background: #FFFFFF;
-  border: 1px solid rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(6, 16, 36, 0.06);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .card:hover {
@@ -359,9 +373,9 @@ input, select, textarea {
 /* ─── Table ─── */
 .table-container {
   background: #FFFFFF;
-  border: 1px solid rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(6, 16, 36, 0.06);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
   overflow: hidden;
 }
 .table-container table {
@@ -370,7 +384,7 @@ input, select, textarea {
   font-size: 13px;
 }
 .table-container thead {
-  background: linear-gradient(180deg, #FAFAF7, #F7F5F0);
+  background: #F8FAFC;
 }
 .table-container th {
   padding: 14px 18px;
@@ -392,7 +406,7 @@ input, select, textarea {
   transition: background 0.15s ease;
 }
 .table-container tbody tr:hover {
-  background: rgba(212, 175, 55, 0.03);
+  background: rgba(20, 184, 166, 0.05);
 }
 .table-container tbody tr:last-child td {
   border-bottom: none;
@@ -554,9 +568,10 @@ input[type="file"].input-field::file-selector-button {
 /* Sidebar Gooey Effect */
 .sidebar-active-item {
   position: relative;
-  background-color: #f4f7fb;
-  color: #1e3a8a !important; /* Tailwind text-blue-900 */
+  background-color: #f3f6f8;
+  color: #020617 !important;
   border-radius: 24px 0 0 24px;
+  box-shadow: -6px 10px 24px rgba(0, 0, 0, 0.16);
 }
 
 .sidebar-active-item::before {
@@ -568,7 +583,7 @@ input[type="file"].input-field::file-selector-button {
   height: 24px;
   background-color: transparent;
   border-bottom-right-radius: 24px;
-  box-shadow: 12px 12px 0 12px #f4f7fb;
+  box-shadow: 12px 12px 0 12px #f3f6f8;
   pointer-events: none;
 }
 
@@ -581,6 +596,6 @@ input[type="file"].input-field::file-selector-button {
   height: 24px;
   background-color: transparent;
   border-top-right-radius: 24px;
-  box-shadow: 12px -12px 0 12px #f4f7fb;
+  box-shadow: 12px -12px 0 12px #f3f6f8;
   pointer-events: none;
 }
