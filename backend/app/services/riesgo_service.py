@@ -177,7 +177,7 @@ def _calcular_riesgo_cualitativo(db, cliente, perfil_financiero, perfil_transacc
         nivel = "ALTO"
         factores.append("Pais de residencia/constitucion en lista de riesgo")
 
-    if perfil_transaccional.monto_estimado and perfil_transaccional.monto_estimado > 500000:
+    if perfil_transaccional.monto_total_propiedad and perfil_transaccional.monto_total_propiedad > 500000:
         nivel = "ALTO"
         factores.append("Monto de transaccion mayor a $500,000 USD")
 
@@ -193,7 +193,7 @@ def _calcular_riesgo_cualitativo(db, cliente, perfil_financiero, perfil_transacc
             factores.append("PJ extranjera con estructura compleja")
 
     if nivel != "ALTO":
-        monto = perfil_transaccional.monto_estimado or 0
+        monto = perfil_transaccional.monto_total_propiedad or 0
         if 100000 <= monto <= 500000:
             nivel = "ESTANDAR"
             factores.append("Monto entre $100,000 y $500,000")

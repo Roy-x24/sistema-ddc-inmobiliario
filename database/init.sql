@@ -63,7 +63,11 @@ CREATE TABLE IF NOT EXISTS personas_juridicas (
     domicilio_legal VARCHAR NOT NULL,
     telefono VARCHAR NOT NULL,
     correo VARCHAR NOT NULL,
-    proposito_adquisicion VARCHAR NOT NULL
+    proposito_adquisicion VARCHAR NOT NULL,
+    fuente_ingresos VARCHAR NOT NULL,
+    rango_ingresos VARCHAR NOT NULL,
+    origen_fondos VARCHAR NOT NULL,
+    monto_estimado DECIMAL NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS representantes_legales (
