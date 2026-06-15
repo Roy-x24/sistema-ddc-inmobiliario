@@ -63,8 +63,17 @@ CREATE TABLE IF NOT EXISTS personas_juridicas (
     domicilio_legal VARCHAR NOT NULL,
     telefono VARCHAR NOT NULL,
     correo VARCHAR NOT NULL,
-    proposito_adquisicion VARCHAR NOT NULL
+    proposito_adquisicion VARCHAR NOT NULL,
+    fuente_ingresos VARCHAR NOT NULL,
+    rango_ingresos VARCHAR NOT NULL,
+    origen_fondos VARCHAR NOT NULL,
+    monto_estimado DECIMAL NOT NULL
 );
+
+ALTER TABLE personas_juridicas ADD COLUMN IF NOT EXISTS fuente_ingresos VARCHAR NOT NULL DEFAULT 'no_registrado';
+ALTER TABLE personas_juridicas ADD COLUMN IF NOT EXISTS rango_ingresos VARCHAR NOT NULL DEFAULT 'no_registrado';
+ALTER TABLE personas_juridicas ADD COLUMN IF NOT EXISTS origen_fondos VARCHAR NOT NULL DEFAULT 'no_registrado';
+ALTER TABLE personas_juridicas ADD COLUMN IF NOT EXISTS monto_estimado DECIMAL NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS representantes_legales (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -84,7 +84,11 @@ def registrar_persona_juridica(
         domicilio_legal=datos.domicilio_legal,
         telefono=datos.telefono,
         correo=datos.correo,
-        proposito_adquisicion=datos.proposito_adquisicion
+        proposito_adquisicion=datos.proposito_adquisicion,
+        fuente_ingresos=datos.fuente_ingresos,
+        rango_ingresos=datos.rango_ingresos,
+        origen_fondos=datos.origen_fondos,
+        monto_estimado=datos.monto_estimado
     )
     db.add(pj)
 
@@ -243,6 +247,10 @@ def detalle_cliente(
                 "telefono": pj.telefono,
                 "correo": pj.correo,
                 "proposito_adquisicion": pj.proposito_adquisicion,
+                "fuente_ingresos": pj.fuente_ingresos,
+                "rango_ingresos": pj.rango_ingresos,
+                "origen_fondos": pj.origen_fondos,
+                "monto_estimado": float(pj.monto_estimado),
                 "representantes_legales": [
                     {"nombre_completo": r.nombre_completo, "numero_identificacion": r.numero_identificacion, "cargo": r.cargo, "poderes_otorgados": r.poderes_otorgados}
                     for r in rl

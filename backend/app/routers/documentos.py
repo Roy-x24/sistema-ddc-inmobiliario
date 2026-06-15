@@ -81,7 +81,7 @@ def listar_documentos(
 def descargar_documento(
     doc_id: str,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("verificar_documentos"))
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
 ):
     doc = db.query(Documento).filter(Documento.id_documento == doc_id).first()
     if not doc:

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from app.database import obtener_db
 from app.models.usuario import Usuario
 from app.models.refresh_token import RefreshToken
-from app.schemas.auth import LoginRequest, TokenResponse, RefreshRequest, UsuarioResponse, UsuarioCreate, UsuarioListItem, UsuarioUpdateRol
+from app.schemas.auth import LoginRequest, TokenResponse, RefreshRequest, UsuarioResponse, UsuarioCreate, UsuarioListItem, UsuarioUpdate, UsuarioUpdateRol
 from app.core.security import (
     verificar_password, crear_token_jwt, decodificar_token_jwt,
     generar_refresh_token, hash_refresh_token, hash_password
@@ -161,6 +161,55 @@ def cambiar_rol_usuario(
     db.refresh(target)
 
     registrar_auditoria_admin(db, usuario.correo, "CAMBIAR_ROL", {"correo": target.correo, "rol": datos.rol})
+    return UsuarioListItem(
+        id=str(target.id),
+        nombre=target.nombre,
+        correo=target.correo,
+        rol=target.rol,
+        activo=target.activo
+    )
+
+
+@router.patch("/usuarios/{user_id}", response_model=UsuarioListItem)
+def actualizar_usuario(
+    user_id: str,
+    datos: UsuarioUpdate,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("gestionar_usuarios"))
+):
+    target = db.query(Usuario).filter(Usuario.id == user_id, Usuario.eliminado == False).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    cambios = {}
+
+    if datos.nombre is not None:
+        target.nombre = datos.nombre
+        cambios["nombre"] = datos.nombre
+
+    if datos.correo is not None and datos.correo != target.correo:
+        existe = db.query(Usuario).filter(Usuario.correo == datos.correo, Usuario.id != target.id).first()
+        if existe:
+            raise HTTPException(status_code=400, detail="El correo ya esta registrado")
+        target.correo = datos.correo
+        cambios["correo"] = datos.correo
+
+    if datos.password:
+        target.password_hash = hash_password(datos.password)
+        cambios["password"] = "actualizada"
+
+    if datos.activo is not None:
+        if str(target.id) == str(usuario.id) and datos.activo is False:
+            raise HTTPException(status_code=400, detail="No puede desactivar su propio usuario")
+        target.activo = datos.activo
+        cambios["activo"] = datos.activo
+
+    db.commit()
+    db.refresh(target)
+
+    if cambios:
+        registrar_auditoria_admin(db, usuario.correo, "ACTUALIZAR_USUARIO", {"correo": target.correo, "cambios": cambios})
+
     return UsuarioListItem(
         id=str(target.id),
         nombre=target.nombre,

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String
+from sqlalchemy import Column, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.database import Base
@@ -17,3 +17,7 @@ class PersonaJuridica(Base):
     telefono = Column(String, nullable=False)
     correo = Column(String, nullable=False)
     proposito_adquisicion = Column(String, nullable=False)
+    fuente_ingresos = Column(String, nullable=False)
+    rango_ingresos = Column(String, nullable=False)
+    origen_fondos = Column(String, nullable=False)
+    monto_estimado = Column(Numeric, nullable=False)

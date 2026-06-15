@@ -56,6 +56,32 @@ def obtener_perfil_financiero(
     return perfil
 
 
+@router.patch("/{id}/perfil-financiero", response_model=PerfilFinancieroResponse)
+def actualizar_perfil_financiero(
+    id: str,
+    datos: PerfilFinancieroCreate,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("registrar_perfil_financiero"))
+):
+    perfil = db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == id).first()
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Perfil financiero no encontrado")
+
+    perfil.fuente_ingresos = datos.fuente_ingresos
+    perfil.rango_ingresos = datos.rango_ingresos
+    perfil.origen_fondos = datos.origen_fondos
+    perfil.patrimonio_declarado = datos.patrimonio_declarado
+    db.commit()
+    db.refresh(perfil)
+
+    registrar_auditoria(db, usuario.correo, "ACTUALIZAR_PERFIL_FINANCIERO", id)
+    pt = db.query(PerfilTransaccional).filter(PerfilTransaccional.id_cliente == id).first()
+    if pt:
+        calcular_riesgo_cliente(db, id, usuario.correo)
+
+    return perfil
+
+
 @router.post("/{id}/perfil-transaccional")
 def registrar_perfil_transaccional(
     id: str,
@@ -86,6 +112,38 @@ def registrar_perfil_transaccional(
 
     registrar_auditoria(db, usuario.correo, "REGISTRAR_PERFIL_TRANSACCIONAL", id)
 
+    pf = db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == id).first()
+    if pf:
+        calcular_riesgo_cliente(db, id, usuario.correo)
+
+    return perfil
+
+
+@router.patch("/{id}/perfil-transaccional", response_model=PerfilTransaccionalResponse)
+def actualizar_perfil_transaccional(
+    id: str,
+    datos: PerfilTransaccionalCreate,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("registrar_perfil_transaccional"))
+):
+    if datos.monto_total_propiedad <= 0:
+        raise HTTPException(status_code=400, detail="El monto total debe ser mayor a 0")
+
+    perfil = db.query(PerfilTransaccional).filter(PerfilTransaccional.id_cliente == id).first()
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Perfil transaccional no encontrado")
+
+    perfil.monto_total_propiedad = datos.monto_total_propiedad
+    perfil.metodo_pago_predominante = datos.metodo_pago_predominante
+    perfil.tipo_operacion = datos.tipo_operacion
+    perfil.banco_origen_fondos = datos.banco_origen_fondos
+    perfil.tiene_financiamiento = datos.tiene_financiamiento
+    perfil.banco_financiamiento = datos.banco_financiamiento
+    perfil.monto_financiamiento = datos.monto_financiamiento
+    db.commit()
+    db.refresh(perfil)
+
+    registrar_auditoria(db, usuario.correo, "ACTUALIZAR_PERFIL_TRANSACCIONAL", id)
     pf = db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == id).first()
     if pf:
         calcular_riesgo_cliente(db, id, usuario.correo)

@@ -46,3 +46,10 @@ class UsuarioListItem(BaseModel):
 
 class UsuarioUpdateRol(BaseModel):
     rol: str
+
+
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    correo: Optional[str] = None
+    password: Optional[str] = None
+    activo: Optional[bool] = None
