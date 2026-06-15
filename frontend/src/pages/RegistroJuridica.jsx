@@ -1,54 +1,39 @@
-import { useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import FormField from '../components/ui/FormField';
+import Input from '../components/ui/Input';
+import Boton from '../components/ui/Boton';
 
 export default function RegistroJuridica() {
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    razon_social: '', ruc: '', tipo_pj: 'SA', pais_constitucion: '', actividad_economica: '',
-    domicilio_legal: '', telefono: '', correo: '', proposito_adquisicion: '',
-    representante_legal: { nombre_completo: '', numero_identificacion: '', cargo: '', poderes_otorgados: '' },
-    beneficiarios_finales: [{ nombre_completo: '', numero_documento: '', nacionalidad: '', porcentaje_participacion: '', tipo_control: 'directo', es_pep: false }],
-    es_pep: false, fuente_ingresos: '', rango_ingresos: '', origen_fondos: '', monto_estimado: ''
+  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+    defaultValues: {
+      tipo_pj: 'SA',
+      representante_legal: { nombre_completo: '', numero_identificacion: '', cargo: '', poderes_otorgados: '' },
+      beneficiarios_finales: [{ nombre_completo: '', numero_documento: '', nacionalidad: '', porcentaje_participacion: '', tipo_control: 'directo', es_pep: false }],
+      es_pep: false
+    }
   });
-  const [guardando, setGuardando] = useState(false);
+  const { fields, append } = useFieldArray({ control, name: 'beneficiarios_finales' });
   const navigate = useNavigate();
 
-  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
-  const updateRL = (field, value) => setForm(prev => ({ ...prev, representante_legal: { ...prev.representante_legal, [field]: value } }));
-  const updateBF = (idx, field, value) => {
-    const bfs = [...form.beneficiarios_finales];
-    bfs[idx] = { ...bfs[idx], [field]: value };
-    setForm(prev => ({ ...prev, beneficiarios_finales: bfs }));
-  };
-
-  const agregarBF = () => {
-    setForm(prev => ({ ...prev, beneficiarios_finales: [...prev.beneficiarios_finales, { nombre_completo: '', numero_documento: '', nacionalidad: '', porcentaje_participacion: '', tipo_control: 'directo', es_pep: false }] }));
-  };
-
-  const guardar = async () => {
-    setGuardando(true);
+  const onSubmit = async (data) => {
     try {
       const payload = {
-        ...form,
-        monto_estimado: parseFloat(form.monto_estimado),
-        beneficiarios_finales: form.beneficiarios_finales.map(b => ({ ...b, porcentaje_participacion: parseFloat(b.porcentaje_participacion) }))
+        ...data,
+        monto_estimado: parseFloat(data.monto_estimado),
+        beneficiarios_finales: data.beneficiarios_finales.map(b => ({
+          ...b,
+          porcentaje_participacion: parseFloat(b.porcentaje_participacion),
+          es_pep: b.es_pep === true || b.es_pep === 'true'
+        }))
       };
       await api.post('/clientes/juridica', payload);
       navigate('/clientes');
     } catch (e) {
       alert('Error al registrar: ' + (e.response?.data?.detail || e.message));
-    } finally {
-      setGuardando(false);
     }
   };
-
-  const input = (label, field, type = 'text', value, onChange) => (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>{label}</label>
-      <input name={field} type={type} value={value} onChange={onChange} className="input-field" />
-    </div>
-  );
 
   return (
     <div className="animate-fade-in-up">
@@ -57,101 +42,116 @@ export default function RegistroJuridica() {
         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Registro de empresa o entidad</p>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, marginTop: 16 }}>
-        <div style={{
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-sm)',
-          backgroundColor: step === 1 ? 'rgba(201, 162, 39, 0.12)' : 'transparent',
-          color: step === 1 ? 'var(--accent-gold)' : 'var(--text-muted)',
-          fontWeight: 700,
-          fontSize: 12,
-          border: `1px solid ${step === 1 ? 'rgba(201, 162, 39, 0.3)' : 'var(--border-subtle)'}`
-        }}>1. Datos de la empresa</div>
-        <div style={{
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-sm)',
-          backgroundColor: step === 2 ? 'rgba(201, 162, 39, 0.12)' : 'transparent',
-          color: step === 2 ? 'var(--accent-gold)' : 'var(--text-muted)',
-          fontWeight: 700,
-          fontSize: 12,
-          border: `1px solid ${step === 2 ? 'rgba(201, 162, 39, 0.3)' : 'var(--border-subtle)'}`
-        }}>2. Representantes, beneficiarios y transacción</div>
-      </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="card" style={{ padding: 28 }}>
+        <FormField label="Razón social" error={errors.razon_social?.message}>
+          <Input {...register('razon_social', { required: 'Razón social es obligatoria' })} />
+        </FormField>
+        <FormField label="RUC o número de registro" error={errors.ruc?.message}>
+          <Input {...register('ruc', { required: 'RUC es obligatorio' })} />
+        </FormField>
+        <FormField label="Tipo de persona jurídica" error={errors.tipo_pj?.message}>
+          <select {...register('tipo_pj', { required: 'Tipo es obligatorio' })} className="select-field" style={{ width: '100%' }}>
+            <option value="SA">Sociedad Anónima (SA)</option>
+            <option value="SRL">Sociedad de Responsabilidad Limitada (SRL)</option>
+            <option value="fideicomiso">Fideicomiso</option>
+            <option value="fundacion">Fundación</option>
+            <option value="otra">Otra</option>
+          </select>
+        </FormField>
+        <FormField label="País de constitución" error={errors.pais_constitucion?.message}>
+          <Input {...register('pais_constitucion', { required: 'País de constitución es obligatorio' })} />
+        </FormField>
+        <FormField label="Actividad económica principal" error={errors.actividad_economica?.message}>
+          <Input {...register('actividad_economica', { required: 'Actividad económica es obligatoria' })} />
+        </FormField>
+        <FormField label="Domicilio legal" error={errors.domicilio_legal?.message}>
+          <Input {...register('domicilio_legal', { required: 'Domicilio legal es obligatorio' })} />
+        </FormField>
+        <FormField label="Teléfono" error={errors.telefono?.message}>
+          <Input {...register('telefono', { required: 'Teléfono es obligatorio' })} />
+        </FormField>
+        <FormField label="Correo oficial" error={errors.correo?.message}>
+          <Input type="email" {...register('correo', { required: 'Correo es obligatorio', pattern: { value: /\S+@\S+\.\S+/, message: 'Correo inválido' } })} />
+        </FormField>
+        <FormField label="Propósito de la adquisición" error={errors.proposito_adquisicion?.message}>
+          <Input {...register('proposito_adquisicion', { required: 'Propósito es obligatorio' })} />
+        </FormField>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, marginBottom: 16, cursor: 'pointer' }}>
+          <input type="checkbox" {...register('es_pep')} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es PEP?</span>
+        </label>
 
-      <div className="card" style={{ padding: 28 }}>
-        {step === 1 && (
-          <>
-            {input('Razón social', 'razon_social', 'text', form.razon_social, e => update('razon_social', e.target.value))}
-            {input('RUC o número de registro', 'ruc', 'text', form.ruc, e => update('ruc', e.target.value))}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>Tipo de persona jurídica</label>
-              <select name="tipo_pj" value={form.tipo_pj} onChange={e => update('tipo_pj', e.target.value)} className="select-field" style={{ width: '100%' }}>
-                <option value="SA">Sociedad Anónima (SA)</option>
-                <option value="SRL">Sociedad de Responsabilidad Limitada (SRL)</option>
-                <option value="fideicomiso">Fideicomiso</option>
-                <option value="fundacion">Fundación</option>
-                <option value="otra">Otra</option>
-              </select>
+        <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '20px 0', paddingTop: 20 }}>
+          <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Representante legal</h3>
+          <FormField label="Nombre completo" error={errors.representante_legal?.nombre_completo?.message}>
+            <Input {...register('representante_legal.nombre_completo', { required: 'Nombre del representante es obligatorio' })} />
+          </FormField>
+          <FormField label="Número de identificación" error={errors.representante_legal?.numero_identificacion?.message}>
+            <Input {...register('representante_legal.numero_identificacion', { required: 'Identificación es obligatoria' })} />
+          </FormField>
+          <FormField label="Cargo" error={errors.representante_legal?.cargo?.message}>
+            <Input {...register('representante_legal.cargo', { required: 'Cargo es obligatorio' })} />
+          </FormField>
+          <FormField label="Poderes otorgados" error={errors.representante_legal?.poderes_otorgados?.message}>
+            <Input {...register('representante_legal.poderes_otorgados', { required: 'Poderes son obligatorios' })} />
+          </FormField>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '20px 0', paddingTop: 20 }}>
+          <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Beneficiarios finales</h3>
+          {fields.map((field, index) => (
+            <div key={field.id} className="card" style={{ padding: 20, marginBottom: 12, backgroundColor: 'var(--bg-elevated)' }}>
+              <FormField label="Nombre completo" error={errors.beneficiarios_finales?.[index]?.nombre_completo?.message}>
+                <Input {...register(`beneficiarios_finales.${index}.nombre_completo`, { required: 'Nombre es obligatorio' })} />
+              </FormField>
+              <FormField label="Número de documento" error={errors.beneficiarios_finales?.[index]?.numero_documento?.message}>
+                <Input {...register(`beneficiarios_finales.${index}.numero_documento`, { required: 'Documento es obligatorio' })} />
+              </FormField>
+              <FormField label="Nacionalidad" error={errors.beneficiarios_finales?.[index]?.nacionalidad?.message}>
+                <Input {...register(`beneficiarios_finales.${index}.nacionalidad`, { required: 'Nacionalidad es obligatoria' })} />
+              </FormField>
+              <FormField label="Porcentaje de participación (≥25%)" error={errors.beneficiarios_finales?.[index]?.porcentaje_participacion?.message}>
+                <Input type="number" {...register(`beneficiarios_finales.${index}.porcentaje_participacion`, { required: 'Porcentaje es obligatorio', min: { value: 0, message: 'Debe ser ≥ 0' }, max: { value: 100, message: 'Debe ser ≤ 100' } })} />
+              </FormField>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, cursor: 'pointer' }}>
+                <input type="checkbox" {...register(`beneficiarios_finales.${index}.es_pep`)} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
+                <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es PEP?</span>
+              </label>
             </div>
-            {input('País de constitución', 'pais_constitucion', 'text', form.pais_constitucion, e => update('pais_constitucion', e.target.value))}
-            {input('Actividad económica principal', 'actividad_economica', 'text', form.actividad_economica, e => update('actividad_economica', e.target.value))}
-            {input('Domicilio legal', 'domicilio_legal', 'text', form.domicilio_legal, e => update('domicilio_legal', e.target.value))}
-            {input('Teléfono', 'telefono', 'text', form.telefono, e => update('telefono', e.target.value))}
-            {input('Correo oficial', 'correo', 'email', form.correo, e => update('correo', e.target.value))}
-            {input('Propósito de la adquisición', 'proposito_adquisicion', 'text', form.proposito_adquisicion, e => update('proposito_adquisicion', e.target.value))}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
-              <button onClick={() => setStep(2)} className="btn-primary" style={{ padding: '12px 28px' }}>Siguiente</button>
-            </div>
-          </>
-        )}
+          ))}
+          <Boton type="button" variant="secundario" onClick={() => append({ nombre_completo: '', numero_documento: '', nacionalidad: '', porcentaje_participacion: '', tipo_control: 'directo', es_pep: false })} style={{ marginBottom: 24 }}>
+            + Agregar beneficiario
+          </Boton>
+        </div>
 
-        {step === 2 && (
-          <>
-            <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>Representante legal</h3>
-            {input('Nombre completo', 'rl_nombre', 'text', form.representante_legal.nombre_completo, e => updateRL('nombre_completo', e.target.value))}
-            {input('Número de identificación', 'rl_id', 'text', form.representante_legal.numero_identificacion, e => updateRL('numero_identificacion', e.target.value))}
-            {input('Cargo', 'rl_cargo', 'text', form.representante_legal.cargo, e => updateRL('cargo', e.target.value))}
-            {input('Poderes otorgados', 'rl_poderes', 'text', form.representante_legal.poderes_otorgados, e => updateRL('poderes_otorgados', e.target.value))}
+        <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '20px 0', paddingTop: 20 }}>
+          <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Perfil y transacción</h3>
+          <FormField label="Fuente de ingresos" error={errors.fuente_ingresos?.message}>
+            <Input {...register('fuente_ingresos', { required: 'Fuente de ingresos es obligatoria' })} />
+          </FormField>
+          <FormField label="Rango de ingresos mensuales" error={errors.rango_ingresos?.message}>
+            <select {...register('rango_ingresos', { required: 'Rango es obligatorio' })} className="select-field" style={{ width: '100%' }}>
+              <option value="">Seleccione</option>
+              <option value="<1000">&lt; $1,000</option>
+              <option value="1001-5000">$1,001 - $5,000</option>
+              <option value="5001-15000">$5,001 - $15,000</option>
+              <option value=">15000">&gt; $15,000</option>
+            </select>
+          </FormField>
+          <FormField label="Origen de los fondos" error={errors.origen_fondos?.message}>
+            <Input {...register('origen_fondos', { required: 'Origen de fondos es obligatorio' })} />
+          </FormField>
+          <FormField label="Monto estimado (USD)" error={errors.monto_estimado?.message}>
+            <Input type="number" {...register('monto_estimado', { required: 'Monto estimado es obligatorio', min: { value: 0, message: 'Monto debe ser positivo' } })} />
+          </FormField>
+        </div>
 
-            <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', margin: '24px 0 16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>Beneficiarios finales</h3>
-            {form.beneficiarios_finales.map((b, i) => (
-              <div key={i} className="card" style={{ padding: 20, marginBottom: 12, backgroundColor: 'var(--bg-elevated)' }}>
-                {input('Nombre completo', `bf_${i}_nombre`, 'text', b.nombre_completo, e => updateBF(i, 'nombre_completo', e.target.value))}
-                {input('Número de documento', `bf_${i}_doc`, 'text', b.numero_documento, e => updateBF(i, 'numero_documento', e.target.value))}
-                {input('Nacionalidad', `bf_${i}_nac`, 'text', b.nacionalidad, e => updateBF(i, 'nacionalidad', e.target.value))}
-                {input('Porcentaje de participación (≥25%)', `bf_${i}_pct`, 'number', b.porcentaje_participacion, e => updateBF(i, 'porcentaje_participacion', e.target.value))}
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, cursor: 'pointer' }}>
-                  <input name={`bf_${i}_es_pep`} type="checkbox" checked={b.es_pep} onChange={e => updateBF(i, 'es_pep', e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
-                  <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es PEP?</span>
-                </label>
-              </div>
-            ))}
-            <button onClick={agregarBF} className="btn-secondary" style={{ marginBottom: 24 }}>+ Agregar beneficiario</button>
-
-            <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', margin: '24px 0 16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>Perfil y transacción</h3>
-            {input('Fuente de ingresos', 'fuente_ingresos', 'text', form.fuente_ingresos, e => update('fuente_ingresos', e.target.value))}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>Rango de ingresos mensuales</label>
-              <select name="rango_ingresos" value={form.rango_ingresos} onChange={e => update('rango_ingresos', e.target.value)} className="select-field" style={{ width: '100%' }}>
-                <option value="">Seleccione</option>
-                <option value="<1000">&lt; $1,000</option>
-                <option value="1001-5000">$1,001 - $5,000</option>
-                <option value="5001-15000">$5,001 - $15,000</option>
-                <option value=">15000">&gt; $15,000</option>
-              </select>
-            </div>
-            {input('Origen de los fondos', 'origen_fondos', 'text', form.origen_fondos, e => update('origen_fondos', e.target.value))}
-            {input('Monto estimado (USD)', 'monto_estimado', 'number', form.monto_estimado, e => update('monto_estimado', e.target.value))}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-              <button onClick={() => setStep(1)} className="btn-secondary" style={{ padding: '12px 28px' }}>Atrás</button>
-              <button onClick={guardar} disabled={guardando} className="btn-primary" style={{ padding: '12px 28px', opacity: guardando ? 0.7 : 1 }}>
-                {guardando ? 'Guardando...' : 'Guardar cliente'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+          <Boton type="submit" variant="primario" loading={isSubmitting} style={{ padding: '12px 28px' }}>
+            {isSubmitting ? 'Guardando...' : 'Guardar cliente'}
+          </Boton>
+        </div>
+      </form>
     </div>
   );
 }

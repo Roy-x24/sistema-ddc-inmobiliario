@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import obtener_db
@@ -128,7 +128,8 @@ def listar_clientes(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes")),
+    response: Response = None
 ):
     query = db.query(Cliente).filter(Cliente.eliminado == False)
 
@@ -187,6 +188,8 @@ def listar_clientes(
             identificacion=identificacion
         ))
 
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total)
     return resultados
 
 

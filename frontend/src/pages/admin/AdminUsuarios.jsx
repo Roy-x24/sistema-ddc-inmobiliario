@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import api from '../../api/axiosConfig';
+import Boton from '../../components/ui/Boton';
+import Alerta from '../../components/ui/Alerta';
+import Tabla from '../../components/ui/Tabla';
 import { Users, Plus, Trash2, AlertCircle, CheckCircle2, XCircle, User, Shield, Mail, Lock, KeyRound } from 'lucide-react';
 
 const ROLES = [
@@ -15,7 +19,7 @@ export default function AdminUsuarios() {
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
   const [mostrarForm, setMostrarForm] = useState(false);
-  const [form, setForm] = useState({ nombre: '', correo: '', password: '', rol: 'empleado' });
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -36,10 +40,10 @@ export default function AdminUsuarios() {
   const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
   const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
 
-  const crear = async () => {
+  const crear = async (data) => {
     try {
-      await api.post('/auth/usuarios', form);
-      setForm({ nombre: '', correo: '', password: '', rol: 'empleado' });
+      await api.post('/auth/usuarios', data);
+      reset({ nombre: '', correo: '', password: '', rol: 'empleado' });
       setMostrarForm(false);
       showMensaje('Usuario creado correctamente');
       fetchUsuarios();
@@ -80,6 +84,49 @@ export default function AdminUsuarios() {
     return <span className="badge" style={{ backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}` }}>{rol.replace('_', ' ')}</span>;
   };
 
+  const columns = [
+    { key: 'usuario', label: 'Usuario' },
+    { key: 'correo', label: 'Correo' },
+    { key: 'rol', label: 'Rol' },
+    { key: 'estado', label: 'Estado' },
+    { key: 'acciones', label: 'Acciones', render: (row) => (
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+        <select
+          value={row.rol}
+          onChange={e => cambiarRol(row.id, e.target.value)}
+          className="select-field"
+          style={{ width: 160, padding: '6px 10px', fontSize: 12 }}
+        >
+          {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+        <button onClick={() => eliminar(row.id)} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    )}
+  ];
+
+  const data = usuarios.map(u => ({
+    id: u.id,
+    usuario: (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/10 text-gold">
+          <User className="h-4 w-4" />
+        </div>
+        <span style={{ fontWeight: 600 }}>{u.nombre}</span>
+      </div>
+    ),
+    correo: <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{u.correo}</span>,
+    rol: rolBadge(u.rol),
+    estado: (
+      <span className="badge" style={{
+        backgroundColor: u.activo ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)',
+        color: u.activo ? '#16A34A' : '#F87171',
+        border: `1px solid ${u.activo ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}`
+      }}>{u.activo ? 'Activo' : 'Inactivo'}</span>
+    ),
+  }));
+
   return (
     <div className="animate-fade-in-up">
       <div style={{ marginBottom: 8 }}>
@@ -87,108 +134,55 @@ export default function AdminUsuarios() {
         <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Crear, editar roles y administrar accesos al sistema</p>
       </div>
 
-      {mensaje && (
-        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <CheckCircle2 className="h-4 w-4" />
-          {mensaje}
-        </div>
-      )}
-      {error && (
-        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          {error}
-        </div>
-      )}
+      {mensaje && <div className="mb-4"><Alerta variant="exito">{mensaje}</Alerta></div>}
+      {error && <div className="mb-4"><Alerta variant="error">{error}</Alerta></div>}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20, marginTop: 24 }}>
-        <button onClick={() => setMostrarForm(v => !v)} className="btn-primary">
+        <Boton variant="primario" onClick={() => setMostrarForm(v => !v)}>
           {mostrarForm ? <XCircle className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {mostrarForm ? 'Cancelar' : 'Nuevo usuario'}
-        </button>
+        </Boton>
       </div>
 
       {mostrarForm && (
-        <div className="card" style={{ padding: 28, marginBottom: 24 }}>
+        <form onSubmit={handleSubmit(crear)} className="card" style={{ padding: 28, marginBottom: 24 }}>
           <h3 style={{ fontSize: 16, marginBottom: 20, fontFamily: 'var(--font-display)', color: 'var(--accent-gold)' }}>Crear usuario</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div>
               <label className="label-upper">Nombre completo</label>
-              <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="input-field" />
+              <input {...register('nombre', { required: 'Nombre es obligatorio' })} className="input-field" />
+              {errors.nombre && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>{errors.nombre.message}</p>}
             </div>
             <div>
               <label className="label-upper">Correo electrónico</label>
-              <input type="email" value={form.correo} onChange={e => setForm({ ...form, correo: e.target.value })} className="input-field" />
+              <input type="email" {...register('correo', { required: 'Correo es obligatorio', pattern: { value: /\S+@\S+\.\S+/, message: 'Correo inválido' } })} className="input-field" />
+              {errors.correo && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>{errors.correo.message}</p>}
             </div>
             <div>
               <label className="label-upper">Contraseña</label>
-              <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="input-field" />
+              <input type="password" {...register('password', { required: 'Contraseña es obligatoria', minLength: { value: 6, message: 'Mínimo 6 caracteres' } })} className="input-field" />
+              {errors.password && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>{errors.password.message}</p>}
             </div>
             <div>
               <label className="label-upper">Rol</label>
-              <select value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })} className="select-field" style={{ width: '100%' }}>
+              <select {...register('rol', { required: 'Rol es obligatorio' })} className="select-field" style={{ width: '100%' }}>
                 {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
           </div>
           <div style={{ marginTop: 20 }}>
-            <button onClick={crear} className="btn-primary"><Plus className="h-4 w-4" /> Crear usuario</button>
+            <Boton type="submit" variant="primario" loading={isSubmitting}><Plus className="h-4 w-4" /> Crear usuario</Boton>
           </div>
-        </div>
+        </form>
       )}
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Usuario</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th style={{ textAlign: 'right' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && <tr><td colSpan={5} className="empty-state">Cargando usuarios...</td></tr>}
-            {!loading && usuarios.length === 0 && <tr><td colSpan={5} className="empty-state">Sin usuarios registrados.</td></tr>}
-            {usuarios.map((u) => (
-              <tr key={u.id}>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/10 text-gold">
-                      <User className="h-4 w-4" />
-                    </div>
-                    <span style={{ fontWeight: 600 }}>{u.nombre}</span>
-                  </div>
-                </td>
-                <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{u.correo}</td>
-                <td>{rolBadge(u.rol)}</td>
-                <td>
-                  <span className="badge" style={{
-                    backgroundColor: u.activo ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)',
-                    color: u.activo ? '#16A34A' : '#F87171',
-                    border: `1px solid ${u.activo ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}`
-                  }}>{u.activo ? 'Activo' : 'Inactivo'}</span>
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-                    <select
-                      value={u.rol}
-                      onChange={e => cambiarRol(u.id, e.target.value)}
-                      className="select-field"
-                      style={{ width: 160, padding: '6px 10px', fontSize: 12 }}
-                    >
-                      {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                    </select>
-                    <button onClick={() => eliminar(u.id)} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+          Cargando usuarios...
+        </div>
+      ) : (
+        <Tabla columns={columns} data={data} />
+      )}
     </div>
   );
 }
