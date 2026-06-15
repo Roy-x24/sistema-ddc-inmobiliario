@@ -46,7 +46,7 @@ export default function RegistroJuridica() {
   const input = (label, field, type = 'text', value, onChange) => (
     <div style={{ marginBottom: 16 }}>
       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>{label}</label>
-      <input type={type} value={value} onChange={onChange} className="input-field" />
+      <input name={field} type={type} value={value} onChange={onChange} className="input-field" />
     </div>
   );
 
@@ -85,7 +85,7 @@ export default function RegistroJuridica() {
             {input('RUC o número de registro', 'ruc', 'text', form.ruc, e => update('ruc', e.target.value))}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>Tipo de persona jurídica</label>
-              <select value={form.tipo_pj} onChange={e => update('tipo_pj', e.target.value)} className="select-field" style={{ width: '100%' }}>
+              <select name="tipo_pj" value={form.tipo_pj} onChange={e => update('tipo_pj', e.target.value)} className="select-field" style={{ width: '100%' }}>
                 <option value="SA">Sociedad Anónima (SA)</option>
                 <option value="SRL">Sociedad de Responsabilidad Limitada (SRL)</option>
                 <option value="fideicomiso">Fideicomiso</option>
@@ -121,7 +121,7 @@ export default function RegistroJuridica() {
                 {input('Nacionalidad', `bf_${i}_nac`, 'text', b.nacionalidad, e => updateBF(i, 'nacionalidad', e.target.value))}
                 {input('Porcentaje de participación (≥25%)', `bf_${i}_pct`, 'number', b.porcentaje_participacion, e => updateBF(i, 'porcentaje_participacion', e.target.value))}
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={b.es_pep} onChange={e => updateBF(i, 'es_pep', e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
+                  <input name={`bf_${i}_es_pep`} type="checkbox" checked={b.es_pep} onChange={e => updateBF(i, 'es_pep', e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
                   <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es PEP?</span>
                 </label>
               </div>
@@ -132,7 +132,7 @@ export default function RegistroJuridica() {
             {input('Fuente de ingresos', 'fuente_ingresos', 'text', form.fuente_ingresos, e => update('fuente_ingresos', e.target.value))}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>Rango de ingresos mensuales</label>
-              <select value={form.rango_ingresos} onChange={e => update('rango_ingresos', e.target.value)} className="select-field" style={{ width: '100%' }}>
+              <select name="rango_ingresos" value={form.rango_ingresos} onChange={e => update('rango_ingresos', e.target.value)} className="select-field" style={{ width: '100%' }}>
                 <option value="">Seleccione</option>
                 <option value="<1000">&lt; $1,000</option>
                 <option value="1001-5000">$1,001 - $5,000</option>

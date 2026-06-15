@@ -1,14 +1,102 @@
 import { test, expect } from '@playwright/test';
 
-test('flujo persona juridica con beneficiarios finales', async ({ page }) => {
-  await page.goto('/login');
-  await page.fill('input[type="email"]', 'empleado@ddc.com');
-  await page.fill('input[type="password"]', 'empleado123');
-  await page.click('button[type="submit"]');
-  await expect(page).toHaveURL('/dashboard');
+const EMPLEADO = { correo: 'empleado@ddc.com', password: 'empleado123' };
 
-  // Registrar PJ
-  await page.goto('/clientes/nuevo-juridica');
-  // ... pasos
-  await expect(page.locator('text=Cliente registrado')).toBeVisible();
+function generarId() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+test.describe('Flujo Persona Jurídica con Beneficiarios Finales', () => {
+  test('registro completo, estado PENDIENTE BF y adjunto de documentos', async ({ page }) => {
+    const id = generarId();
+    const razon = `Empresa Test ${id} S.A.`;
+    const ruc = `RUC-${id}`;
+
+    await test.step('Login como empleado', async () => {
+      await page.goto('/login');
+      await page.fill('input[type="email"]', EMPLEADO.correo);
+      await page.fill('input[type="password"]', EMPLEADO.password);
+      await page.click('button[type="submit"]');
+      await expect(page).toHaveURL('/dashboard');
+    });
+
+    await test.step('Registrar persona jurídica — paso 1 (empresa)', async () => {
+      await page.goto('/clientes/nuevo-juridica');
+      await page.fill('input[name="razon_social"]', razon);
+      await page.fill('input[name="ruc"]', ruc);
+      await page.selectOption('select[name="tipo_pj"]', 'SA');
+      await page.fill('input[name="pais_constitucion"]', 'PA');
+      await page.fill('input[name="actividad_economica"]', 'Construcción inmobiliaria');
+      await page.fill('input[name="domicilio_legal"]', 'Torre Banco, Piso 15, Ciudad de Panamá');
+      await page.fill('input[name="telefono"]', '+507 200-0000');
+      await page.fill('input[name="correo"]', `empresa.${id}@test.com`);
+      await page.fill('input[name="proposito_adquisicion"]', 'Adquisición de terreno para desarrollo residencial');
+      await page.click('button:has-text("Siguiente")');
+    });
+
+    await test.step('Registrar persona jurídica — paso 2 (representante, UBO y perfil)', async () => {
+      // Representante legal
+      await page.fill('input[name="rl_nombre"]', 'María González');
+      await page.fill('input[name="rl_id"]', '8-987-654');
+      await page.fill('input[name="rl_cargo"]', 'Directora General');
+      await page.fill('input[name="rl_poderes"]', 'Amplio y general para representar la empresa');
+
+      // Beneficiario final (UBO)
+      await page.fill('input[name="bf_0_nombre"]', 'Carlos Ruiz');
+      await page.fill('input[name="bf_0_doc"]', '8-111-222');
+      await page.fill('input[name="bf_0_nac"]', 'Panameña');
+      await page.fill('input[name="bf_0_pct"]', '50');
+
+      // Perfil
+      await page.fill('input[name="fuente_ingresos"]', 'Ventas de proyecto inmobiliario');
+      await page.selectOption('select[name="rango_ingresos"]', '>15000');
+      await page.fill('input[name="origen_fondos"]', 'Utilidades retenidas');
+      await page.fill('input[name="monto_estimado"]', '750000');
+      await page.click('button:has-text("Guardar cliente")');
+    });
+
+    await test.step('Verificar redirección y éxito', async () => {
+      await expect(page).toHaveURL('/clientes');
+      await expect(page.locator(`text=${razon}`)).toBeVisible();
+    });
+
+    await test.step('Verificar estado PENDIENTE BF en detalle', async () => {
+      const row = page.locator('tr', { hasText: razon }).first();
+      await row.click();
+      await expect(page).toHaveURL(/\/expediente\/.+/);
+      await expect(page.locator('text=PENDIENTE BF')).toBeVisible();
+    });
+
+    await test.step('Adjuntar documentos obligatorios de PJ', async () => {
+      const clientId = page.url().split('/').pop();
+      await page.goto(`/documentos/${clientId}`);
+
+      await page.selectOption('select[name="tipo_documento"]', 'AVISO_OPERACION');
+      await page.setInputFiles('input[type="file"]', 'test-files/cedula.pdf');
+      await page.click('button:has-text("Subir documento")');
+      await expect(page.locator('text=Documento subido correctamente')).toBeVisible();
+
+      await page.selectOption('select[name="tipo_documento"]', 'CERTIFICADO_EXISTENCIA');
+      await page.setInputFiles('input[type="file"]', 'test-files/comprobante_ingresos.jpg');
+      await page.click('button:has-text("Subir documento")');
+      await expect(page.locator('text=Documento subido correctamente')).toBeVisible();
+
+      await page.selectOption('select[name="tipo_documento"]', 'IDENTIFICACION_REPRESENTANTE');
+      await page.setInputFiles('input[type="file"]', 'test-files/comprobante_residencia.png');
+      await page.click('button:has-text("Subir documento")');
+      await expect(page.locator('text=Documento subido correctamente')).toBeVisible();
+
+      await page.selectOption('select[name="tipo_documento"]', 'IDENTIFICACION_BENEFICIARIOS');
+      await page.setInputFiles('input[type="file"]', 'test-files/beneficiario_id.pdf');
+      await page.click('button:has-text("Subir documento")');
+      await expect(page.locator('text=Documento subido correctamente')).toBeVisible();
+    });
+
+    await test.step('Verificar estado de documentos', async () => {
+      await page.reload();
+      await page.waitForTimeout(500);
+      const rows = page.locator('table tbody tr');
+      await expect(rows.filter({ hasText: 'PENDIENTE VERIFICACION' })).toHaveCount(4);
+    });
+  });
 });

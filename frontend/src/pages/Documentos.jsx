@@ -120,7 +120,7 @@ export default function Documentos() {
           </div>
           <div style={{ flex: 1, minWidth: 220 }}>
             <label className="label-upper">Tipo de documento</label>
-            <select value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
+            <select name="tipo_documento" value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
               <option value="DOCUMENTO_IDENTIDAD">Documento de identidad</option>
               <option value="COMPROBANTE_INGRESOS">Comprobante de ingresos</option>
               <option value="COMPROBANTE_RESIDENCIA">Comprobante de residencia</option>

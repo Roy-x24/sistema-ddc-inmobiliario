@@ -32,11 +32,11 @@ export default function RegistroNatural() {
     <div style={{ marginBottom: 16 }}>
       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>{label}</label>
       {type === 'select' ? (
-        <select value={form[field]} onChange={e => update(field, e.target.value)} className="select-field" style={{ width: '100%' }}>
+        <select name={field} value={form[field]} onChange={e => update(field, e.target.value)} className="select-field" style={{ width: '100%' }}>
           {opts.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ) : (
-        <input type={type} value={form[field]} onChange={e => update(field, e.target.value)} className="input-field" />
+        <input name={field} type={type} value={form[field]} onChange={e => update(field, e.target.value)} className="input-field" />
       )}
     </div>
   );
@@ -86,7 +86,7 @@ export default function RegistroNatural() {
             {input('Correo electrónico', 'correo', 'email')}
             {input('Ocupación / actividad económica', 'ocupacion')}
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.es_pep} onChange={e => update('es_pep', e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
+              <input name="es_pep" type="checkbox" checked={form.es_pep} onChange={e => update('es_pep', e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
               <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es persona expuesta políticamente (PEP)?</span>
             </label>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
