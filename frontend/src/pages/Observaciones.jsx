@@ -2,14 +2,20 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
+import PaginationControls from '../components/PaginationControls';
 import { MessageSquare, Send, Lock, Unlock, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
+import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function Observaciones() {
   const { id: urlId } = useParams();
   const { usuario } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
+  const [tipoCliente, setTipoCliente] = useState('');
   const [observaciones, setObservaciones] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [nueva, setNueva] = useState('');
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState('');
@@ -76,6 +82,15 @@ export default function Observaciones() {
     }
   };
 
+  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
+  const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+  const observacionesPaginadas = paginate(observaciones, page, pageSize);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(observaciones, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [observaciones, page, pageSize]);
+
   return (
     <div className="animate-fade-in-up">
       <div style={{ marginBottom: 8 }}>
@@ -96,12 +111,27 @@ export default function Observaciones() {
         </div>
       )}
 
-      <div style={{ marginBottom: 20, marginTop: 24 }}>
-        <label className="label-upper">Cliente</label>
-        <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="select-field" style={{ minWidth: 320 }}>
-          <option value="">Seleccione un cliente</option>
-          {clientes.map(c => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre || c.id_cliente}</option>)}
-        </select>
+      <div style={{ marginBottom: 20, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ width: 220 }}>
+          <label className="label-upper">Tipo de cliente</label>
+          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); setObservaciones([]); setPage(1); }} className="select-field" style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            <option value="NATURAL">Persona natural</option>
+            <option value="JURIDICA">Persona juridica</option>
+          </select>
+        </div>
+        <div>
+          <label className="label-upper">Cliente</label>
+          <select value={clienteId} onChange={e => { setClienteId(e.target.value); setPage(1); }} className="select-field" style={{ minWidth: 320 }}>
+            <option value="">Seleccione un cliente</option>
+            {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
+          </select>
+        </div>
+        {clienteSeleccionado && (
+          <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
+            {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
+          </span>
+        )}
       </div>
 
       {clienteId && usuario?.rol === 'oficial_cumplimiento' && (
@@ -143,7 +173,7 @@ export default function Observaciones() {
               </tr>
             </thead>
             <tbody>
-              {observaciones.map((row) => (
+              {observacionesPaginadas.map((row) => (
                 <tr key={row.id}>
                   <td style={{ maxWidth: 300, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.descripcion}</td>
                   <td style={{ maxWidth: 300, whiteSpace: 'normal', wordBreak: 'break-word', color: row.respuesta ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
@@ -185,6 +215,16 @@ export default function Observaciones() {
               ))}
             </tbody>
           </table>
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            total={observaciones.length}
+            onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value);
+              setPage(1);
+            }}
+          />
         </div>
       )}
     </div>

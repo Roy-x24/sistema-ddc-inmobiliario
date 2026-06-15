@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import EstadoBadge from '../components/EstadoBadge';
+import PaginationControls from '../components/PaginationControls';
 import { Plus, Search, Building2, User, Eye, SlidersHorizontal, Users } from 'lucide-react';
+import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function ListadoClientes() {
   const [clientes, setClientes] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [tipo, setTipo] = useState('');
   const [estado, setEstado] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
 
@@ -28,8 +32,16 @@ export default function ListadoClientes() {
   };
 
   useEffect(() => {
+    setPage(1);
     cargar();
   }, [busqueda, tipo, estado]);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(clientes, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [clientes, page, pageSize]);
+
+  const clientesPaginados = paginate(clientes, page, pageSize);
 
   const riesgoClass = (nivel) => {
     if (nivel === 'ALTO') return 'border-rose-200 bg-rose-50 text-rose-700';
@@ -124,7 +136,7 @@ export default function ListadoClientes() {
             {!cargando && clientes.length === 0 && (
               <tr><td colSpan={7} className="px-5 py-14 text-center text-sm font-semibold text-slate-500">Sin resultados.</td></tr>
             )}
-            {clientes.map(c => (
+            {clientesPaginados.map(c => (
               <tr key={c.id_cliente} className="group cursor-pointer transition hover:bg-teal-50/40" onClick={() => navigate(`/expediente/${c.id_cliente}`)}>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -165,6 +177,16 @@ export default function ListadoClientes() {
             ))}
           </tbody>
         </table>
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          total={clientes.length}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
+        />
       </section>
     </div>
   );

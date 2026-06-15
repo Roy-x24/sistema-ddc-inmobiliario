@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axiosConfig';
+import { Download } from 'lucide-react';
 
 export default function Auditoria() {
   const [registros, setRegistros] = useState([]);
@@ -26,6 +27,18 @@ export default function Auditoria() {
 
   useEffect(() => { cargar(); }, []);
 
+  const exportarCsv = async () => {
+    const res = await api.get('/auditoria/exportar-csv', { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'auditoria_expediente.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="animate-fade-in-up">
       <div style={{ marginBottom: 8 }}>
@@ -37,6 +50,7 @@ export default function Auditoria() {
         <input placeholder="ID de cliente (opcional)" value={clienteId} onChange={e => setClienteId(e.target.value)} className="input-field" style={{ minWidth: 260 }} />
         <button onClick={() => cargarPorCliente(clienteId)} className="btn-primary" style={{ padding: '12px 20px' }}>Filtrar</button>
         <button onClick={() => { setClienteId(''); cargar(); }} className="btn-secondary" style={{ padding: '12px 20px' }}>Ver todo</button>
+        <button onClick={exportarCsv} className="btn-secondary" style={{ padding: '12px 20px' }}><Download className="h-4 w-4" /> Exportar CSV</button>
       </div>
 
       <div className="table-container">

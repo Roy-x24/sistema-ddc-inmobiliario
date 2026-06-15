@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import RiesgoIndicador from '../components/RiesgoIndicador';
 import { Shield, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 
 export default function Riesgo() {
   const params = useParams();
@@ -10,6 +11,7 @@ export default function Riesgo() {
 
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
+  const [tipoCliente, setTipoCliente] = useState('');
   const [riesgo, setRiesgo] = useState(null);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
@@ -60,6 +62,9 @@ export default function Riesgo() {
     }
   };
 
+  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
+  const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+
   return (
     <div className="animate-fade-in-up">
       <div style={{ marginBottom: 8 }}>
@@ -80,12 +85,27 @@ export default function Riesgo() {
         </div>
       )}
 
-      <div style={{ marginBottom: 24, marginTop: 24 }}>
-        <label className="label-upper">Cliente</label>
-        <select value={clienteId} onChange={e => { setClienteId(e.target.value); }} className="select-field" style={{ minWidth: 320 }}>
-          <option value="">Seleccione un cliente</option>
-          {clientes.map(c => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre || c.id_cliente}</option>)}
-        </select>
+      <div style={{ marginBottom: 24, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ width: 220 }}>
+          <label className="label-upper">Tipo de cliente</label>
+          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); setRiesgo(null); }} className="select-field" style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            <option value="NATURAL">Persona natural</option>
+            <option value="JURIDICA">Persona juridica</option>
+          </select>
+        </div>
+        <div>
+          <label className="label-upper">Cliente</label>
+          <select value={clienteId} onChange={e => { setClienteId(e.target.value); }} className="select-field" style={{ minWidth: 320 }}>
+            <option value="">Seleccione un cliente</option>
+            {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
+          </select>
+        </div>
+        {clienteSeleccionado && (
+          <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
+            {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
+          </span>
+        )}
       </div>
 
       {riesgo && (

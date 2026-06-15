@@ -2,14 +2,20 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
+import PaginationControls from '../components/PaginationControls';
 import { UserCheck, Plus, AlertCircle, CheckCircle2, XCircle, User, Flag } from 'lucide-react';
+import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
+import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function BeneficiarioFinal() {
   const { id: urlId } = useParams();
   const { usuario } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
+  const [tipoCliente, setTipoCliente] = useState('');
   const [beneficiarios, setBeneficiarios] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
@@ -81,6 +87,15 @@ export default function BeneficiarioFinal() {
     }
   };
 
+  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
+  const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+  const beneficiariosPaginados = paginate(beneficiarios, page, pageSize);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(beneficiarios, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [beneficiarios, page, pageSize]);
+
   return (
     <div className="animate-fade-in-up">
       <div style={{ marginBottom: 8 }}>
@@ -101,12 +116,27 @@ export default function BeneficiarioFinal() {
         </div>
       )}
 
-      <div style={{ marginBottom: 20, marginTop: 24 }}>
-        <label className="label-upper">Cliente</label>
-        <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="select-field" style={{ minWidth: 320 }}>
-          <option value="">Seleccione un cliente</option>
-          {clientes.map(c => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre || c.id_cliente}</option>)}
-        </select>
+      <div style={{ marginBottom: 20, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ width: 220 }}>
+          <label className="label-upper">Tipo de cliente</label>
+          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); setBeneficiarios([]); setPage(1); }} className="select-field" style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            <option value="NATURAL">Persona natural</option>
+            <option value="JURIDICA">Persona juridica</option>
+          </select>
+        </div>
+        <div>
+          <label className="label-upper">Cliente</label>
+          <select value={clienteId} onChange={e => { setClienteId(e.target.value); setPage(1); }} className="select-field" style={{ minWidth: 320 }}>
+            <option value="">Seleccione un cliente</option>
+            {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
+          </select>
+        </div>
+        {clienteSeleccionado && (
+          <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
+            {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
+          </span>
+        )}
       </div>
 
       {clienteId && usuario?.rol === 'empleado' && (
@@ -175,7 +205,7 @@ export default function BeneficiarioFinal() {
               </tr>
             </thead>
             <tbody>
-              {beneficiarios.map((row) => (
+              {beneficiariosPaginados.map((row) => (
                 <tr key={row.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -197,7 +227,7 @@ export default function BeneficiarioFinal() {
                     }}>{row.estado_validacion}</span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    {usuario.rol === 'oficial_cumplimiento' && row.estado_validacion === 'PENDIENTE' ? (
+                    {['oficial_cumplimiento', 'admin'].includes(usuario?.rol) && row.estado_validacion === 'PENDIENTE' ? (
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <button onClick={() => validar(row.id, 'aprobar')} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
@@ -214,6 +244,16 @@ export default function BeneficiarioFinal() {
               ))}
             </tbody>
           </table>
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            total={beneficiarios.length}
+            onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value);
+              setPage(1);
+            }}
+          />
         </div>
       )}
     </div>

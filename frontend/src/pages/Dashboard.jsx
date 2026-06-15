@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import { Users, Clock, CheckCircle, AlertTriangle, ShieldAlert, Eye, FileCheck, Activity, ArrowUpRight } from 'lucide-react';
 
 const EMPTY_STATS = {
@@ -14,9 +15,14 @@ const EMPTY_STATS = {
 };
 
 export default function Dashboard() {
+  const { usuario } = useAuth();
   const [stats, setStats] = useState(EMPTY_STATS);
   const [reciente, setReciente] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const rol = usuario?.rol;
+  const puedeVerAuditoria = ['oficial_cumplimiento', 'auditor', 'admin'].includes(rol);
+  const puedeVerMetricasSensibles = ['oficial_cumplimiento', 'auditor', 'admin'].includes(rol);
+  const puedeVerIndicadoresEjecutivos = ['oficial_cumplimiento', 'admin'].includes(rol);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -25,15 +31,16 @@ export default function Dashboard() {
       setCargando(true);
 
       try {
-        const [clientesRes, auditoriaRes] = await Promise.all([
-          api.get('/clientes/?limit=9999', { signal: controller.signal }),
-          api.get('/auditoria', { signal: controller.signal }).catch(() => ({ data: [] }))
-        ]);
+        const clientesRes = await api.get('/clientes/?limit=9999', { signal: controller.signal });
+        const auditoriaRes = puedeVerAuditoria
+          ? await api.get('/auditoria', { signal: controller.signal }).catch(() => ({ data: [] }))
+          : { data: [] };
 
         const data = clientesRes.data || [];
         const resumen = data.reduce((acc, cliente) => {
           acc.total += 1;
-          if (cliente.estado in acc) acc[cliente.estado.toLowerCase()] += 1;
+          const estado = String(cliente.estado || '').toLowerCase();
+          if (estado in acc) acc[estado] += 1;
           return acc;
         }, { ...EMPTY_STATS });
 
@@ -52,17 +59,17 @@ export default function Dashboard() {
     cargarDashboard();
 
     return () => controller.abort();
-  }, []);
+  }, [puedeVerAuditoria]);
 
-  const statCards = useMemo(() => [
-    { label: 'Total expedientes', value: stats.total, icon: Users, tone: 'bg-slate-950 text-white', hint: 'Universo registrado' },
-    { label: 'Pendientes', value: stats.pendiente + stats.pendiente_bf, icon: Clock, tone: 'bg-amber-100 text-amber-800', hint: 'Requieren captura' },
-    { label: 'En revision', value: stats.en_revision, icon: Eye, tone: 'bg-sky-100 text-sky-800', hint: 'En analisis' },
-    { label: 'Observados', value: stats.observado, icon: AlertTriangle, tone: 'bg-violet-100 text-violet-800', hint: 'Con ajustes abiertos' },
-    { label: 'Activos', value: stats.activo, icon: CheckCircle, tone: 'bg-emerald-100 text-emerald-800', hint: 'Habilitados' },
-    { label: 'Bloqueados', value: stats.bloqueado, icon: ShieldAlert, tone: 'bg-rose-100 text-rose-800', hint: 'Alerta critica' },
-    { label: 'Rechazados', value: stats.rechazado, icon: FileCheck, tone: 'bg-slate-100 text-slate-700', hint: 'Cerrados' },
-  ], [stats]);
+  const statCards = useMemo(() => ([
+    { label: 'Total expedientes', value: stats.total, icon: Users, tone: 'bg-slate-950 text-white', hint: 'Universo registrado', visible: true },
+    { label: 'Pendientes', value: stats.pendiente + stats.pendiente_bf, icon: Clock, tone: 'bg-amber-100 text-amber-800', hint: 'Requieren captura', visible: true },
+    { label: 'En revision', value: stats.en_revision, icon: Eye, tone: 'bg-sky-100 text-sky-800', hint: 'En analisis', visible: true },
+    { label: 'Observados', value: stats.observado, icon: AlertTriangle, tone: 'bg-violet-100 text-violet-800', hint: 'Con ajustes abiertos', visible: true },
+    { label: 'Activos', value: stats.activo, icon: CheckCircle, tone: 'bg-emerald-100 text-emerald-800', hint: 'Habilitados', visible: puedeVerMetricasSensibles },
+    { label: 'Bloqueados', value: stats.bloqueado, icon: ShieldAlert, tone: 'bg-rose-100 text-rose-800', hint: 'Alerta critica', visible: puedeVerMetricasSensibles },
+    { label: 'Rechazados', value: stats.rechazado, icon: FileCheck, tone: 'bg-slate-100 text-slate-700', hint: 'Cerrados', visible: puedeVerMetricasSensibles },
+  ]).filter(card => card.visible), [stats, puedeVerMetricasSensibles]);
 
   const workload = stats.total ? Math.round(((stats.pendiente + stats.pendiente_bf + stats.en_revision + stats.observado) / stats.total) * 100) : 0;
   const activeRate = stats.total ? Math.round((stats.activo / stats.total) * 100) : 0;
@@ -91,15 +98,17 @@ export default function Dashboard() {
                 Vista ejecutiva de expedientes, carga operativa y eventos recientes del sistema de cumplimiento.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${puedeVerIndicadoresEjecutivos ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Carga abierta</p>
                 <p className="mt-3 text-3xl font-black">{cargando ? '-' : `${workload}%`}</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Activacion</p>
-                <p className="mt-3 text-3xl font-black">{cargando ? '-' : `${activeRate}%`}</p>
-              </div>
+              {puedeVerIndicadoresEjecutivos && (
+                <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Activacion</p>
+                  <p className="mt-3 text-3xl font-black">{cargando ? '-' : `${activeRate}%`}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -126,8 +135,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className={`grid gap-6 ${puedeVerAuditoria ? 'xl:grid-cols-[1fr_360px]' : ''}`}>
+        {puedeVerAuditoria && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-teal-700">Auditoria</p>
@@ -164,13 +173,13 @@ export default function Dashboard() {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-widest text-teal-700">Pulso del sistema</p>
           <h2 className="mt-1 text-xl font-black text-slate-950">Distribucion</h2>
           <div className="mt-6 space-y-4">
-            {statCards.slice(1, 6).map((item) => {
+            {statCards.filter(item => item.label !== 'Total expedientes').map((item) => {
               const value = Number(item.value) || 0;
               const width = stats.total ? Math.max(4, Math.round((value / stats.total) * 100)) : 4;
               return (

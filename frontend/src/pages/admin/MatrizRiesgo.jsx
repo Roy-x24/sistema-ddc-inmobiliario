@@ -67,6 +67,18 @@ export default function MatrizRiesgo() {
     }
   };
 
+  const crearVersion = async () => {
+    const descripcion = window.prompt('Descripcion de la nueva version');
+    if (descripcion === null) return;
+    try {
+      await api.post('/admin/matriz', { descripcion });
+      showMensaje('Version creada correctamente');
+      fetchVersiones();
+    } catch {
+      showError('Error al crear version');
+    }
+  };
+
   const totalFactores = matriz?.factores?.length || 0;
   const factoresActivos = matriz?.factores?.filter((f) => f.activo).length || 0;
   const pesoTotal = matriz?.factores?.reduce((acc, f) => acc + Number(f.peso || 0), 0) || 0;
@@ -177,7 +189,7 @@ export default function MatrizRiesgo() {
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex items-center gap-4">
+        <div className="mb-5 flex flex-wrap items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
             <Layers className="h-5 w-5" />
           </div>
@@ -186,6 +198,9 @@ export default function MatrizRiesgo() {
             <h2 className="mt-1 text-xl font-black text-slate-950">Versiones publicadas</h2>
           </div>
           <Activity className="ml-auto h-5 w-5 text-slate-400" />
+          <button onClick={crearVersion} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-teal-700">
+            Crear nueva version
+          </button>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200">

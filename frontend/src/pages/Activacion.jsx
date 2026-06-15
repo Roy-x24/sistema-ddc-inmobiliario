@@ -2,13 +2,19 @@ import { useEffect, useState } from 'react';
 import api from '../api/axiosConfig';
 import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
+import PaginationControls from '../components/PaginationControls';
 import { AlertTriangle, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
+import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function Activacion() {
   const [clientes, setClientes] = useState([]);
+  const [tipoCliente, setTipoCliente] = useState('');
   const [errores, setErrores] = useState([]);
   const [mensaje, setMensaje] = useState('');
   const [confirmando, setConfirmando] = useState({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const cargar = async () => {
     const res = await api.get('/clientes/?limit=9999');
@@ -80,7 +86,13 @@ export default function Activacion() {
     }
   };
 
-  const pendientes = clientes.filter(c => c.estado !== 'ACTIVO' && c.estado !== 'RECHAZADO');
+  const pendientes = clientes.filter(c => c.estado !== 'ACTIVO' && c.estado !== 'RECHAZADO' && (!tipoCliente || c.tipo_cliente === tipoCliente));
+  const pendientesPaginados = paginate(pendientes, page, pageSize);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(pendientes, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [pendientes, page, pageSize]);
 
   return (
     <div className="animate-fade-in-up">
@@ -108,25 +120,42 @@ export default function Activacion() {
         </div>
       )}
 
-      <div className="table-container" style={{ marginTop: 24 }}>
+      <div className="card" style={{ padding: 16, marginTop: 24 }}>
+        <div style={{ width: 220 }}>
+          <label className="label-upper">Tipo de cliente</label>
+          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            <option value="NATURAL">Persona natural</option>
+            <option value="JURIDICA">Persona juridica</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="table-container" style={{ marginTop: 16 }}>
         <table>
           <thead>
             <tr>
               <th>Cliente</th>
               <th>Identificación</th>
+              <th>Tipo</th>
               <th>Estado</th>
               <th>Riesgo</th>
               <th style={{ textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {pendientes.map(c => (
+            {pendientesPaginados.map(c => (
               <tr key={c.id_cliente}>
                 <td>
                   <div style={{ fontWeight: 600 }}>{c.nombre || '-'}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{c.id_cliente?.slice(0, 8)}...</div>
                 </td>
                 <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>{c.identificacion || '-'}</td>
+                <td>
+                  <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(c.tipo_cliente)}`}>
+                    {tipoClienteLabel(c.tipo_cliente)}
+                  </span>
+                </td>
                 <td><EstadoBadge estado={c.estado} /></td>
                 <td>{c.nivel_riesgo ? <RiesgoIndicador nivel={c.nivel_riesgo} /> : '-'}</td>
                 <td style={{ textAlign: 'right' }}>
@@ -156,6 +185,16 @@ export default function Activacion() {
             )}
           </tbody>
         </table>
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          total={pendientes.length}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
+        />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import api from '../../api/axiosConfig';
 import {
   Users,
   Plus,
+  Save,
   Trash2,
   AlertCircle,
   CheckCircle2,
@@ -36,6 +37,8 @@ export default function AdminUsuarios() {
   const [error, setError] = useState('');
   const [mostrarForm, setMostrarForm] = useState(false);
   const [form, setForm] = useState({ nombre: '', correo: '', password: '', rol: 'empleado' });
+  const [editandoId, setEditandoId] = useState('');
+  const [editForm, setEditForm] = useState({ nombre: '', correo: '', password: '', activo: true });
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -75,6 +78,28 @@ export default function AdminUsuarios() {
       fetchUsuarios();
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al cambiar rol');
+    }
+  };
+
+  const iniciarEdicion = (usuario) => {
+    setEditandoId(usuario.id);
+    setEditForm({ nombre: usuario.nombre, correo: usuario.correo, password: '', activo: usuario.activo });
+  };
+
+  const guardarEdicion = async (id) => {
+    try {
+      const payload = {
+        nombre: editForm.nombre,
+        correo: editForm.correo,
+        activo: editForm.activo,
+      };
+      if (editForm.password) payload.password = editForm.password;
+      await api.patch(`/auth/usuarios/${id}`, payload);
+      setEditandoId('');
+      showMensaje('Usuario actualizado');
+      fetchUsuarios();
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Error al actualizar usuario');
     }
   };
 
@@ -188,17 +213,35 @@ export default function AdminUsuarios() {
                           <User className="h-4 w-4" />
                         </div>
                         <div>
-                          <div className="font-black text-slate-950">{u.nombre}</div>
+                          {editandoId === u.id ? (
+                            <input value={editForm.nombre} onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })} className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-950" />
+                          ) : (
+                            <div className="font-black text-slate-950">{u.nombre}</div>
+                          )}
                           <div className="text-xs font-semibold text-slate-400">ID {String(u.id).slice(0, 8)}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-500">{u.correo}</td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-500">
+                      {editandoId === u.id ? (
+                        <div className="space-y-2">
+                          <input value={editForm.correo} onChange={(e) => setEditForm({ ...editForm, correo: e.target.value })} className="w-56 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700" />
+                          <input type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Nueva contrasena" className="w-56 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700" />
+                        </div>
+                      ) : u.correo}
+                    </td>
                     <td className="px-5 py-4">{rolBadge(u.rol)}</td>
                     <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${u.activo ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
-                        {u.activo ? 'Activo' : 'Inactivo'}
-                      </span>
+                      {editandoId === u.id ? (
+                        <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-600">
+                          <input type="checkbox" checked={editForm.activo} onChange={(e) => setEditForm({ ...editForm, activo: e.target.checked })} />
+                          Activo
+                        </label>
+                      ) : (
+                        <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${u.activo ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                          {u.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -209,6 +252,15 @@ export default function AdminUsuarios() {
                         >
                           {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                         </select>
+                        {editandoId === u.id ? (
+                          <button onClick={() => guardarEdicion(u.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100">
+                            <Save className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button onClick={() => iniciarEdicion(u)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+                            <UserCog className="h-4 w-4" />
+                          </button>
+                        )}
                         <button onClick={() => eliminar(u.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100">
                           <Trash2 className="h-4 w-4" />
                         </button>

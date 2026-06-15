@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import { FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 
 export default function Perfiles() {
   const params = useParams();
   const urlId = params.id;
+  const { usuario } = useAuth();
 
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
+  const [tipoCliente, setTipoCliente] = useState('');
   const [financiero, setFinanciero] = useState({ fuente_ingresos: '', rango_ingresos: '', origen_fondos: '', patrimonio_declarado: '' });
   const [transaccional, setTransaccional] = useState({
     monto_total_propiedad: '',
@@ -76,12 +80,17 @@ export default function Perfiles() {
   const guardarFinanciero = async () => {
     if (!clienteId) return showError('Seleccione un cliente');
     try {
-      await api.post(`/clientes/${clienteId}/perfil-financiero`, {
+      const payload = {
         ...financiero,
         patrimonio_declarado: financiero.patrimonio_declarado ? parseFloat(financiero.patrimonio_declarado) : null
-      });
+      };
+      if (finExiste) {
+        await api.patch(`/clientes/${clienteId}/perfil-financiero`, payload);
+      } else {
+        await api.post(`/clientes/${clienteId}/perfil-financiero`, payload);
+      }
       setFinExiste(true);
-      showMensaje('Perfil financiero guardado correctamente');
+      showMensaje(finExiste ? 'Perfil financiero actualizado correctamente' : 'Perfil financiero guardado correctamente');
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al guardar perfil financiero');
     }
@@ -90,7 +99,7 @@ export default function Perfiles() {
   const guardarTransaccional = async () => {
     if (!clienteId) return showError('Seleccione un cliente');
     try {
-      await api.post(`/clientes/${clienteId}/perfil-transaccional`, {
+      const payload = {
         monto_total_propiedad: parseFloat(transaccional.monto_total_propiedad),
         metodo_pago_predominante: transaccional.metodo_pago_predominante,
         tipo_operacion: transaccional.tipo_operacion,
@@ -98,13 +107,22 @@ export default function Perfiles() {
         tiene_financiamiento: transaccional.tiene_financiamiento,
         banco_financiamiento: transaccional.banco_financiamiento || null,
         monto_financiamiento: transaccional.monto_financiamiento ? parseFloat(transaccional.monto_financiamiento) : null
-      });
+      };
+      if (transExiste) {
+        await api.patch(`/clientes/${clienteId}/perfil-transaccional`, payload);
+      } else {
+        await api.post(`/clientes/${clienteId}/perfil-transaccional`, payload);
+      }
       setTransExiste(true);
-      showMensaje('Perfil transaccional guardado correctamente');
+      showMensaje(transExiste ? 'Perfil transaccional actualizado correctamente' : 'Perfil transaccional guardado correctamente');
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al guardar perfil transaccional');
     }
   };
+
+  const puedeEditar = ['empleado', 'admin'].includes(usuario?.rol);
+  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
+  const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
 
   return (
     <div className="animate-fade-in-up">
@@ -126,12 +144,27 @@ export default function Perfiles() {
         </div>
       )}
 
-      <div style={{ marginBottom: 20, marginTop: 24 }}>
-        <label className="label-upper">Cliente</label>
-        <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="select-field" style={{ minWidth: 320 }}>
-          <option value="">Seleccione un cliente</option>
-          {clientes.map(c => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre || c.id_cliente}</option>)}
-        </select>
+      <div style={{ marginBottom: 20, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ width: 220 }}>
+          <label className="label-upper">Tipo de cliente</label>
+          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); }} className="select-field" style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            <option value="NATURAL">Persona natural</option>
+            <option value="JURIDICA">Persona juridica</option>
+          </select>
+        </div>
+        <div>
+          <label className="label-upper">Cliente</label>
+          <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="select-field" style={{ minWidth: 320 }}>
+            <option value="">Seleccione un cliente</option>
+            {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
+          </select>
+        </div>
+        {clienteSeleccionado && (
+          <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
+            {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -143,11 +176,11 @@ export default function Perfiles() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Fuente de ingresos</label>
-            <input value={financiero.fuente_ingresos} onChange={e => setFinanciero({ ...financiero, fuente_ingresos: e.target.value })} className="input-field" />
+            <input value={financiero.fuente_ingresos} onChange={e => setFinanciero({ ...financiero, fuente_ingresos: e.target.value })} className="input-field" disabled={!puedeEditar} />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Rango de ingresos</label>
-            <select value={financiero.rango_ingresos} onChange={e => setFinanciero({ ...financiero, rango_ingresos: e.target.value })} className="select-field" style={{ width: '100%' }}>
+            <select value={financiero.rango_ingresos} onChange={e => setFinanciero({ ...financiero, rango_ingresos: e.target.value })} className="select-field" style={{ width: '100%' }} disabled={!puedeEditar}>
               <option value="">Seleccione</option>
               <option value="<1000">&lt; $1,000</option>
               <option value="1001-5000">$1,001 - $5,000</option>
@@ -157,13 +190,13 @@ export default function Perfiles() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Origen de los fondos</label>
-            <input value={financiero.origen_fondos} onChange={e => setFinanciero({ ...financiero, origen_fondos: e.target.value })} className="input-field" />
+            <input value={financiero.origen_fondos} onChange={e => setFinanciero({ ...financiero, origen_fondos: e.target.value })} className="input-field" disabled={!puedeEditar} />
           </div>
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Patrimonio declarado aproximado (USD)</label>
-            <input type="number" value={financiero.patrimonio_declarado} onChange={e => setFinanciero({ ...financiero, patrimonio_declarado: e.target.value })} className="input-field" />
+            <input type="number" value={financiero.patrimonio_declarado} onChange={e => setFinanciero({ ...financiero, patrimonio_declarado: e.target.value })} className="input-field" disabled={!puedeEditar} />
           </div>
-          <button onClick={guardarFinanciero} className="btn-primary" style={{ width: '100%' }}>{finExiste ? 'Actualizar' : 'Guardar'} perfil financiero</button>
+          {puedeEditar && <button onClick={guardarFinanciero} className="btn-primary" style={{ width: '100%' }}>{finExiste ? 'Actualizar' : 'Guardar'} perfil financiero</button>}
         </div>
 
         <div className="card" style={{ padding: 28 }}>
@@ -174,11 +207,11 @@ export default function Perfiles() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Monto total de la propiedad (USD)</label>
-            <input type="number" value={transaccional.monto_total_propiedad} onChange={e => setTransaccional({ ...transaccional, monto_total_propiedad: e.target.value })} className="input-field" />
+            <input type="number" value={transaccional.monto_total_propiedad} onChange={e => setTransaccional({ ...transaccional, monto_total_propiedad: e.target.value })} className="input-field" disabled={!puedeEditar} />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Método de pago predominante</label>
-            <select value={transaccional.metodo_pago_predominante} onChange={e => setTransaccional({ ...transaccional, metodo_pago_predominante: e.target.value })} className="select-field" style={{ width: '100%' }}>
+            <select value={transaccional.metodo_pago_predominante} onChange={e => setTransaccional({ ...transaccional, metodo_pago_predominante: e.target.value })} className="select-field" style={{ width: '100%' }} disabled={!puedeEditar}>
               <option value="transferencia">Transferencia bancaria</option>
               <option value="cheque">Cheque de gerencia</option>
               <option value="efectivo">Efectivo</option>
@@ -188,7 +221,7 @@ export default function Perfiles() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Tipo de operación</label>
-            <select value={transaccional.tipo_operacion} onChange={e => setTransaccional({ ...transaccional, tipo_operacion: e.target.value })} className="select-field" style={{ width: '100%' }}>
+            <select value={transaccional.tipo_operacion} onChange={e => setTransaccional({ ...transaccional, tipo_operacion: e.target.value })} className="select-field" style={{ width: '100%' }} disabled={!puedeEditar}>
               <option value="compra">Compra</option>
               <option value="venta">Venta</option>
               <option value="arrendamiento">Arrendamiento</option>
@@ -197,25 +230,25 @@ export default function Perfiles() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Banco de origen de fondos</label>
-            <input value={transaccional.banco_origen_fondos} onChange={e => setTransaccional({ ...transaccional, banco_origen_fondos: e.target.value })} className="input-field" />
+            <input value={transaccional.banco_origen_fondos} onChange={e => setTransaccional({ ...transaccional, banco_origen_fondos: e.target.value })} className="input-field" disabled={!puedeEditar} />
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, cursor: 'pointer' }}>
-            <input type="checkbox" checked={transaccional.tiene_financiamiento} onChange={e => setTransaccional({ ...transaccional, tiene_financiamiento: e.target.checked })} />
+            <input type="checkbox" checked={transaccional.tiene_financiamiento} onChange={e => setTransaccional({ ...transaccional, tiene_financiamiento: e.target.checked })} disabled={!puedeEditar} />
             <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Tiene financiamiento bancario?</span>
           </label>
           {transaccional.tiene_financiamiento && (
             <>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Banco del préstamo</label>
-                <input value={transaccional.banco_financiamiento} onChange={e => setTransaccional({ ...transaccional, banco_financiamiento: e.target.value })} className="input-field" />
+                <input value={transaccional.banco_financiamiento} onChange={e => setTransaccional({ ...transaccional, banco_financiamiento: e.target.value })} className="input-field" disabled={!puedeEditar} />
               </div>
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Monto del préstamo (USD)</label>
-                <input type="number" value={transaccional.monto_financiamiento} onChange={e => setTransaccional({ ...transaccional, monto_financiamiento: e.target.value })} className="input-field" />
+                <input type="number" value={transaccional.monto_financiamiento} onChange={e => setTransaccional({ ...transaccional, monto_financiamiento: e.target.value })} className="input-field" disabled={!puedeEditar} />
               </div>
             </>
           )}
-          <button onClick={guardarTransaccional} className="btn-primary" style={{ width: '100%' }}>{transExiste ? 'Actualizar' : 'Guardar'} perfil transaccional</button>
+          {puedeEditar && <button onClick={guardarTransaccional} className="btn-primary" style={{ width: '100%' }}>{transExiste ? 'Actualizar' : 'Guardar'} perfil transaccional</button>}
         </div>
       </div>
     </div>

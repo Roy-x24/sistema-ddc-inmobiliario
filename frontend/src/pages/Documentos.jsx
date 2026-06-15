@@ -1,18 +1,42 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import EstadoBadge from '../components/EstadoBadge';
-import { FileText, Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip } from 'lucide-react';
+import PaginationControls from '../components/PaginationControls';
+import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip } from 'lucide-react';
+import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
+import { pageCountFor, paginate } from '../utils/pagination';
+
+const DOCUMENTOS_NATURAL = [
+  ['DOCUMENTO_IDENTIDAD', 'Documento de identidad'],
+  ['COMPROBANTE_INGRESOS', 'Comprobante de ingresos'],
+  ['COMPROBANTE_RESIDENCIA', 'Comprobante de residencia'],
+  ['CARTA_REFERENCIA_BANCARIA', 'Carta referencia bancaria'],
+  ['DECLARACION_ORIGEN_FONDOS', 'Declaracion origen de fondos']
+];
+
+const DOCUMENTOS_JURIDICA = [
+  ['AVISO_OPERACION', 'Aviso de operacion'],
+  ['CERTIFICADO_EXISTENCIA', 'Certificado de existencia'],
+  ['IDENTIFICACION_REPRESENTANTE', 'Identificacion representante'],
+  ['IDENTIFICACION_BENEFICIARIOS', 'Identificacion beneficiarios'],
+  ['DECLARACION_ORIGEN_FONDOS', 'Declaracion origen de fondos']
+];
 
 export default function Documentos() {
   const params = useParams();
   const urlId = params.id;
+  const { usuario } = useAuth();
 
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
+  const [tipoCliente, setTipoCliente] = useState('');
   const [docs, setDocs] = useState([]);
   const [archivo, setArchivo] = useState(null);
   const [tipo, setTipo] = useState('DOCUMENTO_IDENTIDAD');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
 
@@ -27,6 +51,22 @@ export default function Documentos() {
   useEffect(() => {
     if (urlId) setClienteId(urlId);
   }, [urlId]);
+
+  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
+  const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+  const opcionesDocumento = clienteSeleccionado?.tipo_cliente === 'JURIDICA' ? DOCUMENTOS_JURIDICA : DOCUMENTOS_NATURAL;
+  const docsPaginados = paginate(docs, page, pageSize);
+
+  useEffect(() => {
+    if (!opcionesDocumento.some(([value]) => value === tipo)) {
+      setTipo(opcionesDocumento[0][0]);
+    }
+  }, [clienteSeleccionado?.tipo_cliente, opcionesDocumento, tipo]);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(docs, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [docs, page, pageSize]);
 
   const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
   const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
@@ -78,16 +118,23 @@ export default function Documentos() {
     }
   };
 
-  const descargar = (docId, nombre) => {
-    const base = api.defaults.baseURL || 'http://localhost:8000';
-    const url = `${base}/clientes/documentos/${docId}/descargar`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = nombre || 'documento';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const descargar = async (docId, nombre) => {
+    try {
+      const res = await api.get(`/clientes/documentos/${docId}/descargar`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nombre || 'documento';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      showError('Error al descargar documento');
+    }
   };
+
+  const puedeVerificar = ['oficial_cumplimiento', 'admin'].includes(usuario?.rol);
 
   return (
     <div className="animate-fade-in-up">
@@ -111,13 +158,38 @@ export default function Documentos() {
 
       <div className="card" style={{ padding: 24, marginTop: 24, marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label className="label-upper">Cliente</label>
-            <select value={clienteId} onChange={e => { setClienteId(e.target.value); }} className="select-field" style={{ width: '100%' }}>
-              <option value="">Seleccione un cliente</option>
-              {clientes.map(c => <option key={c.id_cliente} value={c.id_cliente}>{c.nombre || c.id_cliente}</option>)}
+          <div style={{ width: 190 }}>
+            <label className="label-upper">Tipo de cliente</label>
+            <select
+              value={tipoCliente}
+              onChange={e => {
+                setTipoCliente(e.target.value);
+                setClienteId('');
+                setDocs([]);
+                setPage(1);
+              }}
+              className="select-field"
+              style={{ width: '100%' }}
+            >
+              <option value="">Todos</option>
+              <option value="NATURAL">Persona natural</option>
+              <option value="JURIDICA">Persona juridica</option>
             </select>
           </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <label className="label-upper">Cliente</label>
+            <select value={clienteId} onChange={e => { setClienteId(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
+              <option value="">Seleccione un cliente</option>
+              {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
+            </select>
+          </div>
+          {clienteSeleccionado && (
+            <div style={{ alignSelf: 'center', paddingTop: 22 }}>
+              <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
+                {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
+              </span>
+            </div>
+          )}
           <div style={{ flex: 1, minWidth: 220 }}>
             <label className="label-upper">Tipo de documento</label>
             <select value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
@@ -153,7 +225,7 @@ export default function Documentos() {
             </tr>
           </thead>
           <tbody>
-            {docs.map(d => (
+            {docsPaginados.map(d => (
               <tr key={d.id_documento}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -173,7 +245,7 @@ export default function Documentos() {
                     <button onClick={() => descargar(d.id_documento, d.nombre_archivo)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                       <Download className="h-3.5 w-3.5" /> Descargar
                     </button>
-                    {d.estado === 'PENDIENTE_VERIFICACION' && (
+                    {puedeVerificar && d.estado === 'PENDIENTE_VERIFICACION' && (
                       <>
                         <button onClick={() => verificar(d.id_documento)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
@@ -190,6 +262,16 @@ export default function Documentos() {
             {docs.length === 0 && <tr><td colSpan={4} className="empty-state">Sin documentos registrados.</td></tr>}
           </tbody>
         </table>
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          total={docs.length}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
+        />
       </div>
     </div>
   );
