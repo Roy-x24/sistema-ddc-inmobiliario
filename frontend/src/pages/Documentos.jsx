@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import EstadoBadge from '../components/EstadoBadge';
 import { FileText, Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip } from 'lucide-react';
 
 export default function Documentos() {
   const params = useParams();
   const urlId = params.id;
+  const { usuario } = useAuth();
 
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
@@ -173,7 +175,7 @@ export default function Documentos() {
                     <button onClick={() => descargar(d.id_documento, d.nombre_archivo)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                       <Download className="h-3.5 w-3.5" /> Descargar
                     </button>
-                    {d.estado === 'PENDIENTE_VERIFICACION' && (
+                    {(usuario?.rol === 'oficial_cumplimiento' || usuario?.rol === 'admin') && d.estado === 'PENDIENTE_VERIFICACION' && (
                       <>
                         <button onClick={() => verificar(d.id_documento)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
