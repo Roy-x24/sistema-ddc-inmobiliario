@@ -53,16 +53,18 @@ export function AuthProvider({ children }) {
     setUsuario(datosUsuario);
   };
 
-  const cerrarSesion = useCallback(async (porInactividad = false) => {
+  const cerrarSesion = useCallback((porInactividad = false) => {
     const refreshToken = localStorage.getItem('refresh_token');
-    if (refreshToken) {
-      try {
-        await api.post('/auth/logout', { refresh_token: refreshToken });
-      } catch {}
-    }
+    const destino = porInactividad === true ? '/sesion-expirada' : '/login';
+
     localStorage.clear();
     setUsuario(null);
-    window.location.href = porInactividad === true ? '/sesion-expirada' : '/login';
+    window.history.replaceState(null, '', destino);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+
+    if (refreshToken) {
+      api.post('/auth/logout', { refresh_token: refreshToken }).catch(() => {});
+    }
   }, []);
 
   return (
