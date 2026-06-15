@@ -383,16 +383,17 @@ GET /auditoria                             → Historial global (últimos 200)
 |--------|----------|---------|---------|---------------|
 | Iniciar sesión | ✅ | ✅ | ✅ | ✅ |
 | Registrar cliente | ✅ | ❌ | ❌ | ✅ |
-| Consultar clientes | ✅ | ✅ | ✅ | ✅ |
+| Consultar clientes | ✅ | ✅ | ❌ | ✅ |
 | Adjuntar documentos | ✅ | ❌ | ❌ | ✅ |
 | Verificar/aprobar documentos | ❌ | ✅ | ❌ | ✅ |
 | Rechazar documentos | ❌ | ✅ | ❌ | ✅ |
 | Registrar perfil financiero | ✅ | ❌ | ❌ | ✅ |
 | Registrar perfil transaccional | ✅ | ❌ | ❌ | ✅ |
-| Ver clasificación de riesgo | ❌ | ✅ | ✅ | ✅ |
+| Ver clasificación de riesgo | ❌ | ✅ | ❌ | ✅ |
 | Activar cliente | ❌ | ✅ | ❌ | ✅ |
 | Rechazar cliente | ❌ | ✅ | ❌ | ✅ |
 | Ver historial de auditoría | ❌ | ✅ | ✅ | ✅ |
+| Exportar CSV de auditoría | ❌ | ❌ | ✅ | ✅ |
 | Crear usuarios | ❌ | ❌ | ❌ | ✅ |
 
 > Nota: El rol `administrador` es un superusuario que puede realizar cualquier acción. Fue agregado post-MVP documento original pero está completamente integrado.

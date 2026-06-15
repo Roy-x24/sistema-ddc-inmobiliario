@@ -36,7 +36,7 @@ El sistema viene configurado con 5 usuarios de prueba creados automáticamente a
 |--------|-----|------------|-------------------|
 | `empleado@ddc.com` | Empleado | `empleado123` | Registrar clientes, adjuntar documentos, registrar perfiles, responder observaciones, registrar BF |
 | `oficial@ddc.com` | Oficial de Cumplimiento | `oficial123` | Verificar documentos, validar BF, ver riesgo, activar/rechazar/bloquear clientes, crear/cerrar observaciones, ver auditoría |
-| `auditor@ddc.com` | Auditor | `auditor123` | Ver riesgo, ver auditoría, consultar clientes, exportar CSV de auditoría expediente |
+| `auditor@ddc.com` | Auditor | `auditor123` | Ver auditoría, exportar CSV de auditoría expediente |
 | `admin@ddc.com` | Administrador | `admin123` | **Acceso total a todos los paneles operativos y de administración.** Gestiona matriz de riesgo, gestiona usuarios (crear, cambiar rol, eliminar), exportar CSV auditoría administrativa |
 | `demo_empleado@ddc.com` | Empleado | `empleado123` | Usuario adicional para demos y pruebas E2E |
 

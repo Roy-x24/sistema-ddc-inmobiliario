@@ -61,7 +61,7 @@ function AppRoutes() {
     );
   }
 
-  const loginRedirect = '/dashboard';
+  const loginRedirect = usuario?.rol === 'admin' ? '/admin/matriz' : usuario?.rol === 'auditor' ? '/auditoria' : '/dashboard';
   const sinMarco = ['/login', '/sesion-expirada', '/no-autorizado'];
   const usaMarco = !!usuario && !sinMarco.includes(location.pathname);
 
@@ -75,19 +75,19 @@ function AppRoutes() {
       <Route path="/admin/usuarios" element={<RutaProtegida rolesPermitidos={['admin']}><AdminUsuarios /></RutaProtegida>} />
       <Route path="/admin/auditoria" element={<RutaProtegida rolesPermitidos={['admin']}><AdminAuditoria /></RutaProtegida>} />
 
-      <Route path="/dashboard" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><Dashboard /></RutaProtegida>} />
-      <Route path="/clientes" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><ListadoClientes /></RutaProtegida>} />
+      <Route path="/dashboard" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Dashboard /></RutaProtegida>} />
+      <Route path="/clientes" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><ListadoClientes /></RutaProtegida>} />
       <Route path="/clientes/nuevo" element={<RutaProtegida rolesPermitidos={['empleado', 'admin']}><RegistroNatural /></RutaProtegida>} />
       <Route path="/clientes/nuevo-juridica" element={<RutaProtegida rolesPermitidos={['empleado', 'admin']}><RegistroJuridica /></RutaProtegida>} />
-      <Route path="/expediente/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><DetalleExpediente /></RutaProtegida>} />
-      <Route path="/documentos" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><Documentos /></RutaProtegida>} />
-      <Route path="/documentos/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><Documentos /></RutaProtegida>} />
-      <Route path="/beneficiarios" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><BeneficiarioFinal /></RutaProtegida>} />
-      <Route path="/beneficiarios/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><BeneficiarioFinal /></RutaProtegida>} />
-      <Route path="/perfiles" element={<RutaProtegida rolesPermitidos={['empleado', 'auditor', 'admin']}><Perfiles /></RutaProtegida>} />
-      <Route path="/perfiles/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'auditor', 'admin']}><Perfiles /></RutaProtegida>} />
-      <Route path="/riesgo" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'auditor', 'admin']}><Riesgo /></RutaProtegida>} />
-      <Route path="/riesgo/:id" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'auditor', 'admin']}><Riesgo /></RutaProtegida>} />
+      <Route path="/expediente/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><DetalleExpediente /></RutaProtegida>} />
+      <Route path="/documentos" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Documentos /></RutaProtegida>} />
+      <Route path="/documentos/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Documentos /></RutaProtegida>} />
+      <Route path="/beneficiarios" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><BeneficiarioFinal /></RutaProtegida>} />
+      <Route path="/beneficiarios/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><BeneficiarioFinal /></RutaProtegida>} />
+      <Route path="/perfiles" element={<RutaProtegida rolesPermitidos={['empleado', 'admin']}><Perfiles /></RutaProtegida>} />
+      <Route path="/perfiles/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'admin']}><Perfiles /></RutaProtegida>} />
+      <Route path="/riesgo" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'admin']}><Riesgo /></RutaProtegida>} />
+      <Route path="/riesgo/:id" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'admin']}><Riesgo /></RutaProtegida>} />
       <Route path="/activacion" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'admin']}><Activacion /></RutaProtegida>} />
       <Route path="/activacion/:id" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'admin']}><Activacion /></RutaProtegida>} />
       <Route path="/observaciones" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Observaciones /></RutaProtegida>} />

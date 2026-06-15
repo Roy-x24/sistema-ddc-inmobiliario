@@ -7,14 +7,14 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['empleado', 'oficial_cumplimiento', 'auditor'] },
-  { label: 'Clientes', icon: Users, path: '/clientes', roles: ['empleado', 'oficial_cumplimiento', 'auditor'] },
-  { label: 'Documentos', icon: FileText, path: '/documentos', roles: ['empleado', 'oficial_cumplimiento', 'auditor'] },
-  { label: 'Perfiles', icon: FileSpreadsheet, path: '/perfiles', roles: ['empleado', 'auditor'] },
-  { label: 'Riesgo', icon: Shield, path: '/riesgo', roles: ['oficial_cumplimiento', 'auditor'] },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['empleado', 'oficial_cumplimiento'] },
+  { label: 'Clientes', icon: Users, path: '/clientes', roles: ['empleado', 'oficial_cumplimiento'] },
+  { label: 'Documentos', icon: FileText, path: '/documentos', roles: ['empleado', 'oficial_cumplimiento'] },
+  { label: 'Perfiles', icon: FileSpreadsheet, path: '/perfiles', roles: ['empleado'] },
+  { label: 'Riesgo', icon: Shield, path: '/riesgo', roles: ['oficial_cumplimiento'] },
   { label: 'Activacion', icon: AlertTriangle, path: '/activacion', roles: ['oficial_cumplimiento'] },
   { label: 'Observaciones', icon: MessageSquare, path: '/observaciones', roles: ['empleado', 'oficial_cumplimiento'] },
-  { label: 'Beneficiarios', icon: UserCheck, path: '/beneficiarios', roles: ['empleado', 'oficial_cumplimiento', 'auditor'] },
+  { label: 'Beneficiarios', icon: UserCheck, path: '/beneficiarios', roles: ['empleado', 'oficial_cumplimiento'] },
   { label: 'Auditoria', icon: ClipboardList, path: '/auditoria', roles: ['oficial_cumplimiento', 'auditor'] },
 ];
 

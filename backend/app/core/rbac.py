@@ -9,7 +9,7 @@ security = HTTPBearer()
 
 ROLES_PERMITIDOS = {
     "registrar_cliente": ["empleado", "admin"],
-    "consultar_clientes": ["empleado", "oficial_cumplimiento", "auditor", "admin"],
+    "consultar_clientes": ["empleado", "oficial_cumplimiento", "admin"],
     "adjuntar_documentos": ["empleado", "admin"],
     "verificar_documentos": ["oficial_cumplimiento", "admin"],
     "rechazar_documentos": ["oficial_cumplimiento", "admin"],
@@ -18,7 +18,7 @@ ROLES_PERMITIDOS = {
     "rechazar_bf": ["oficial_cumplimiento", "admin"],
     "registrar_perfil_financiero": ["empleado", "admin"],
     "registrar_perfil_transaccional": ["empleado", "admin"],
-    "ver_riesgo": ["oficial_cumplimiento", "auditor", "admin"],
+    "ver_riesgo": ["oficial_cumplimiento", "admin"],
     "activar_cliente": ["oficial_cumplimiento", "admin"],
     "rechazar_cliente": ["oficial_cumplimiento", "admin"],
     "bloquear_cliente": ["oficial_cumplimiento", "admin"],
