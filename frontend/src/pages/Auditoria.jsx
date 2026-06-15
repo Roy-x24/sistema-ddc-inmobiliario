@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
+import { Download, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Auditoria() {
+  const { usuario } = useAuth();
   const [registros, setRegistros] = useState([]);
   const [clienteId, setClienteId] = useState('');
+  const [exportando, setExportando] = useState(false);
+  const [exportandoAdmin, setExportandoAdmin] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+  const [error, setError] = useState('');
+
+  const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
+  const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
 
   const cargar = async () => {
     try {
@@ -24,6 +34,50 @@ export default function Auditoria() {
     }
   };
 
+  const exportarCSV = async () => {
+    setExportando(true);
+    try {
+      const response = await api.get('/auditoria/exportar-csv', {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `auditoria_expediente_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showMensaje('CSV exportado correctamente');
+    } catch (err) {
+      showError('Error al exportar CSV');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const exportarCSVAdmin = async () => {
+    setExportandoAdmin(true);
+    try {
+      const response = await api.get('/auditoria-admin/exportar-csv', {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `auditoria_admin_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showMensaje('CSV administrativo exportado correctamente');
+    } catch (err) {
+      showError('Error al exportar CSV administrativo');
+    } finally {
+      setExportandoAdmin(false);
+    }
+  };
+
   useEffect(() => { cargar(); }, []);
 
   return (
@@ -33,10 +87,47 @@ export default function Auditoria() {
         <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Trazabilidad de acciones sobre expedientes</p>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, marginTop: 24, flexWrap: 'wrap' }}>
+      {mensaje && (
+        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <CheckCircle2 className="h-4 w-4" />
+          {mensaje}
+        </div>
+      )}
+      {error && (
+        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, marginTop: 24, flexWrap: 'wrap', alignItems: 'center' }}>
         <input placeholder="ID de cliente (opcional)" value={clienteId} onChange={e => setClienteId(e.target.value)} className="input-field" style={{ minWidth: 260 }} />
         <button onClick={() => cargarPorCliente(clienteId)} className="btn-primary" style={{ padding: '12px 20px' }}>Filtrar</button>
         <button onClick={() => { setClienteId(''); cargar(); }} className="btn-secondary" style={{ padding: '12px 20px' }}>Ver todo</button>
+
+        {(usuario?.rol === 'auditor' || usuario?.rol === 'admin') && (
+          <button
+            onClick={exportarCSV}
+            className="btn-secondary"
+            style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+            disabled={exportando}
+          >
+            <Download className="h-4 w-4" />
+            {exportando ? 'Exportando...' : 'Exportar CSV'}
+          </button>
+        )}
+
+        {usuario?.rol === 'admin' && (
+          <button
+            onClick={exportarCSVAdmin}
+            className="btn-secondary"
+            style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+            disabled={exportandoAdmin}
+          >
+            <Download className="h-4 w-4" />
+            {exportandoAdmin ? 'Exportando...' : 'Exportar CSV Admin'}
+          </button>
+        )}
       </div>
 
       <div className="table-container">
