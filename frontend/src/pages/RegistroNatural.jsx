@@ -1,45 +1,28 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import FormField from '../components/ui/FormField';
+import Input from '../components/ui/Input';
+import Boton from '../components/ui/Boton';
 
 export default function RegistroNatural() {
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    nombres: '', apellidos: '', tipo_documento: 'CEDULA', numero_documento: '', fecha_nacimiento: '',
-    nacionalidad: '', pais_residencia: '', direccion: '', telefono: '', correo: '', ocupacion: '',
-    es_pep: false, fuente_ingresos: '', rango_ingresos: '', proposito_transaccion: '',
-    origen_fondos: '', monto_estimado: ''
-  });
-  const [guardando, setGuardando] = useState(false);
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const navigate = useNavigate();
 
-  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
-
-  const guardar = async () => {
-    setGuardando(true);
+  const onSubmit = async (data) => {
     try {
-      const payload = { ...form, monto_estimado: parseFloat(form.monto_estimado), fecha_nacimiento: form.fecha_nacimiento };
+      const payload = {
+        ...data,
+        monto_estimado: parseFloat(data.monto_estimado),
+        fecha_nacimiento: data.fecha_nacimiento,
+        es_pep: data.es_pep === 'true' || data.es_pep === true
+      };
       await api.post('/clientes/natural', payload);
       navigate('/clientes');
     } catch (e) {
       alert('Error al registrar: ' + (e.response?.data?.detail || e.message));
-    } finally {
-      setGuardando(false);
     }
   };
-
-  const input = (label, field, type = 'text', opts = {}) => (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>{label}</label>
-      {type === 'select' ? (
-        <select value={form[field]} onChange={e => update(field, e.target.value)} className="select-field" style={{ width: '100%' }}>
-          {opts.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      ) : (
-        <input type={type} value={form[field]} onChange={e => update(field, e.target.value)} className="input-field" />
-      )}
-    </div>
-  );
 
   return (
     <div className="animate-fade-in-up">
@@ -48,74 +31,81 @@ export default function RegistroNatural() {
         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Registro de cliente individual</p>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, marginTop: 16 }}>
-        <div style={{
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-sm)',
-          backgroundColor: step === 1 ? 'rgba(201, 162, 39, 0.12)' : 'transparent',
-          color: step === 1 ? 'var(--accent-gold)' : 'var(--text-muted)',
-          fontWeight: 700,
-          fontSize: 12,
-          border: `1px solid ${step === 1 ? 'rgba(201, 162, 39, 0.3)' : 'var(--border-subtle)'}`
-        }}>1. Datos personales</div>
-        <div style={{
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-sm)',
-          backgroundColor: step === 2 ? 'rgba(201, 162, 39, 0.12)' : 'transparent',
-          color: step === 2 ? 'var(--accent-gold)' : 'var(--text-muted)',
-          fontWeight: 700,
-          fontSize: 12,
-          border: `1px solid ${step === 2 ? 'rgba(201, 162, 39, 0.3)' : 'var(--border-subtle)'}`
-        }}>2. Perfil y transacción</div>
-      </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="card" style={{ padding: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <FormField label="Nombres" error={errors.nombres?.message}>
+            <Input {...register('nombres', { required: 'Nombres es obligatorio' })} />
+          </FormField>
+          <FormField label="Apellidos" error={errors.apellidos?.message}>
+            <Input {...register('apellidos', { required: 'Apellidos es obligatorio' })} />
+          </FormField>
+        </div>
+        <FormField label="Tipo de documento" error={errors.tipo_documento?.message}>
+          <select {...register('tipo_documento', { required: 'Tipo de documento es obligatorio' })} className="select-field" style={{ width: '100%' }}>
+            <option value="CEDULA">Cédula</option>
+            <option value="PASAPORTE">Pasaporte</option>
+          </select>
+        </FormField>
+        <FormField label="Número de documento" error={errors.numero_documento?.message}>
+          <Input {...register('numero_documento', { required: 'Número de documento es obligatorio' })} />
+        </FormField>
+        <FormField label="Fecha de nacimiento" error={errors.fecha_nacimiento?.message}>
+          <Input type="date" {...register('fecha_nacimiento', { required: 'Fecha de nacimiento es obligatoria' })} />
+        </FormField>
+        <FormField label="Nacionalidad" error={errors.nacionalidad?.message}>
+          <Input {...register('nacionalidad', { required: 'Nacionalidad es obligatoria' })} />
+        </FormField>
+        <FormField label="País de residencia" error={errors.pais_residencia?.message}>
+          <Input {...register('pais_residencia', { required: 'País de residencia es obligatorio' })} />
+        </FormField>
+        <FormField label="Dirección completa" error={errors.direccion?.message}>
+          <Input {...register('direccion', { required: 'Dirección es obligatoria' })} />
+        </FormField>
+        <FormField label="Teléfono" error={errors.telefono?.message}>
+          <Input {...register('telefono', { required: 'Teléfono es obligatorio' })} />
+        </FormField>
+        <FormField label="Correo electrónico" error={errors.correo?.message}>
+          <Input type="email" {...register('correo', { required: 'Correo es obligatorio', pattern: { value: /\S+@\S+\.\S+/, message: 'Correo inválido' } })} />
+        </FormField>
+        <FormField label="Ocupación / actividad económica" error={errors.ocupacion?.message}>
+          <Input {...register('ocupacion', { required: 'Ocupación es obligatoria' })} />
+        </FormField>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, marginBottom: 16, cursor: 'pointer' }}>
+          <input type="checkbox" {...register('es_pep')} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es persona expuesta políticamente (PEP)?</span>
+        </label>
 
-      <div className="card" style={{ padding: 28 }}>
-        {step === 1 && (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              {input('Nombres', 'nombres')}
-              {input('Apellidos', 'apellidos')}
-            </div>
-            {input('Tipo de documento', 'tipo_documento', 'select', { options: [{ value: 'CEDULA', label: 'Cédula' }, { value: 'PASAPORTE', label: 'Pasaporte' }] })}
-            {input('Número de documento', 'numero_documento')}
-            {input('Fecha de nacimiento', 'fecha_nacimiento', 'date')}
-            {input('Nacionalidad', 'nacionalidad')}
-            {input('País de residencia', 'pais_residencia')}
-            {input('Dirección completa', 'direccion')}
-            {input('Teléfono', 'telefono')}
-            {input('Correo electrónico', 'correo', 'email')}
-            {input('Ocupación / actividad económica', 'ocupacion')}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.es_pep} onChange={e => update('es_pep', e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
-              <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es persona expuesta políticamente (PEP)?</span>
-            </label>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
-              <button onClick={() => setStep(2)} className="btn-primary" style={{ padding: '12px 28px' }}>Siguiente</button>
-            </div>
-          </>
-        )}
+        <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '20px 0', paddingTop: 20 }}>
+          <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Perfil y transacción</h3>
+          <FormField label="Fuente de ingresos" error={errors.fuente_ingresos?.message}>
+            <Input {...register('fuente_ingresos', { required: 'Fuente de ingresos es obligatoria' })} />
+          </FormField>
+          <FormField label="Rango de ingresos mensuales" error={errors.rango_ingresos?.message}>
+            <select {...register('rango_ingresos', { required: 'Rango de ingresos es obligatorio' })} className="select-field" style={{ width: '100%' }}>
+              <option value="">Seleccione</option>
+              <option value="<1000">&lt; $1,000</option>
+              <option value="1001-5000">$1,001 - $5,000</option>
+              <option value="5001-15000">$5,001 - $15,000</option>
+              <option value=">15000">&gt; $15,000</option>
+            </select>
+          </FormField>
+          <FormField label="Origen de los fondos" error={errors.origen_fondos?.message}>
+            <Input {...register('origen_fondos', { required: 'Origen de fondos es obligatorio' })} />
+          </FormField>
+          <FormField label="Propósito de la transacción" error={errors.proposito_transaccion?.message}>
+            <Input {...register('proposito_transaccion', { required: 'Propósito es obligatorio' })} />
+          </FormField>
+          <FormField label="Monto estimado (USD)" error={errors.monto_estimado?.message}>
+            <Input type="number" {...register('monto_estimado', { required: 'Monto estimado es obligatorio', min: { value: 0, message: 'Monto debe ser positivo' } })} />
+          </FormField>
+        </div>
 
-        {step === 2 && (
-          <>
-            {input('Fuente de ingresos', 'fuente_ingresos')}
-            {input('Rango de ingresos mensuales', 'rango_ingresos', 'select', { options: [
-              { value: '<1000', label: '< $1,000' },
-              { value: '1001-5000', label: '$1,001 - $5,000' },
-              { value: '5001-15000', label: '$5,001 - $15,000' },
-              { value: '>15000', label: '> $15,000' }
-            ] })}
-            {input('Origen de los fondos', 'origen_fondos')}
-            {input('Propósito de la transacción', 'proposito_transaccion')}
-            {input('Monto estimado (USD)', 'monto_estimado', 'number')}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-              <button onClick={() => setStep(1)} className="btn-secondary" style={{ padding: '12px 28px' }}>Atrás</button>
-              <button onClick={guardar} disabled={guardando} className="btn-primary" style={{ padding: '12px 28px', opacity: guardando ? 0.7 : 1 }}>
-                {guardando ? 'Guardando...' : 'Guardar cliente'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+          <Boton type="submit" variant="primario" loading={isSubmitting} style={{ padding: '12px 28px' }}>
+            {isSubmitting ? 'Guardando...' : 'Guardar cliente'}
+          </Boton>
+        </div>
+      </form>
     </div>
   );
 }

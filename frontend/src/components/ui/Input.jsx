@@ -1,8 +1,11 @@
-export default function Input({ label, error, className = '', ...props }) {
+import { forwardRef } from 'react';
+
+const Input = forwardRef(function Input({ label, error, className = '', ...props }, ref) {
   return (
     <div className={className}>
       {label && <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-muted">{label}</label>}
       <input
+        ref={ref}
         className={`w-full rounded-lg border bg-surface px-4 py-2.5 text-sm text-ink shadow-soft transition-all focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 ${
           error ? 'border-risk-alto focus:border-risk-alto focus:ring-red-200' : 'border-parchment hover:border-gold/30'
         }`}
@@ -11,4 +14,6 @@ export default function Input({ label, error, className = '', ...props }) {
       {error && <p className="mt-1.5 text-xs font-medium text-risk-alto">{error}</p>}
     </div>
   );
-}
+});
+
+export default Input;

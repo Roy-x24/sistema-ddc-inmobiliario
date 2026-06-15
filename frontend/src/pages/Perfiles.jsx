@@ -28,6 +28,8 @@ export default function Perfiles() {
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
 
+  const tieneFinanciamiento = transaccional.tiene_financiamiento;
+
   useEffect(() => {
     api.get('/clientes/?limit=9999').then(res => setClientes(res.data || []));
   }, []);
@@ -132,13 +134,13 @@ export default function Perfiles() {
       </div>
 
       {mensaje && (
-        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <CheckCircle2 className="h-4 w-4" />
+        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <AlertCircle className="h-4 w-4" />
           {mensaje}
         </div>
       )}
       {error && (
-        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
         </div>
@@ -236,7 +238,7 @@ export default function Perfiles() {
             <input type="checkbox" checked={transaccional.tiene_financiamiento} onChange={e => setTransaccional({ ...transaccional, tiene_financiamiento: e.target.checked })} disabled={!puedeEditar} />
             <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Tiene financiamiento bancario?</span>
           </label>
-          {transaccional.tiene_financiamiento && (
+          {tieneFinanciamiento && (
             <>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Banco del préstamo</label>

@@ -144,13 +144,13 @@ export default function Documentos() {
       </div>
 
       {mensaje && (
-        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <CheckCircle2 className="h-4 w-4" />
+        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <AlertCircle className="h-4 w-4" />
           {mensaje}
         </div>
       )}
       {error && (
-        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
         </div>
@@ -192,7 +192,7 @@ export default function Documentos() {
           )}
           <div style={{ flex: 1, minWidth: 220 }}>
             <label className="label-upper">Tipo de documento</label>
-            <select value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
+            <select name="tipo_documento" value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
               <option value="DOCUMENTO_IDENTIDAD">Documento de identidad</option>
               <option value="COMPROBANTE_INGRESOS">Comprobante de ingresos</option>
               <option value="COMPROBANTE_RESIDENCIA">Comprobante de residencia</option>

@@ -1,0 +1,16 @@
+{
+  "name": "ddc-kyc-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:pn": "playwright test flujo_pn.spec.js",
+    "test:pj": "playwright test flujo_pj_bf.spec.js",
+    "test:smoke": "playwright test smoke.spec.js",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
