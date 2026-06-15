@@ -20,7 +20,7 @@ test.describe('Flujo Persona Jurídica con Beneficiarios Finales', () => {
       await expect(page).toHaveURL('/dashboard');
     });
 
-    await test.step('Registrar persona jurídica — paso 1 (empresa)', async () => {
+    await test.step('Registrar persona jurídica', async () => {
       await page.goto('/clientes/nuevo-juridica');
       await page.fill('input[name="razon_social"]', razon);
       await page.fill('input[name="ruc"]', ruc);
@@ -31,21 +31,18 @@ test.describe('Flujo Persona Jurídica con Beneficiarios Finales', () => {
       await page.fill('input[name="telefono"]', '+507 200-0000');
       await page.fill('input[name="correo"]', `empresa.${id}@test.com`);
       await page.fill('input[name="proposito_adquisicion"]', 'Adquisición de terreno para desarrollo residencial');
-      await page.click('button:has-text("Siguiente")');
-    });
 
-    await test.step('Registrar persona jurídica — paso 2 (representante, UBO y perfil)', async () => {
       // Representante legal
-      await page.fill('input[name="rl_nombre"]', 'María González');
-      await page.fill('input[name="rl_id"]', '8-987-654');
-      await page.fill('input[name="rl_cargo"]', 'Directora General');
-      await page.fill('input[name="rl_poderes"]', 'Amplio y general para representar la empresa');
+      await page.fill('input[name="representante_legal.nombre_completo"]', 'María González');
+      await page.fill('input[name="representante_legal.numero_identificacion"]', '8-987-654');
+      await page.fill('input[name="representante_legal.cargo"]', 'Directora General');
+      await page.fill('input[name="representante_legal.poderes_otorgados"]', 'Amplio y general para representar la empresa');
 
       // Beneficiario final (UBO)
-      await page.fill('input[name="bf_0_nombre"]', 'Carlos Ruiz');
-      await page.fill('input[name="bf_0_doc"]', '8-111-222');
-      await page.fill('input[name="bf_0_nac"]', 'Panameña');
-      await page.fill('input[name="bf_0_pct"]', '50');
+      await page.fill('input[name="beneficiarios_finales.0.nombre_completo"]', 'Carlos Ruiz');
+      await page.fill('input[name="beneficiarios_finales.0.numero_documento"]', '8-111-222');
+      await page.fill('input[name="beneficiarios_finales.0.nacionalidad"]', 'Panameña');
+      await page.fill('input[name="beneficiarios_finales.0.porcentaje_participacion"]', '50');
 
       // Perfil
       await page.fill('input[name="fuente_ingresos"]', 'Ventas de proyecto inmobiliario');

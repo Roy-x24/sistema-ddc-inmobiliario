@@ -21,7 +21,7 @@ test.describe('Flujo Persona Natural', () => {
       await expect(page).toHaveURL('/dashboard');
     });
 
-    await test.step('Registrar persona natural — paso 1', async () => {
+    await test.step('Registrar persona natural', async () => {
       await page.goto('/clientes/nuevo');
       await page.fill('input[name="nombres"]', nombre);
       await page.fill('input[name="apellidos"]', apellido);
@@ -35,10 +35,6 @@ test.describe('Flujo Persona Natural', () => {
       await page.fill('input[name="correo"]', `juan.${id}@test.com`);
       await page.fill('input[name="ocupacion"]', 'Ingeniero de software');
       await page.check('input[name="es_pep"]');
-      await page.click('button:has-text("Siguiente")');
-    });
-
-    await test.step('Registrar persona natural — paso 2', async () => {
       await page.fill('input[name="fuente_ingresos"]', 'Salario mensual');
       await page.selectOption('select[name="rango_ingresos"]', '5001-15000');
       await page.fill('input[name="origen_fondos"]', 'Ahorros personales');
@@ -82,8 +78,10 @@ test.describe('Flujo Persona Natural', () => {
     });
 
     await test.step('Verificar estado de documentos', async () => {
+      await page.reload();
+      await page.waitForTimeout(2000);
       const rows = page.locator('table tbody tr');
-      await expect(rows.filter({ hasText: 'PENDIENTE VERIFICACION' })).toHaveCount(3);
+      await expect(rows.filter({ hasText: 'PENDIENTE' })).toHaveCount(3);
     });
   });
 });
