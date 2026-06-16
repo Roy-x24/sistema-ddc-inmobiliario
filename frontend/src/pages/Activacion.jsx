@@ -3,7 +3,7 @@ import api from '../api/axiosConfig';
 import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
 import PaginationControls from '../components/PaginationControls';
-import { AlertTriangle, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Lock, Unlock } from 'lucide-react';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -15,6 +15,8 @@ export default function Activacion() {
   const [confirmando, setConfirmando] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [bloqueoPage, setBloqueoPage] = useState(1);
+  const [bloqueoPageSize, setBloqueoPageSize] = useState(10);
 
   const cargar = async () => {
     const res = await api.get('/clientes/?limit=9999');
@@ -41,11 +43,11 @@ export default function Activacion() {
     const conf = necesitaConfirmacion ? confirmando[id] : true;
 
     if (necesitaConfirmacion && !conf) {
-      mostrarErrores(['Riesgo ALTO: debe marcar la confirmación manual adicional para activar este cliente.']);
+      mostrarErrores(['Riesgo ALTO: debe marcar la confirmacion manual adicional para activar este cliente.']);
       return;
     }
 
-    if (!window.confirm('¿Confirma que desea activar este cliente?')) return;
+    if (!window.confirm('Confirma que desea activar este cliente?')) return;
     setErrores([]);
     try {
       await api.patch(`/clientes/${id}/activar`, null, {
@@ -54,7 +56,6 @@ export default function Activacion() {
       mostrarMensaje('Cliente activado exitosamente');
       cargar();
     } catch (err) {
-      console.error('Error al activar:', err);
       const res = err.response;
       if (res && res.status === 400) {
         const detail = res.data?.detail;
@@ -66,7 +67,7 @@ export default function Activacion() {
           mostrarErrores(['Error desconocido del servidor']);
         }
       } else {
-        mostrarErrores(['Error de conexión con el servidor']);
+        mostrarErrores(['Error de conexion con el servidor']);
       }
     }
   };
@@ -80,25 +81,78 @@ export default function Activacion() {
       mostrarMensaje('Cliente rechazado');
       cargar();
     } catch (err) {
-      console.error('Error al rechazar:', err);
       const detail = err.response?.data?.detail;
       mostrarErrores([typeof detail === 'string' ? detail : 'Error al rechazar cliente']);
     }
   };
 
-  const pendientes = clientes.filter(c => c.estado !== 'ACTIVO' && c.estado !== 'RECHAZADO' && (!tipoCliente || c.tipo_cliente === tipoCliente));
+  const bloquear = async (id) => {
+    const motivo = window.prompt('Motivo de bloqueo obligatorio');
+    if (!motivo) return;
+    setErrores([]);
+    try {
+      await api.patch(`/clientes/${id}/bloquear?motivo=${encodeURIComponent(motivo)}`);
+      mostrarMensaje('Cliente bloqueado');
+      cargar();
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      mostrarErrores([typeof detail === 'string' ? detail : 'Error al bloquear cliente']);
+    }
+  };
+
+  const desbloquear = async (id) => {
+    if (!window.confirm('Confirma que desea desbloquear este cliente?')) return;
+    setErrores([]);
+    try {
+      await api.patch(`/clientes/${id}/desbloquear`);
+      mostrarMensaje('Cliente desbloqueado');
+      cargar();
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      mostrarErrores([typeof detail === 'string' ? detail : 'Error al desbloquear cliente']);
+    }
+  };
+
+  const porTipo = (c) => !tipoCliente || c.tipo_cliente === tipoCliente;
+  const pendientes = clientes.filter(c => !['ACTIVO', 'BLOQUEADO', 'RECHAZADO'].includes(c.estado) && porTipo(c));
   const pendientesPaginados = paginate(pendientes, page, pageSize);
+  const gestionBloqueo = clientes.filter(c => ['ACTIVO', 'BLOQUEADO'].includes(c.estado) && porTipo(c));
+  const gestionBloqueoPaginados = paginate(gestionBloqueo, bloqueoPage, bloqueoPageSize);
+  const activos = clientes.filter(c => c.estado === 'ACTIVO').length;
+  const bloqueados = clientes.filter(c => c.estado === 'BLOQUEADO').length;
 
   useEffect(() => {
     const totalPages = pageCountFor(pendientes, pageSize);
     if (page > totalPages) setPage(totalPages);
   }, [pendientes, page, pageSize]);
 
+  useEffect(() => {
+    const totalPages = pageCountFor(gestionBloqueo, bloqueoPageSize);
+    if (bloqueoPage > totalPages) setBloqueoPage(totalPages);
+  }, [gestionBloqueo, bloqueoPage, bloqueoPageSize]);
+
+  const renderInfoCliente = (c) => (
+    <>
+      <td>
+        <div style={{ fontWeight: 600 }}>{c.nombre || '-'}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{c.id_cliente?.slice(0, 8)}...</div>
+      </td>
+      <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>{c.identificacion || '-'}</td>
+      <td>
+        <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(c.tipo_cliente)}`}>
+          {tipoClienteLabel(c.tipo_cliente)}
+        </span>
+      </td>
+      <td><EstadoBadge estado={c.estado} /></td>
+      <td>{c.nivel_riesgo ? <RiesgoIndicador nivel={c.nivel_riesgo} /> : '-'}</td>
+    </>
+  );
+
   return (
     <div className="animate-fade-in-up">
       <div style={{ marginBottom: 8 }}>
-        <h1 style={{ fontSize: 28 }}>Activación de clientes</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Gestión de aprobación y rechazo de expedientes</p>
+        <h1 style={{ fontSize: 28 }}>Activacion de clientes</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Gestion de aprobacion, rechazo y bloqueo de expedientes</p>
       </div>
 
       {mensaje && (
@@ -112,7 +166,7 @@ export default function Activacion() {
         <div className="error-banner">
           <div className="error-banner-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertTriangle className="h-4 w-4" />
-            No se puede activar — Requisitos pendientes
+            No se pudo completar la accion
           </div>
           <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.8 }}>
             {errores.map((e, i) => <li key={i}>{e}</li>)}
@@ -121,22 +175,38 @@ export default function Activacion() {
       )}
 
       <div className="card" style={{ padding: 16, marginTop: 24 }}>
-        <div style={{ width: 220 }}>
-          <label className="label-upper">Tipo de cliente</label>
-          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
-            <option value="">Todos</option>
-            <option value="NATURAL">Persona natural</option>
-            <option value="JURIDICA">Persona juridica</option>
-          </select>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ width: 220 }}>
+            <label className="label-upper">Tipo de cliente</label>
+            <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setPage(1); setBloqueoPage(1); }} className="select-field" style={{ width: '100%' }}>
+              <option value="">Todos</option>
+              <option value="NATURAL">Persona natural</option>
+              <option value="JURIDICA">Persona juridica</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div className="card" style={{ padding: '10px 14px', minWidth: 120 }}>
+              <div className="info-item-label">Activos</div>
+              <div className="info-item-value">{activos}</div>
+            </div>
+            <div className="card" style={{ padding: '10px 14px', minWidth: 120 }}>
+              <div className="info-item-label">Bloqueados</div>
+              <div className="info-item-value">{bloqueados}</div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="table-container" style={{ marginTop: 16 }}>
+        <div style={{ padding: '16px 18px 0' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Activacion y rechazo</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Clientes pendientes de aprobacion operativa.</p>
+        </div>
         <table>
           <thead>
             <tr>
               <th>Cliente</th>
-              <th>Identificación</th>
+              <th>Identificacion</th>
               <th>Tipo</th>
               <th>Estado</th>
               <th>Riesgo</th>
@@ -146,18 +216,7 @@ export default function Activacion() {
           <tbody>
             {pendientesPaginados.map(c => (
               <tr key={c.id_cliente}>
-                <td>
-                  <div style={{ fontWeight: 600 }}>{c.nombre || '-'}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{c.id_cliente?.slice(0, 8)}...</div>
-                </td>
-                <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>{c.identificacion || '-'}</td>
-                <td>
-                  <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(c.tipo_cliente)}`}>
-                    {tipoClienteLabel(c.tipo_cliente)}
-                  </span>
-                </td>
-                <td><EstadoBadge estado={c.estado} /></td>
-                <td>{c.nivel_riesgo ? <RiesgoIndicador nivel={c.nivel_riesgo} /> : '-'}</td>
+                {renderInfoCliente(c)}
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
                     {c.nivel_riesgo === 'ALTO' && (
@@ -181,7 +240,7 @@ export default function Activacion() {
               </tr>
             ))}
             {pendientes.length === 0 && (
-              <tr><td colSpan={5} className="empty-state">Sin clientes pendientes de activación.</td></tr>
+              <tr><td colSpan={6} className="empty-state">Sin clientes pendientes de activacion.</td></tr>
             )}
           </tbody>
         </table>
@@ -193,6 +252,56 @@ export default function Activacion() {
           onPageSizeChange={(value) => {
             setPageSize(value);
             setPage(1);
+          }}
+        />
+      </div>
+
+      <div className="table-container" style={{ marginTop: 24 }}>
+        <div style={{ padding: '16px 18px 0' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Bloqueo de clientes</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Bloquea clientes activos o desbloquea clientes suspendidos.</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Identificacion</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Riesgo</th>
+              <th style={{ textAlign: 'right' }}>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gestionBloqueoPaginados.map(c => (
+              <tr key={c.id_cliente}>
+                {renderInfoCliente(c)}
+                <td style={{ textAlign: 'right' }}>
+                  {c.estado === 'ACTIVO' ? (
+                    <button onClick={() => bloquear(c.id_cliente)} className="btn-danger" style={{ padding: '8px 16px', fontSize: 12 }}>
+                      <Lock className="h-3.5 w-3.5" /> Bloquear
+                    </button>
+                  ) : (
+                    <button onClick={() => desbloquear(c.id_cliente)} className="btn-success" style={{ padding: '8px 16px', fontSize: 12 }}>
+                      <Unlock className="h-3.5 w-3.5" /> Desbloquear
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {gestionBloqueo.length === 0 && (
+              <tr><td colSpan={6} className="empty-state">Sin clientes activos o bloqueados.</td></tr>
+            )}
+          </tbody>
+        </table>
+        <PaginationControls
+          page={bloqueoPage}
+          pageSize={bloqueoPageSize}
+          total={gestionBloqueo.length}
+          onPageChange={setBloqueoPage}
+          onPageSizeChange={(value) => {
+            setBloqueoPageSize(value);
+            setBloqueoPage(1);
           }}
         />
       </div>

@@ -112,8 +112,11 @@ export default function ListadoClientes() {
             <select value={estado} onChange={e => setEstado(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/10">
               <option value="">Todos</option>
               <option value="PENDIENTE">Pendiente</option>
+              <option value="PENDIENTE_BF">Pendiente BF</option>
               <option value="EN_REVISION">En revision</option>
+              <option value="OBSERVADO">Observado</option>
               <option value="ACTIVO">Activo</option>
+              <option value="BLOQUEADO">Bloqueado</option>
               <option value="RECHAZADO">Rechazado</option>
             </select>
           </div>
