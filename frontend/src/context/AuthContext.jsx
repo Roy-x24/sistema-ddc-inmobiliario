@@ -59,8 +59,7 @@ export function AuthProvider({ children }) {
 
     localStorage.clear();
     setUsuario(null);
-    window.history.replaceState(null, '', destino);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.location.href = destino;
 
     if (refreshToken) {
       api.post('/auth/logout', { refresh_token: refreshToken }).catch(() => {});
