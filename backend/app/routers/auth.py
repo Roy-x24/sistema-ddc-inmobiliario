@@ -23,6 +23,9 @@ def login(datos: LoginRequest, db: Session = Depends(obtener_db)):
     if not usuario or not verificar_password(datos.password, usuario.password_hash):
         registrar_auditoria_admin(db, datos.correo, "LOGIN_FALLIDO", {"razon": "credenciales_invalidas"})
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+    if not usuario.activo:
+        registrar_auditoria_admin(db, datos.correo, "LOGIN_FALLIDO", {"razon": "usuario_inactivo"})
+        raise HTTPException(status_code=401, detail="Usuario inactivo")
 
     # Revocar tokens previos
     db.query(RefreshToken).filter(

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axiosConfig';
+import { useAuth } from '../../context/AuthContext';
 import {
   Users,
   Plus,
@@ -12,6 +13,7 @@ import {
   Shield,
   Mail,
   Lock,
+  Unlock,
   KeyRound,
   UserCog,
 } from 'lucide-react';
@@ -31,6 +33,7 @@ const roleClasses = {
 };
 
 export default function AdminUsuarios() {
+  const { usuario: usuarioActual } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mensaje, setMensaje] = useState('');
@@ -103,6 +106,18 @@ export default function AdminUsuarios() {
     }
   };
 
+  const cambiarEstado = async (usuario, activo) => {
+    const accion = activo ? 'desbloquear' : 'bloquear';
+    if (!window.confirm(`Desea ${accion} a ${usuario.nombre}?`)) return;
+    try {
+      await api.patch(`/auth/usuarios/${usuario.id}`, { activo });
+      showMensaje(activo ? 'Usuario desbloqueado' : 'Usuario bloqueado');
+      fetchUsuarios();
+    } catch (err) {
+      showError(err.response?.data?.detail || `Error al ${accion} usuario`);
+    }
+  };
+
   const eliminar = async (id) => {
     if (!window.confirm('Eliminar este usuario? Esta accion no se puede deshacer.')) return;
     try {
@@ -121,6 +136,7 @@ export default function AdminUsuarios() {
   );
 
   const activos = usuarios.filter((u) => u.activo).length;
+  const bloqueados = usuarios.filter((u) => !u.activo).length;
   const admins = usuarios.filter((u) => u.rol === 'admin').length;
   const oficiales = usuarios.filter((u) => u.rol === 'oficial_cumplimiento').length;
 
@@ -140,7 +156,7 @@ export default function AdminUsuarios() {
                 Crea usuarios, ajusta roles y administra accesos del sistema desde un panel operativo.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Usuarios</p>
                 <p className="mt-3 text-3xl font-black">{loading ? '-' : usuarios.length}</p>
@@ -148,6 +164,10 @@ export default function AdminUsuarios() {
               <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Activos</p>
                 <p className="mt-3 text-3xl font-black">{loading ? '-' : activos}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Bloqueados</p>
+                <p className="mt-3 text-3xl font-black">{loading ? '-' : bloqueados}</p>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Admins</p>
@@ -261,6 +281,18 @@ export default function AdminUsuarios() {
                             <UserCog className="h-4 w-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => cambiarEstado(u, !u.activo)}
+                          disabled={u.correo === usuarioActual?.correo}
+                          title={u.activo ? 'Bloquear usuario' : 'Desbloquear usuario'}
+                          className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+                            u.activo
+                              ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                              : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          } disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300`}
+                        >
+                          {u.activo ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                        </button>
                         <button onClick={() => eliminar(u.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100">
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -323,6 +355,40 @@ export default function AdminUsuarios() {
               </div>
             </div>
           )}
+
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                <Lock className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-amber-700">Bloqueo de usuarios</p>
+                <h3 className="text-lg font-black text-slate-950">{loading ? '-' : bloqueados} bloqueados</h3>
+              </div>
+            </div>
+            <div className="mt-5 space-y-3">
+              {usuarios.filter((u) => !u.activo).slice(0, 4).map((u) => (
+                <div key={u.id} className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-slate-950">{u.nombre}</p>
+                    <p className="truncate text-xs font-semibold text-slate-400">{u.correo}</p>
+                  </div>
+                  <button
+                    onClick={() => cambiarEstado(u, true)}
+                    className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+                    title="Desbloquear usuario"
+                  >
+                    <Unlock className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {!loading && bloqueados === 0 && (
+                <p className="rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm font-bold text-slate-500">
+                  No hay usuarios bloqueados.
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-black uppercase tracking-widest text-teal-700">Resumen de roles</p>
