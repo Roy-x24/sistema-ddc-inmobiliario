@@ -45,7 +45,7 @@ export default function DetalleExpediente() {
     { label: 'Perfiles', icon: FileSpreadsheet, path: `/perfiles/${id}`, roles: ['empleado'] },
     { label: 'Riesgo', icon: Shield, path: `/riesgo/${id}`, roles: ['oficial_cumplimiento', 'auditor'] },
     { label: 'Observaciones', icon: MessageSquare, path: `/observaciones/${id}`, roles: ['empleado', 'oficial_cumplimiento'] },
-    { label: 'Beneficiarios', icon: UserCheck, path: `/beneficiarios/${id}`, roles: ['empleado', 'oficial_cumplimiento'] },
+    { label: 'Beneficiarios', icon: UserCheck, path: `/beneficiarios/${id}`, roles: ['empleado', 'oficial_cumplimiento'], tipos: ['JURIDICA'] },
     { label: 'Activación', icon: AlertTriangle, path: `/activacion/${id}`, roles: ['oficial_cumplimiento'] },
   ];
 
@@ -61,7 +61,7 @@ export default function DetalleExpediente() {
 
       {/* Actions bar */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24, marginTop: 20 }}>
-        {navActions.filter(a => a.roles.includes(usuario?.rol || '')).map((a) => (
+        {navActions.filter(a => a.roles.includes(usuario?.rol || '') && (!a.tipos || a.tipos.includes(cliente.tipo_cliente))).map((a) => (
           <button
             key={a.label}
             onClick={() => navigate(a.path)}

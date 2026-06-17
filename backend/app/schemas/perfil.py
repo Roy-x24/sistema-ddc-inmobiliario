@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
+from uuid import UUID
 
 
 class PerfilFinancieroCreate(BaseModel):
@@ -10,12 +12,12 @@ class PerfilFinancieroCreate(BaseModel):
 
 
 class PerfilFinancieroResponse(BaseModel):
-    id_perfil: str
+    id_perfil: UUID
     fuente_ingresos: str
     rango_ingresos: str
     origen_fondos: str
     patrimonio_declarado: Optional[float]
-    fecha_registro: str
+    fecha_registro: datetime
 
     class Config:
         from_attributes = True
@@ -32,7 +34,7 @@ class PerfilTransaccionalCreate(BaseModel):
 
 
 class PerfilTransaccionalResponse(BaseModel):
-    id_perfil: str
+    id_perfil: UUID
     monto_total_propiedad: float
     metodo_pago_predominante: str
     tipo_operacion: str
@@ -40,7 +42,7 @@ class PerfilTransaccionalResponse(BaseModel):
     tiene_financiamiento: bool
     banco_financiamiento: Optional[str]
     monto_financiamiento: Optional[float]
-    fecha_registro: str
+    fecha_registro: datetime
 
     class Config:
         from_attributes = True

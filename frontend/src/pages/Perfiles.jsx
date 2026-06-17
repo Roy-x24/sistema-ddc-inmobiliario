@@ -5,6 +5,23 @@ import { useAuth } from '../context/AuthContext';
 import { FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 
+const PERFIL_FINANCIERO_DEFAULT = {
+  fuente_ingresos: '',
+  rango_ingresos: '',
+  origen_fondos: '',
+  patrimonio_declarado: ''
+};
+
+const PERFIL_TRANSACCIONAL_DEFAULT = {
+  monto_total_propiedad: '',
+  metodo_pago_predominante: 'transferencia',
+  tipo_operacion: 'compra',
+  banco_origen_fondos: '',
+  tiene_financiamiento: false,
+  banco_financiamiento: '',
+  monto_financiamiento: ''
+};
+
 export default function Perfiles() {
   const params = useParams();
   const urlId = params.id;
@@ -13,18 +30,11 @@ export default function Perfiles() {
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
   const [tipoCliente, setTipoCliente] = useState('');
-  const [financiero, setFinanciero] = useState({ fuente_ingresos: '', rango_ingresos: '', origen_fondos: '', patrimonio_declarado: '' });
-  const [transaccional, setTransaccional] = useState({
-    monto_total_propiedad: '',
-    metodo_pago_predominante: 'transferencia',
-    tipo_operacion: 'compra',
-    banco_origen_fondos: '',
-    tiene_financiamiento: false,
-    banco_financiamiento: '',
-    monto_financiamiento: ''
-  });
+  const [financiero, setFinanciero] = useState(PERFIL_FINANCIERO_DEFAULT);
+  const [transaccional, setTransaccional] = useState(PERFIL_TRANSACCIONAL_DEFAULT);
   const [finExiste, setFinExiste] = useState(false);
   const [transExiste, setTransExiste] = useState(false);
+  const [cargandoPerfiles, setCargandoPerfiles] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
 
@@ -45,8 +55,11 @@ export default function Perfiles() {
   }, [urlId]);
 
   const cargarPerfiles = async (id) => {
+    setCargandoPerfiles(true);
     setFinExiste(false);
     setTransExiste(false);
+    setFinanciero(PERFIL_FINANCIERO_DEFAULT);
+    setTransaccional(PERFIL_TRANSACCIONAL_DEFAULT);
     try {
       const resF = await api.get(`/clientes/${id}/perfil-financiero`);
       if (resF.data) {
@@ -54,7 +67,7 @@ export default function Perfiles() {
           fuente_ingresos: resF.data.fuente_ingresos || '',
           rango_ingresos: resF.data.rango_ingresos || '',
           origen_fondos: resF.data.origen_fondos || '',
-          patrimonio_declarado: resF.data.patrimonio_declarado || ''
+          patrimonio_declarado: resF.data.patrimonio_declarado ?? ''
         });
         setFinExiste(true);
       }
@@ -69,11 +82,14 @@ export default function Perfiles() {
           banco_origen_fondos: resT.data.banco_origen_fondos || '',
           tiene_financiamiento: resT.data.tiene_financiamiento || false,
           banco_financiamiento: resT.data.banco_financiamiento || '',
-          monto_financiamiento: resT.data.monto_financiamiento || ''
+          monto_financiamiento: resT.data.monto_financiamiento ?? ''
         });
         setTransExiste(true);
       }
     } catch { /* no existe */ }
+    finally {
+      setCargandoPerfiles(false);
+    }
   };
 
   const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
@@ -176,6 +192,7 @@ export default function Perfiles() {
             <h3 style={{ fontSize: 18, fontFamily: 'var(--font-display)', color: 'var(--accent-gold)' }}>Perfil financiero</h3>
             {finExiste && <span className="badge" style={{ backgroundColor: 'rgba(22,163,74,0.1)', color: '#16A34A', border: '1px solid rgba(22,163,74,0.2)' }}>Registrado</span>}
           </div>
+          {cargandoPerfiles && <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>Cargando perfil financiero...</p>}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Fuente de ingresos</label>
             <input value={financiero.fuente_ingresos} onChange={e => setFinanciero({ ...financiero, fuente_ingresos: e.target.value })} className="input-field" disabled={!puedeEditar} />

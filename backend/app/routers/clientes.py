@@ -7,6 +7,7 @@ from app.models.persona_natural import PersonaNatural
 from app.models.persona_juridica import PersonaJuridica
 from app.models.representante_legal import RepresentanteLegal
 from app.models.beneficiario_final import BeneficiarioFinal
+from app.models.observacion import Observacion
 from app.schemas.cliente import PersonaNaturalCreate, PersonaJuridicaCreate, ClienteListItem
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
@@ -190,6 +191,49 @@ def listar_clientes(
 
     if response is not None:
         response.headers["X-Total-Count"] = str(total)
+    return resultados
+
+
+@router.get("/con-observaciones", response_model=List[ClienteListItem])
+def listar_clientes_con_observaciones(
+    tipo: str = "",
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
+    query = (
+        db.query(Cliente)
+        .join(Observacion, Observacion.id_cliente == Cliente.id_cliente)
+        .filter(Cliente.eliminado == False)
+        .distinct()
+    )
+    if tipo:
+        query = query.filter(Cliente.tipo_cliente == tipo.upper())
+
+    clientes = query.order_by(Cliente.fecha_registro.desc()).all()
+    resultados = []
+    for c in clientes:
+        nombre = None
+        identificacion = None
+        if c.tipo_cliente == "NATURAL":
+            pn = db.query(PersonaNatural).filter(PersonaNatural.id == c.id_cliente).first()
+            if pn:
+                nombre = f"{pn.nombres} {pn.apellidos}"
+                identificacion = pn.numero_documento
+        else:
+            pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == c.id_cliente).first()
+            if pj:
+                nombre = pj.razon_social
+                identificacion = pj.ruc
+        resultados.append(ClienteListItem(
+            id_cliente=str(c.id_cliente),
+            tipo_cliente=c.tipo_cliente,
+            estado=c.estado,
+            nivel_riesgo=c.nivel_riesgo,
+            fecha_registro=str(c.fecha_registro),
+            registrado_por=c.registrado_por,
+            nombre=nombre,
+            identificacion=identificacion
+        ))
     return resultados
 
 

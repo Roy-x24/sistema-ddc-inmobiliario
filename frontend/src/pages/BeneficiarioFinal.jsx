@@ -4,7 +4,7 @@ import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import PaginationControls from '../components/PaginationControls';
 import { UserCheck, Plus, AlertCircle, CheckCircle2, XCircle, User, Flag } from 'lucide-react';
-import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
+import { clienteOptionLabel, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function BeneficiarioFinal() {
@@ -12,7 +12,6 @@ export default function BeneficiarioFinal() {
   const { usuario } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
-  const [tipoCliente, setTipoCliente] = useState('');
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -33,8 +32,17 @@ export default function BeneficiarioFinal() {
   }, []);
 
   useEffect(() => {
-    if (clienteId) fetchBF(clienteId);
-  }, [clienteId]);
+    if (!clienteId || clientes.length === 0) return;
+    const cliente = clientes.find(c => c.id_cliente === clienteId);
+    if (cliente?.tipo_cliente !== 'JURIDICA') {
+      setClienteId('');
+      setBeneficiarios([]);
+      setPage(1);
+      showError('Beneficiarios finales aplica solo para personas juridicas');
+      return;
+    }
+    fetchBF(clienteId);
+  }, [clienteId, clientes]);
 
   useEffect(() => {
     if (urlId) setClienteId(urlId);
@@ -87,8 +95,8 @@ export default function BeneficiarioFinal() {
     }
   };
 
-  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
-  const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+  const clientesJuridicos = clientes.filter(c => c.tipo_cliente === 'JURIDICA');
+  const clienteSeleccionado = clientesJuridicos.find(c => c.id_cliente === clienteId);
   const beneficiariosPaginados = paginate(beneficiarios, page, pageSize);
 
   useEffect(() => {
@@ -117,19 +125,11 @@ export default function BeneficiarioFinal() {
       )}
 
       <div style={{ marginBottom: 20, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ width: 220 }}>
-          <label className="label-upper">Tipo de cliente</label>
-          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); setBeneficiarios([]); setPage(1); }} className="select-field" style={{ width: '100%' }}>
-            <option value="">Todos</option>
-            <option value="NATURAL">Persona natural</option>
-            <option value="JURIDICA">Persona juridica</option>
-          </select>
-        </div>
         <div>
-          <label className="label-upper">Cliente</label>
+          <label className="label-upper">Cliente juridico</label>
           <select value={clienteId} onChange={e => { setClienteId(e.target.value); setPage(1); }} className="select-field" style={{ minWidth: 320 }}>
-            <option value="">Seleccione un cliente</option>
-            {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
+            <option value="">Seleccione un cliente juridico</option>
+            {clientesJuridicos.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
           </select>
         </div>
         {clienteSeleccionado && (

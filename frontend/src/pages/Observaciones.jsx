@@ -21,8 +21,16 @@ export default function Observaciones() {
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
 
+  const cargarClientesConObservaciones = async (tipo = tipoCliente) => {
+    const params = new URLSearchParams();
+    if (tipo) params.append('tipo', tipo);
+    const query = params.toString();
+    const res = await api.get(`/clientes/con-observaciones${query ? `?${query}` : ''}`);
+    setClientes(res.data || []);
+  };
+
   useEffect(() => {
-    api.get('/clientes/?limit=9999').then(res => setClientes(res.data || []));
+    cargarClientesConObservaciones();
   }, []);
 
   useEffect(() => {
@@ -54,6 +62,7 @@ export default function Observaciones() {
       await api.post(`/clientes/${clienteId}/observaciones`, { descripcion: nueva });
       setNueva('');
       showMensaje('Observación creada');
+      cargarClientesConObservaciones();
       fetchObs(clienteId);
     } catch {
       showError('Error al crear observación');
@@ -66,6 +75,7 @@ export default function Observaciones() {
     try {
       await api.patch(`/clientes/observaciones/${obsId}/responder`, null, { params: { respuesta: resp } });
       showMensaje('Respuesta registrada');
+      cargarClientesConObservaciones();
       fetchObs(clienteId);
     } catch {
       showError('Error al responder observación');
@@ -76,6 +86,7 @@ export default function Observaciones() {
     try {
       await api.patch(`/clientes/observaciones/${obsId}/cerrar`);
       showMensaje('Observación cerrada');
+      cargarClientesConObservaciones();
       fetchObs(clienteId);
     } catch {
       showError('Error al cerrar observación');
@@ -114,7 +125,7 @@ export default function Observaciones() {
       <div style={{ marginBottom: 20, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ width: 220 }}>
           <label className="label-upper">Tipo de cliente</label>
-          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); setObservaciones([]); setPage(1); }} className="select-field" style={{ width: '100%' }}>
+          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); setObservaciones([]); setPage(1); cargarClientesConObservaciones(e.target.value); }} className="select-field" style={{ width: '100%' }}>
             <option value="">Todos</option>
             <option value="NATURAL">Persona natural</option>
             <option value="JURIDICA">Persona juridica</option>
@@ -123,7 +134,7 @@ export default function Observaciones() {
         <div>
           <label className="label-upper">Cliente</label>
           <select value={clienteId} onChange={e => { setClienteId(e.target.value); setPage(1); }} className="select-field" style={{ minWidth: 320 }}>
-            <option value="">Seleccione un cliente</option>
+            <option value="">Seleccione un cliente con observaciones</option>
             {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
           </select>
         </div>

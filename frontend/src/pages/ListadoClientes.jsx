@@ -8,7 +8,6 @@ import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function ListadoClientes() {
   const [clientes, setClientes] = useState([]);
-  const [total, setTotal] = useState(0);
   const [busqueda, setBusqueda] = useState('');
   const [tipo, setTipo] = useState('');
   const [estado, setEstado] = useState('');
@@ -24,12 +23,9 @@ export default function ListadoClientes() {
       if (busqueda) params.append('busqueda', busqueda);
       if (tipo) params.append('tipo', tipo);
       if (estado) params.append('estado', estado);
-      params.append('skip', String((page - 1) * pageSize));
-      params.append('limit', String(pageSize));
+      params.append('limit', '9999');
       const res = await api.get(`/clientes/?${params.toString()}`);
       setClientes(res.data || []);
-      const totalHeader = res.headers['x-total-count'];
-      setTotal(totalHeader ? parseInt(totalHeader, 10) : 0);
     } finally {
       setCargando(false);
     }
