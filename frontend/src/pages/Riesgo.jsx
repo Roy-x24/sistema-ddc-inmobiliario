@@ -52,8 +52,15 @@ export default function Riesgo() {
     if (!id) return;
     setRecalculando(true);
     try {
-      await api.post(`/clientes/${id}/riesgo/calcular`);
-      showMensaje('Riesgo recalculado correctamente');
+      const res = await api.post(`/clientes/${id}/riesgo/calcular`);
+      const decision = res.data?.decision_automatica;
+      if (decision?.accion === 'activado') {
+        showMensaje('Riesgo recalculado y cliente activado automaticamente por riesgo bajo');
+      } else if (decision?.accion === 'escalado') {
+        showMensaje('Riesgo recalculado; expediente escalado para revision del Oficial');
+      } else {
+        showMensaje('Riesgo recalculado correctamente');
+      }
       consultar(id);
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al recalcular riesgo');

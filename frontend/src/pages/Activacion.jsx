@@ -3,7 +3,7 @@ import api from '../api/axiosConfig';
 import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
 import PaginationControls from '../components/PaginationControls';
-import { AlertTriangle, CheckCircle2, XCircle, Lock, Unlock } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Lock, Unlock, ShieldCheck, Workflow } from 'lucide-react';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -115,6 +115,9 @@ export default function Activacion() {
 
   const porTipo = (c) => !tipoCliente || c.tipo_cliente === tipoCliente;
   const pendientes = clientes.filter(c => !['ACTIVO', 'BLOQUEADO', 'RECHAZADO'].includes(c.estado) && porTipo(c));
+  const casosSistema = pendientes.filter(c => !c.nivel_riesgo || c.nivel_riesgo === 'BAJO').length;
+  const casosOficial = pendientes.filter(c => ['ESTANDAR', 'ALTO'].includes(c.nivel_riesgo) || c.estado === 'OBSERVADO' || c.estado === 'PENDIENTE_BF').length;
+  const altoPendiente = pendientes.filter(c => c.nivel_riesgo === 'ALTO').length;
   const pendientesPaginados = paginate(pendientes, page, pageSize);
   const gestionBloqueo = clientes.filter(c => ['ACTIVO', 'BLOQUEADO'].includes(c.estado) && porTipo(c));
   const gestionBloqueoPaginados = paginate(gestionBloqueo, bloqueoPage, bloqueoPageSize);
@@ -152,7 +155,21 @@ export default function Activacion() {
     <div className="animate-fade-in-up">
       <div style={{ marginBottom: 8 }}>
         <h1 style={{ fontSize: 28 }}>Activacion de clientes</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Gestion de aprobacion, rechazo y bloqueo de expedientes</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Bandeja inteligente: el sistema activa riesgo bajo completo y escala excepciones al Oficial.</p>
+      </div>
+
+      <div className="card" style={{ padding: 18, marginTop: 18, borderColor: 'rgba(34,197,94,0.25)', background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(212,175,55,0.04))' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
+            <Workflow className="h-5 w-5" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Decision automatica basada en riesgo</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, marginTop: 4 }}>
+              Riesgo BAJO con documentos verificados, perfiles completos, sin observaciones y BF aprobado se activa automaticamente. Riesgo ESTANDAR o ALTO permanece en esta bandeja para revision, muestreo o decision manual.
+            </div>
+          </div>
+        </div>
       </div>
 
       {mensaje && (
@@ -193,14 +210,26 @@ export default function Activacion() {
               <div className="info-item-label">Bloqueados</div>
               <div className="info-item-value">{bloqueados}</div>
             </div>
+            <div className="card" style={{ padding: '10px 14px', minWidth: 150 }}>
+              <div className="info-item-label">Para sistema</div>
+              <div className="info-item-value">{casosSistema}</div>
+            </div>
+            <div className="card" style={{ padding: '10px 14px', minWidth: 150 }}>
+              <div className="info-item-label">Para Oficial</div>
+              <div className="info-item-value">{casosOficial}</div>
+            </div>
+            <div className="card" style={{ padding: '10px 14px', minWidth: 150 }}>
+              <div className="info-item-label">Alto riesgo</div>
+              <div className="info-item-value">{altoPendiente}</div>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="table-container" style={{ marginTop: 16 }}>
         <div style={{ padding: '16px 18px 0' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Activacion y rechazo</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Clientes pendientes de aprobacion operativa.</p>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Revision del Oficial</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Los casos BAJO completos salen solos de esta lista; aqui quedan pendientes, excepciones y riesgos que necesitan criterio humano.</p>
         </div>
         <table>
           <thead>
@@ -219,6 +248,11 @@ export default function Activacion() {
                 {renderInfoCliente(c)}
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {c.nivel_riesgo === 'BAJO' && (
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-bold text-green-300">
+                        <ShieldCheck className="h-3.5 w-3.5" /> Auto si completa
+                      </span>
+                    )}
                     {c.nivel_riesgo === 'ALTO' && (
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', marginRight: 4 }}>
                         <input
