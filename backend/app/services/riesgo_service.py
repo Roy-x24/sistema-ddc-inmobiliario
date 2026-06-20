@@ -64,25 +64,31 @@ def calcular_riesgo_cliente(db: Session, cliente_id: str, usuario: str = "sistem
         bloqueante_activo = True
         factores_aplicados_list.append({"factor": "origen_fondos_no_verificable", "tipo": "bloqueante", "peso": 0, "aplicado": True})
 
+    if perfil_transaccional.monto_total_propiedad and perfil_transaccional.monto_total_propiedad > 500000:
+        bloqueante_activo = True
+        factores_aplicados_list.append({"factor": "monto_mayor_500k", "tipo": "bloqueante", "peso": 0, "aplicado": True})
+
+    if cliente.tipo_cliente == "JURIDICA":
+        pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == cliente_id).first()
+        if pj and pj.pais_constitucion != "PA" and pj.tipo_pj in ["fideicomiso", "fundacion"]:
+            bloqueante_activo = True
+            factores_aplicados_list.append({"factor": "pj_extranjera_compleja", "tipo": "bloqueante", "peso": 0, "aplicado": True})
+
     # Puntaje
     for f in factores:
         if f.tipo == "bloqueante":
             continue
         aplicado = False
         # monto > 500k
-        if f.nombre_factor == "monto_mayor_500k" and perfil_transaccional.monto_total_propiedad and perfil_transaccional.monto_total_propiedad > 500000:
-            puntaje_bruto += f.peso
-            aplicado = True
+        if f.nombre_factor == "monto_mayor_500k":
+            continue
         # monto 100k-500k
         elif f.nombre_factor == "monto_100k_500k" and perfil_transaccional.monto_total_propiedad and 100000 <= perfil_transaccional.monto_total_propiedad <= 500000:
             puntaje_bruto += f.peso
             aplicado = True
         # pj extranjera compleja
-        elif f.nombre_factor == "pj_extranjera_compleja" and cliente.tipo_cliente == "JURIDICA":
-            pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == cliente_id).first()
-            if pj and pj.pais_constitucion != "PA" and pj.tipo_pj in ["fideicomiso", "fundacion"]:
-                puntaje_bruto += f.peso
-                aplicado = True
+        elif f.nombre_factor == "pj_extranjera_compleja":
+            continue
         # pj extranjera sa
         elif f.nombre_factor == "pj_extranjera_sa" and cliente.tipo_cliente == "JURIDICA":
             pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == cliente_id).first()

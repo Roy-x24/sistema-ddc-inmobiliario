@@ -7,7 +7,7 @@ from app.models.cliente import Cliente
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
-from app.services.estado_service import verificar_bf_para_pendiente, verificar_documentos_para_revision
+from app.services.estado_service import intentar_activacion_automatica, verificar_bf_para_pendiente, verificar_documentos_para_revision
 
 router = APIRouter(prefix="/clientes", tags=["Beneficiarios Finales"])
 
@@ -87,7 +87,8 @@ def aprobar_beneficiario(
     registrar_auditoria(db, usuario.correo, "VALIDAR_BF", str(bf.id_cliente))
     verificar_bf_para_pendiente(db, str(bf.id_cliente), usuario.correo)
     verificar_documentos_para_revision(db, str(bf.id_cliente), usuario.correo)
-    return {"mensaje": "Beneficiario aprobado"}
+    decision = intentar_activacion_automatica(db, str(bf.id_cliente), "sistema")
+    return {"mensaje": "Beneficiario aprobado", "decision_automatica": decision}
 
 
 @router.patch("/beneficiarios/{bf_id}/rechazar")

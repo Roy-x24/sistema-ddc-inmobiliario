@@ -6,6 +6,7 @@ from app.schemas.riesgo import RiesgoResponse
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.riesgo_service import calcular_riesgo_cliente
+from app.services.estado_service import intentar_activacion_automatica
 
 router = APIRouter(prefix="/clientes", tags=["Riesgo"])
 
@@ -33,4 +34,9 @@ def forzar_calculo_riesgo(
     clasificacion = calcular_riesgo_cliente(db, id, usuario.correo)
     if not clasificacion:
         raise HTTPException(status_code=400, detail="No se pudo calcular el riesgo. Verifique perfiles.")
-    return {"mensaje": "Riesgo recalculado", "nivel": clasificacion.nivel_riesgo}
+    decision = intentar_activacion_automatica(db, id, "sistema")
+    return {
+        "mensaje": "Riesgo recalculado",
+        "nivel": clasificacion.nivel_riesgo,
+        "decision_automatica": decision
+    }

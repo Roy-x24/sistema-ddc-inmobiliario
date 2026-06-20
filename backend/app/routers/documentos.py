@@ -12,7 +12,7 @@ from app.schemas.documento import DocumentoResponse
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
-from app.services.estado_service import verificar_documentos_para_revision
+from app.services.estado_service import intentar_activacion_automatica, verificar_documentos_para_revision
 from typing import List
 
 router = APIRouter(prefix="/clientes", tags=["Documentos"])
@@ -109,8 +109,9 @@ def verificar_documento(
 
     registrar_auditoria(db, usuario.correo, "VERIFICAR_DOCUMENTO", str(doc.id_cliente), estado_anterior, "VERIFICADO")
     verificar_documentos_para_revision(db, str(doc.id_cliente), usuario.correo)
+    decision = intentar_activacion_automatica(db, str(doc.id_cliente), "sistema")
 
-    return {"mensaje": "Documento verificado"}
+    return {"mensaje": "Documento verificado", "decision_automatica": decision}
 
 
 @router.patch("/documentos/{doc_id}/rechazar")

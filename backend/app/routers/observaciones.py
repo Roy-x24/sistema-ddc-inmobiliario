@@ -8,7 +8,7 @@ from app.schemas.observacion import ObservacionCreate, ObservacionResponse
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
-from app.services.estado_service import cambiar_estado_cliente, verificar_observaciones_para_revision
+from app.services.estado_service import cambiar_estado_cliente, intentar_activacion_automatica, verificar_observaciones_para_revision
 
 router = APIRouter(prefix="/clientes", tags=["Observaciones"])
 
@@ -90,4 +90,5 @@ def cerrar_observacion(
 
     registrar_auditoria(db, usuario.correo, "CERRAR_OBSERVACION", obs.id_cliente)
     verificar_observaciones_para_revision(db, str(obs.id_cliente), usuario.correo)
+    intentar_activacion_automatica(db, str(obs.id_cliente), "sistema")
     return obs

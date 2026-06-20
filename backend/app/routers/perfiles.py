@@ -8,6 +8,7 @@ from app.schemas.perfil import PerfilFinancieroCreate, PerfilFinancieroResponse,
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
+from app.services.estado_service import intentar_activacion_automatica
 from app.services.riesgo_service import calcular_riesgo_cliente
 
 router = APIRouter(prefix="/clientes", tags=["Perfiles"])
@@ -40,6 +41,7 @@ def registrar_perfil_financiero(
     pt = db.query(PerfilTransaccional).filter(PerfilTransaccional.id_cliente == id).first()
     if pt:
         calcular_riesgo_cliente(db, id, usuario.correo)
+        intentar_activacion_automatica(db, id, "sistema")
 
     return perfil
 
@@ -78,6 +80,7 @@ def actualizar_perfil_financiero(
     pt = db.query(PerfilTransaccional).filter(PerfilTransaccional.id_cliente == id).first()
     if pt:
         calcular_riesgo_cliente(db, id, usuario.correo)
+        intentar_activacion_automatica(db, id, "sistema")
 
     return perfil
 
@@ -115,6 +118,7 @@ def registrar_perfil_transaccional(
     pf = db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == id).first()
     if pf:
         calcular_riesgo_cliente(db, id, usuario.correo)
+        intentar_activacion_automatica(db, id, "sistema")
 
     return perfil
 
@@ -147,6 +151,7 @@ def actualizar_perfil_transaccional(
     pf = db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == id).first()
     if pf:
         calcular_riesgo_cliente(db, id, usuario.correo)
+        intentar_activacion_automatica(db, id, "sistema")
 
     return perfil
 

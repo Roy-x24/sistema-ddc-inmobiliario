@@ -2,7 +2,12 @@ from sqlalchemy.orm import Session
 from app.models.cliente import Cliente
 from app.models.documento import Documento
 from app.models.observacion import Observacion
+from app.models.perfil_financiero import PerfilFinanciero
+from app.models.perfil_transaccional import PerfilTransaccional
+from app.models.auditoria import Auditoria
 from app.services.auditoria_service import registrar_auditoria
+
+NIVELES_AUTO_ACTIVACION = {"BAJO"}
 
 ESTADOS_VALIDOS = {
     "PENDIENTE", "PENDIENTE_BF", "EN_REVISION", "OBSERVADO",
@@ -71,6 +76,117 @@ def verificar_documentos_para_revision(db: Session, cliente_id: str, usuario_sis
         return
 
     cambiar_estado_cliente(db, cliente, "EN_REVISION", usuario_sistema)
+
+
+def evaluar_requisitos_activacion(
+    db: Session,
+    cliente_id: str,
+    requerir_confirmacion_alto: bool = True
+):
+    from app.models.beneficiario_final import BeneficiarioFinal
+
+    cliente = db.query(Cliente).filter(
+        Cliente.id_cliente == cliente_id,
+        Cliente.eliminado == False
+    ).first()
+    if not cliente:
+        return None, ["Cliente no encontrado"]
+
+    errores = []
+
+    if cliente.estado != "EN_REVISION":
+        errores.append(
+            f"Estado actual: '{cliente.estado}'. El expediente debe estar en 'EN_REVISION' para activarse."
+        )
+
+    tipos_obligatorios = obtener_tipos_obligatorios(cliente.tipo_cliente)
+    documentos = db.query(Documento).filter(Documento.id_cliente == cliente_id).all()
+    documentos_por_tipo = {d.tipo_documento: d for d in documentos}
+
+    for tipo in tipos_obligatorios:
+        if tipo not in documentos_por_tipo:
+            errores.append(f"Documento obligatorio faltante: {tipo}")
+        elif documentos_por_tipo[tipo].estado != "VERIFICADO":
+            errores.append(f"Documento pendiente de verificacion: {tipo}")
+
+    if not db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == cliente_id).first():
+        errores.append("Falta perfil financiero")
+    if not db.query(PerfilTransaccional).filter(PerfilTransaccional.id_cliente == cliente_id).first():
+        errores.append("Falta perfil transaccional")
+
+    observaciones_abiertas = db.query(Observacion).filter(
+        Observacion.id_cliente == cliente_id,
+        Observacion.estado == "ABIERTA"
+    ).count()
+    if observaciones_abiertas > 0:
+        errores.append("Hay observaciones abiertas pendientes")
+
+    if cliente.tipo_cliente == "JURIDICA":
+        bf_aprobado = db.query(BeneficiarioFinal).filter(
+            BeneficiarioFinal.id_cliente == cliente_id,
+            BeneficiarioFinal.estado_validacion == "APROBADO"
+        ).first()
+        if not bf_aprobado:
+            errores.append("Faltan beneficiarios finales aprobados")
+
+    if not cliente.nivel_riesgo:
+        errores.append("Falta clasificacion de riesgo calculada")
+    elif cliente.nivel_riesgo == "ALTO" and requerir_confirmacion_alto:
+        errores.append("Riesgo ALTO: requiere confirmacion manual adicional del Oficial")
+
+    return cliente, errores
+
+
+def intentar_activacion_automatica(db: Session, cliente_id: str, usuario_sistema: str = "sistema"):
+    cliente = db.query(Cliente).filter(
+        Cliente.id_cliente == cliente_id,
+        Cliente.eliminado == False
+    ).first()
+    if not cliente:
+        return {"accion": "sin_accion", "motivo": "cliente_no_encontrado"}
+
+    if cliente.estado == "PENDIENTE":
+        verificar_documentos_para_revision(db, cliente_id, usuario_sistema)
+        db.refresh(cliente)
+
+    if cliente.estado != "EN_REVISION":
+        return {"accion": "sin_accion", "motivo": f"estado_{cliente.estado}"}
+
+    cliente, errores = evaluar_requisitos_activacion(
+        db,
+        cliente_id,
+        requerir_confirmacion_alto=False
+    )
+    if errores:
+        return {"accion": "sin_accion", "motivo": "requisitos_pendientes", "errores": errores}
+
+    if cliente.nivel_riesgo in NIVELES_AUTO_ACTIVACION:
+        cambiar_estado_cliente(db, cliente, "ACTIVO", usuario_sistema)
+        registrar_auditoria(
+            db,
+            usuario_sistema,
+            "ACTIVAR_CLIENTE_AUTOMATICO",
+            cliente_id,
+            "EN_REVISION",
+            f"ACTIVO por riesgo {cliente.nivel_riesgo}"
+        )
+        return {"accion": "activado", "nivel_riesgo": cliente.nivel_riesgo}
+
+    escalacion_existente = db.query(Auditoria).filter(
+        Auditoria.cliente_id == cliente_id,
+        Auditoria.accion == "ESCALAR_CLIENTE_CUMPLIMIENTO",
+        Auditoria.valor_anterior == cliente.nivel_riesgo
+    ).first()
+    if not escalacion_existente:
+        registrar_auditoria(
+            db,
+            usuario_sistema,
+            "ESCALAR_CLIENTE_CUMPLIMIENTO",
+            cliente_id,
+            cliente.nivel_riesgo,
+            "Requiere revision del Oficial"
+        )
+    return {"accion": "escalado", "nivel_riesgo": cliente.nivel_riesgo}
 
 
 def obtener_tipos_obligatorios(tipo_cliente: str):

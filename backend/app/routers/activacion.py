@@ -2,14 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import obtener_db
 from app.models.cliente import Cliente
-from app.models.documento import Documento
-from app.models.perfil_financiero import PerfilFinanciero
-from app.models.perfil_transaccional import PerfilTransaccional
-from app.models.beneficiario_final import BeneficiarioFinal
-from app.models.observacion import Observacion
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
-from app.services.estado_service import cambiar_estado_cliente, obtener_tipos_obligatorios, verificar_documentos_para_revision
+from app.services.estado_service import cambiar_estado_cliente, evaluar_requisitos_activacion, verificar_documentos_para_revision
 from app.services.auditoria_service import registrar_auditoria
 
 router = APIRouter(prefix="/clientes", tags=["Activacion"])
@@ -30,49 +25,11 @@ def activar_cliente(
         verificar_documentos_para_revision(db, id, usuario.correo)
         db.refresh(cliente)
 
-    errores = []
-
-    # Estado
-    if cliente.estado != "EN_REVISION":
-        errores.append(f"Estado actual: '{cliente.estado}'. El expediente debe estar en 'EN_REVISION' para activarse.")
-
-    # Documentos obligatorios
-    tipos_obligatorios = obtener_tipos_obligatorios(cliente.tipo_cliente)
-    docs = db.query(Documento).filter(Documento.id_cliente == id).all()
-    documentos_por_tipo = {d.tipo_documento: d for d in docs}
-
-    for tipo in tipos_obligatorios:
-        if tipo not in documentos_por_tipo:
-            errores.append(f"Documento obligatorio faltante: {tipo}")
-        elif documentos_por_tipo[tipo].estado != "VERIFICADO":
-            errores.append(f"Documento pendiente de verificacion: {tipo}")
-
-    # Perfiles
-    if not db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == id).first():
-        errores.append("Falta perfil financiero")
-    if not db.query(PerfilTransaccional).filter(PerfilTransaccional.id_cliente == id).first():
-        errores.append("Falta perfil transaccional")
-
-    # Observaciones abiertas
-    obs_abiertas = db.query(Observacion).filter(
-        Observacion.id_cliente == id,
-        Observacion.estado == "ABIERTA"
-    ).count()
-    if obs_abiertas > 0:
-        errores.append("Hay observaciones abiertas pendientes")
-
-    # PJ requiere BF aprobado
-    if cliente.tipo_cliente == "JURIDICA":
-        bf_aprobado = db.query(BeneficiarioFinal).filter(
-            BeneficiarioFinal.id_cliente == id,
-            BeneficiarioFinal.estado_validacion == "APROBADO"
-        ).first()
-        if not bf_aprobado:
-            errores.append("Faltan beneficiarios finales aprobados")
-
-    # Riesgo ALTO
-    if cliente.nivel_riesgo == "ALTO" and not confirmacion_alto:
-        errores.append("Riesgo ALTO: requiere confirmacion manual adicional del Oficial")
+    _, errores = evaluar_requisitos_activacion(
+        db,
+        id,
+        requerir_confirmacion_alto=not confirmacion_alto
+    )
 
     if errores:
         raise HTTPException(status_code=400, detail={"requisitos_faltantes": errores})
@@ -80,7 +37,7 @@ def activar_cliente(
     cambiar_estado_cliente(db, cliente, "ACTIVO", usuario.correo)
     registrar_auditoria(db, usuario.correo, "ACTIVAR_CLIENTE", id, "EN_REVISION", "ACTIVO")
 
-    return {"mensaje": "Cliente activado"}
+    return {"mensaje": "Cliente activado por el Oficial"}
 
 
 @router.patch("/{id}/rechazar")
