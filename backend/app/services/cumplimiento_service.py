@@ -118,4 +118,28 @@ def resumen_cumplimiento(db: Session):
 
 
 def evaluar_automatizacion(db: Session, cliente_id: str):
-    return intentar_activacion_automatica(db, cliente_id, "sistema")
+    decision_previa = decision_expediente(db, cliente_id)
+    resultado = intentar_activacion_automatica(db, cliente_id, "sistema")
+    decision_actual = decision_expediente(db, cliente_id)
+
+    accion = resultado.get("accion")
+    if accion == "activado":
+        mensaje = "El sistema activo el expediente automaticamente porque cumple los requisitos de bajo riesgo."
+    elif accion == "escalado":
+        mensaje = "El expediente queda escalado para revision manual del Oficial."
+    elif resultado.get("motivo") == "requisitos_pendientes":
+        errores = resultado.get("errores") or []
+        mensaje = "No se puede cerrar automaticamente: " + ("; ".join(errores) if errores else "hay requisitos pendientes.")
+    elif resultado.get("motivo", "").startswith("estado_"):
+        estado = resultado.get("motivo", "").replace("estado_", "")
+        mensaje = f"No hubo cambios porque el expediente esta en estado {estado}."
+    else:
+        mensaje = "No hubo cambios automaticos para este expediente."
+
+    return {
+        "accion": accion,
+        "mensaje": mensaje,
+        "resultado": resultado,
+        "decision_previa": decision_previa,
+        "decision_actual": decision_actual,
+    }

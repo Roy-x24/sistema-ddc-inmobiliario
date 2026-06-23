@@ -5,7 +5,7 @@ import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
-import { AlertTriangle, Bot, CheckCircle2, FileWarning, Search, ShieldCheck, UserCheck } from 'lucide-react';
+import { AlertTriangle, Bot, RefreshCw, FileWarning, Search, ShieldCheck, UserCheck } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 
@@ -15,6 +15,16 @@ const COLAS = [
   ['OBSERVADOS_DOCUMENTOS', 'Observados'],
   ['ALTO_RIESGO', 'Alto riesgo'],
   ['PENDIENTES_INFORMACION', 'Pendientes'],
+];
+
+const ESTADOS = [
+  ['PENDIENTE', 'Pendiente'],
+  ['PENDIENTE_BF', 'Pendiente BF'],
+  ['EN_REVISION', 'En revision'],
+  ['OBSERVADO', 'Observado'],
+  ['ACTIVO', 'Activo'],
+  ['BLOQUEADO', 'Bloqueado'],
+  ['RECHAZADO', 'Rechazado'],
 ];
 
 const iconos = {
@@ -39,6 +49,7 @@ export default function Cumplimiento() {
   const [resumen, setResumen] = useState({});
   const [cola, setCola] = useState('');
   const [tipo, setTipo] = useState('');
+  const [estado, setEstado] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
@@ -66,19 +77,19 @@ export default function Cumplimiento() {
     if (page > totalPages) setPage(totalPages);
   }, [items, page, pageSize]);
 
-  const evaluar = async (id) => {
+  const actualizarDecision = async (id) => {
     try {
       const res = await api.post(`/cumplimiento/clientes/${id}/evaluar-automatizacion`);
-      const accion = res.data?.accion || 'sin_accion';
-      setMensaje(`Evaluacion ejecutada: ${accion}`);
+      setMensaje(res.data?.mensaje || 'Decision actualizada.');
       cargar();
     } catch {
-      setError('No se pudo evaluar la automatizacion');
+      setError('No se pudo actualizar la decision automatica');
     }
   };
 
   const itemsFiltrados = items
     .filter((item) => {
+      if (estado && item.estado !== estado) return false;
       if (!busqueda.trim()) return true;
       const texto = [item.nombre, item.identificacion, item.estado, item.nivel_riesgo, item.motivo_principal, item.accion_sugerida]
         .filter(Boolean)
@@ -117,7 +128,7 @@ export default function Cumplimiento() {
         })}
       </div>
 
-      <div className="card" style={{ padding: 16, marginTop: 18, display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) 220px 220px auto', gap: 12, alignItems: 'end' }}>
+      <div className="card" style={{ padding: 16, marginTop: 18, display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) repeat(3, minmax(170px, 220px)) auto', gap: 12, alignItems: 'end' }}>
         <div>
           <label className="label-upper" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Search className="h-3.5 w-3.5" /> Busqueda</label>
           <input value={busqueda} onChange={e => { setBusqueda(e.target.value); setPage(1); }} placeholder="Cliente, identificacion, motivo..." className="input-field" style={{ width: '100%' }} />
@@ -130,6 +141,13 @@ export default function Cumplimiento() {
           </select>
         </div>
         <div style={{ width: 220 }}>
+          <label className="label-upper">Estado</label>
+          <select value={estado} onChange={e => { setEstado(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            {ESTADOS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+        </div>
+        <div style={{ width: 220 }}>
           <label className="label-upper">Tipo de cliente</label>
           <select value={tipo} onChange={e => { setTipo(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
             <option value="">Todos</option>
@@ -137,7 +155,7 @@ export default function Cumplimiento() {
             <option value="JURIDICA">Persona juridica</option>
           </select>
         </div>
-        <button onClick={() => { setCola(''); setTipo(''); setBusqueda(''); }} className="btn-secondary" style={{ padding: '12px 18px' }}>Limpiar</button>
+        <button onClick={() => { setCola(''); setEstado(''); setTipo(''); setBusqueda(''); setPage(1); }} className="btn-secondary" style={{ padding: '12px 18px' }}>Limpiar</button>
       </div>
 
       <div className="table-container" style={{ marginTop: 16 }}>
@@ -176,15 +194,21 @@ export default function Cumplimiento() {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                    <button onClick={() => navigate(item.cola === 'OBSERVADOS_DOCUMENTOS' ? `/documentos/${item.id_cliente}` : `/expediente/${item.id_cliente}`)} className="btn-secondary" style={{ padding: '8px 12px', fontSize: 12 }}>
-                      {item.cola === 'OBSERVADOS_DOCUMENTOS' ? 'Ver documentos' : 'Ver expediente'}
+                    <button
+                      onClick={() => navigate(item.cola === 'OBSERVADOS_DOCUMENTOS' || item.cola === 'PENDIENTES_INFORMACION' ? `/documentos/${item.id_cliente}` : `/expediente/${item.id_cliente}`)}
+                      className="btn-secondary"
+                      style={{ padding: '8px 12px', fontSize: 12 }}
+                    >
+                      {item.cola === 'OBSERVADOS_DOCUMENTOS' ? 'Revisar documentos' : item.cola === 'PENDIENTES_INFORMACION' ? 'Completar documentos' : 'Ver expediente'}
                     </button>
                     {['REVISION_OFICIAL', 'ALTO_RIESGO', 'LISTOS_AUTOACTIVACION'].includes(item.cola) && (
                       <button onClick={() => navigate(`/activacion/${item.id_cliente}`)} className="btn-success" style={{ padding: '8px 12px', fontSize: 12 }}>Ir a activacion</button>
                     )}
-                    <button onClick={() => evaluar(item.id_cliente)} className="btn-primary" style={{ padding: '8px 12px', fontSize: 12 }}>
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Evaluar
-                    </button>
+                    {['LISTOS_AUTOACTIVACION', 'REVISION_OFICIAL', 'ALTO_RIESGO'].includes(item.cola) && (
+                      <button onClick={() => actualizarDecision(item.id_cliente)} className="btn-primary" style={{ padding: '8px 12px', fontSize: 12 }}>
+                        <RefreshCw className="h-3.5 w-3.5" /> Actualizar decision
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

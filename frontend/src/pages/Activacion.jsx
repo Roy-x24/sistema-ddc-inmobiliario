@@ -9,11 +9,22 @@ import { AlertTriangle, CheckCircle2, Search, XCircle, Lock, Unlock, ShieldCheck
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
 
+const ESTADOS = [
+  ['PENDIENTE', 'Pendiente'],
+  ['PENDIENTE_BF', 'Pendiente BF'],
+  ['EN_REVISION', 'En revision'],
+  ['OBSERVADO', 'Observado'],
+  ['ACTIVO', 'Activo'],
+  ['BLOQUEADO', 'Bloqueado'],
+  ['RECHAZADO', 'Rechazado'],
+];
+
 export default function Activacion() {
   const { id: urlId } = useParams();
   const [clientes, setClientes] = useState([]);
   const [tipoCliente, setTipoCliente] = useState('');
   const [riesgoFiltro, setRiesgoFiltro] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [errores, setErrores] = useState([]);
   const [mensaje, setMensaje] = useState('');
@@ -121,6 +132,7 @@ export default function Activacion() {
   const porFiltros = (c) => {
     if (tipoCliente && c.tipo_cliente !== tipoCliente) return false;
     if (riesgoFiltro && c.nivel_riesgo !== riesgoFiltro) return false;
+    if (estadoFiltro && c.estado !== estadoFiltro) return false;
     if (urlId && c.id_cliente !== urlId) return false;
     if (busqueda.trim()) {
       const texto = [c.nombre, c.identificacion, c.id_cliente, c.estado, c.nivel_riesgo].filter(Boolean).join(' ').toLowerCase();
@@ -224,10 +236,31 @@ export default function Activacion() {
               <option value="ALTO">Alto</option>
             </select>
           </div>
+          <div style={{ width: 220 }}>
+            <label className="label-upper">Estado</label>
+            <select value={estadoFiltro} onChange={e => { setEstadoFiltro(e.target.value); setPage(1); setBloqueoPage(1); }} className="select-field" style={{ width: '100%' }}>
+              <option value="">Todos</option>
+              {ESTADOS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </div>
           <div style={{ minWidth: 260, flex: 1 }}>
             <label className="label-upper" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Search className="h-3.5 w-3.5" /> Busqueda</label>
             <input value={busqueda} onChange={e => { setBusqueda(e.target.value); setPage(1); setBloqueoPage(1); }} placeholder="Nombre, cedula, RUC o ID..." className="input-field" style={{ width: '100%' }} />
           </div>
+          <button
+            onClick={() => {
+              setTipoCliente('');
+              setRiesgoFiltro('');
+              setEstadoFiltro('');
+              setBusqueda('');
+              setPage(1);
+              setBloqueoPage(1);
+            }}
+            className="btn-secondary"
+            style={{ padding: '12px 18px' }}
+          >
+            Limpiar
+          </button>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <div className="card" style={{ padding: '10px 14px', minWidth: 120 }}>
               <div className="info-item-label">Activos</div>
