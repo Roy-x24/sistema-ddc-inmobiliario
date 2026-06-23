@@ -137,8 +137,10 @@ export default function Auditoria() {
               <th>Fecha</th>
               <th>Usuario</th>
               <th>Acción</th>
+              <th>Origen</th>
               <th>Expediente</th>
               <th>Cambio</th>
+              <th>Detalle</th>
             </tr>
           </thead>
           <tbody>
@@ -165,15 +167,33 @@ export default function Auditoria() {
                   </div>
                 </td>
                 <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{r.accion.replace(/_/g, ' ')}</td>
+                <td>
+                  <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${
+                    r.origen === 'sistema'
+                      ? 'border-green-500/20 bg-green-500/10 text-green-300'
+                      : 'border-cyan-500/20 bg-cyan-500/10 text-cyan-300'
+                  }`}>
+                    {r.origen || 'humano'}
+                  </span>
+                  {r.severidad && (
+                    <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-muted)' }}>{r.severidad}</div>
+                  )}
+                </td>
                 <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-muted)' }}>{r.cliente_id ? r.cliente_id.slice(0, 8) + '...' : '-'}</td>
                 <td style={{ maxWidth: 260, fontSize: 13, color: 'var(--text-secondary)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>{r.valor_anterior || '-'}</span>
                   <span style={{ margin: '0 8px', color: 'var(--accent-gold)' }}>→</span>
                   <span>{r.valor_nuevo || '-'}</span>
                 </td>
+                <td style={{ maxWidth: 280, fontSize: 12, color: 'var(--text-muted)' }}>
+                  {r.version_regla && <div style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>{r.version_regla}</div>}
+                  <div style={{ whiteSpace: 'normal', lineHeight: 1.45 }}>
+                    {r.detalle ? JSON.stringify(r.detalle) : '-'}
+                  </div>
+                </td>
               </tr>
             ))}
-            {registros.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Sin registros.</td></tr>}
+            {registros.length === 0 && <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Sin registros.</td></tr>}
           </tbody>
         </table>
       </div>

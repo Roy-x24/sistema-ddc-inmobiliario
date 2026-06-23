@@ -8,6 +8,7 @@ from app.models.auditoria import Auditoria
 from app.services.auditoria_service import registrar_auditoria
 
 NIVELES_AUTO_ACTIVACION = {"BAJO"}
+ESTADOS_DOCUMENTO_VALIDOS = {"VERIFICADO", "VALIDADO_AUTOMATICO", "VERIFICADO_MANUAL"}
 
 ESTADOS_VALIDOS = {
     "PENDIENTE", "PENDIENTE_BF", "EN_REVISION", "OBSERVADO",
@@ -68,7 +69,7 @@ def verificar_documentos_para_revision(db: Session, cliente_id: str, usuario_sis
     for tipo in tipos_obligatorios:
         if tipo not in documentos_por_tipo:
             return
-        if documentos_por_tipo[tipo].estado != "VERIFICADO":
+        if documentos_por_tipo[tipo].estado not in ESTADOS_DOCUMENTO_VALIDOS:
             return
 
     # Si es PJ y esta en PENDIENTE_BF, no puede avanzar hasta BF aprobado
@@ -106,7 +107,7 @@ def evaluar_requisitos_activacion(
     for tipo in tipos_obligatorios:
         if tipo not in documentos_por_tipo:
             errores.append(f"Documento obligatorio faltante: {tipo}")
-        elif documentos_por_tipo[tipo].estado != "VERIFICADO":
+        elif documentos_por_tipo[tipo].estado not in ESTADOS_DOCUMENTO_VALIDOS:
             errores.append(f"Documento pendiente de verificacion: {tipo}")
 
     if not db.query(PerfilFinanciero).filter(PerfilFinanciero.id_cliente == cliente_id).first():
@@ -161,6 +162,17 @@ def intentar_activacion_automatica(db: Session, cliente_id: str, usuario_sistema
         return {"accion": "sin_accion", "motivo": "requisitos_pendientes", "errores": errores}
 
     if cliente.nivel_riesgo in NIVELES_AUTO_ACTIVACION:
+        registrar_auditoria(
+            db,
+            usuario_sistema,
+            "ACTIVACION_AUTOMATICA_EVALUADA",
+            cliente_id,
+            "EN_REVISION",
+            "APROBADA",
+            detalle={"nivel_riesgo": cliente.nivel_riesgo, "motor": "cumplimiento-v1"},
+            origen="sistema",
+            version_regla="cumplimiento-v1"
+        )
         cambiar_estado_cliente(db, cliente, "ACTIVO", usuario_sistema)
         registrar_auditoria(
             db,
@@ -168,7 +180,21 @@ def intentar_activacion_automatica(db: Session, cliente_id: str, usuario_sistema
             "ACTIVAR_CLIENTE_AUTOMATICO",
             cliente_id,
             "EN_REVISION",
-            f"ACTIVO por riesgo {cliente.nivel_riesgo}"
+            f"ACTIVO por riesgo {cliente.nivel_riesgo}",
+            detalle={"nivel_riesgo": cliente.nivel_riesgo, "criterio": "riesgo_bajo_sin_excepciones"},
+            origen="sistema",
+            version_regla="cumplimiento-v1"
+        )
+        registrar_auditoria(
+            db,
+            usuario_sistema,
+            "ACTIVACION_AUTOMATICA_APROBADA",
+            cliente_id,
+            "EN_REVISION",
+            "ACTIVO",
+            detalle={"nivel_riesgo": cliente.nivel_riesgo},
+            origen="sistema",
+            version_regla="cumplimiento-v1"
         )
         return {"accion": "activado", "nivel_riesgo": cliente.nivel_riesgo}
 
@@ -184,7 +210,23 @@ def intentar_activacion_automatica(db: Session, cliente_id: str, usuario_sistema
             "ESCALAR_CLIENTE_CUMPLIMIENTO",
             cliente_id,
             cliente.nivel_riesgo,
-            "Requiere revision del Oficial"
+            "Requiere revision del Oficial",
+            detalle={"nivel_riesgo": cliente.nivel_riesgo, "motivo": "riesgo_no_autoactivable"},
+            origen="sistema",
+            severidad="warning",
+            version_regla="cumplimiento-v1"
+        )
+        registrar_auditoria(
+            db,
+            usuario_sistema,
+            "ESCALAMIENTO_AUTOMATICO_OFICIAL",
+            cliente_id,
+            cliente.nivel_riesgo,
+            "Requiere revision del Oficial",
+            detalle={"nivel_riesgo": cliente.nivel_riesgo},
+            origen="sistema",
+            severidad="warning",
+            version_regla="cumplimiento-v1"
         )
     return {"accion": "escalado", "nivel_riesgo": cliente.nivel_riesgo}
 

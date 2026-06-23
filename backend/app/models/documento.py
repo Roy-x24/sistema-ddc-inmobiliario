@@ -16,6 +16,8 @@ class Documento(Base):
     tamano_bytes = Column(Integer, nullable=True)
     formato = Column(String, nullable=False)
     estado = Column(String, nullable=False, default="PENDIENTE_VERIFICACION")
+    confianza_validacion = Column(String, nullable=True)
+    resumen_validacion = Column(String, nullable=True)
     fecha_carga = Column(TIMESTAMP, server_default=text("NOW()"))
     fecha_verificacion = Column(TIMESTAMP, nullable=True)
     usuario_verificador = Column(String, nullable=True)

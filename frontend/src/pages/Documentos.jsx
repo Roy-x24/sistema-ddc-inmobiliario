@@ -3,9 +3,10 @@ import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import EstadoBadge from '../components/EstadoBadge';
+import ClienteSelector from '../components/ClienteSelector';
+import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
-import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip } from 'lucide-react';
-import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
+import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
 const DOCUMENTOS_NATURAL = [
@@ -32,6 +33,9 @@ export default function Documentos() {
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
   const [tipoCliente, setTipoCliente] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [riesgoFiltro, setRiesgoFiltro] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [docs, setDocs] = useState([]);
   const [archivo, setArchivo] = useState(null);
   const [tipo, setTipo] = useState('DOCUMENTO_IDENTIDAD');
@@ -52,7 +56,6 @@ export default function Documentos() {
     if (urlId) setClienteId(urlId);
   }, [urlId]);
 
-  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
   const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
   const opcionesDocumento = clienteSeleccionado?.tipo_cliente === 'JURIDICA' ? DOCUMENTOS_JURIDICA : DOCUMENTOS_NATURAL;
   const docsPaginados = paginate(docs, page, pageSize);
@@ -135,6 +138,7 @@ export default function Documentos() {
   };
 
   const puedeVerificar = ['oficial_cumplimiento', 'admin'].includes(usuario?.rol);
+  const puedeSubir = ['empleado', 'admin'].includes(usuario?.rol);
 
   return (
     <div className="animate-fade-in-up">
@@ -156,40 +160,25 @@ export default function Documentos() {
         </div>
       )}
 
-      <div className="card" style={{ padding: 24, marginTop: 24, marginBottom: 24 }}>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ width: 190 }}>
-            <label className="label-upper">Tipo de cliente</label>
-            <select
-              value={tipoCliente}
-              onChange={e => {
-                setTipoCliente(e.target.value);
-                setClienteId('');
-                setDocs([]);
-                setPage(1);
-              }}
-              className="select-field"
-              style={{ width: '100%' }}
-            >
-              <option value="">Todos</option>
-              <option value="NATURAL">Persona natural</option>
-              <option value="JURIDICA">Persona juridica</option>
-            </select>
-          </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label className="label-upper">Cliente</label>
-            <select value={clienteId} onChange={e => { setClienteId(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
-              <option value="">Seleccione un cliente</option>
-              {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
-            </select>
-          </div>
-          {clienteSeleccionado && (
-            <div style={{ alignSelf: 'center', paddingTop: 22 }}>
-              <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
-                {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
-              </span>
-            </div>
-          )}
+      <ClienteSelector
+        clientes={clientes}
+        value={clienteId}
+        onChange={(id) => { setClienteId(id); setDocs([]); setPage(1); }}
+        tipo={tipoCliente}
+        onTipoChange={(value) => { setTipoCliente(value); setClienteId(''); setDocs([]); setPage(1); }}
+        estado={estadoFiltro}
+        onEstadoChange={(value) => { setEstadoFiltro(value); setClienteId(''); setDocs([]); setPage(1); }}
+        riesgo={riesgoFiltro}
+        onRiesgoChange={(value) => { setRiesgoFiltro(value); setClienteId(''); setDocs([]); setPage(1); }}
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        title={puedeSubir ? 'Seleccionar expediente para carga documental' : 'Seleccionar expediente para revision documental'}
+        description={puedeSubir ? 'Busca el cliente y sube documentos para iniciar validacion automatica.' : 'Busca casos por estado o riesgo para revisar documentos observados o pendientes.'}
+      />
+
+      {clienteSeleccionado && puedeSubir && (
+        <div className="card" style={{ padding: 24, marginTop: 24, marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 220 }}>
             <label className="label-upper">Tipo de documento</label>
             <select name="tipo_documento" value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
@@ -211,16 +200,27 @@ export default function Documentos() {
           <button onClick={subir} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14 }}>
             <Upload className="h-4 w-4" /> Subir documento
           </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="table-container">
+      {!clienteId && (
+        <EmptyState
+          icon={FileText}
+          title={puedeSubir ? 'Selecciona un expediente para cargar documentos' : 'Selecciona un expediente para revisar documentos'}
+          message={puedeSubir ? 'La carga documental inicia el motor de reglas y deja trazabilidad automatica.' : 'El Oficial solo debe revisar documentos observados, pendientes o rechazados.'}
+        />
+      )}
+
+      {clienteId && (
+      <div className="table-container" style={{ marginTop: 16 }}>
         <table>
           <thead>
             <tr>
               <th>Archivo</th>
               <th>Tipo</th>
               <th>Estado</th>
+              <th>Validacion</th>
               <th style={{ textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
@@ -240,12 +240,18 @@ export default function Documentos() {
                 </td>
                 <td style={{ color: 'var(--text-secondary)' }}>{d.tipo_documento}</td>
                 <td><EstadoBadge estado={d.estado} /></td>
+                <td style={{ maxWidth: 260 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{d.confianza_validacion || 'Pendiente'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    {d.resumen_validacion || 'Sin evaluacion automatica registrada'}
+                  </div>
+                </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <button onClick={() => descargar(d.id_documento, d.nombre_archivo)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                       <Download className="h-3.5 w-3.5" /> Descargar
                     </button>
-                    {puedeVerificar && d.estado === 'PENDIENTE_VERIFICACION' && (
+                    {puedeVerificar && ['PENDIENTE_VERIFICACION', 'OBSERVADO'].includes(d.estado) && (
                       <>
                         <button onClick={() => verificar(d.id_documento)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
@@ -259,7 +265,17 @@ export default function Documentos() {
                 </td>
               </tr>
             ))}
-            {docs.length === 0 && <tr><td colSpan={4} className="empty-state">Sin documentos registrados.</td></tr>}
+            {docs.length === 0 && (
+              <tr>
+                <td colSpan={5}>
+                  <EmptyState
+                    icon={FileText}
+                    title="Sin documentos registrados"
+                    message={puedeSubir ? 'Este expediente aun no tiene documentos. Sube el primero para iniciar la validacion automatica.' : 'Este expediente aun no tiene documentos cargados. No hay nada que validar.'}
+                  />
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         <PaginationControls
@@ -273,6 +289,7 @@ export default function Documentos() {
           }}
         />
       </div>
+      )}
     </div>
   );
 }

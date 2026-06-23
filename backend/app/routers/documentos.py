@@ -12,7 +12,9 @@ from app.schemas.documento import DocumentoResponse
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
+from app.services.documento_validation_service import evaluar_documento, obtener_validaciones_documento
 from app.services.estado_service import intentar_activacion_automatica, verificar_documentos_para_revision
+from app.schemas.documento import DocumentoValidacionResponse
 from typing import List
 
 router = APIRouter(prefix="/clientes", tags=["Documentos"])
@@ -64,7 +66,11 @@ def adjuntar_documento(
     db.refresh(doc)
 
     registrar_auditoria(db, usuario.correo, "ADJUNTAR_DOCUMENTO", id, None, doc.tipo_documento)
-    return {"id_documento": str(doc.id_documento), "estado": doc.estado}
+    evaluar_documento(db, doc, "sistema")
+    db.refresh(doc)
+    verificar_documentos_para_revision(db, id, "sistema")
+    decision = intentar_activacion_automatica(db, id, "sistema")
+    return {"id_documento": str(doc.id_documento), "estado": doc.estado, "decision_automatica": decision}
 
 
 @router.get("/{id}/documentos", response_model=List[DocumentoResponse])
@@ -91,6 +97,15 @@ def descargar_documento(
     return FileResponse(path=doc.ruta_archivo, filename=doc.nombre_archivo, media_type="application/octet-stream")
 
 
+@router.get("/documentos/{doc_id}/validaciones", response_model=List[DocumentoValidacionResponse])
+def validaciones_documento(
+    doc_id: str,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
+    return obtener_validaciones_documento(db, doc_id)
+
+
 @router.patch("/documentos/{doc_id}/verificar")
 def verificar_documento(
     doc_id: str,
@@ -102,12 +117,14 @@ def verificar_documento(
         raise HTTPException(status_code=404, detail="Documento no encontrado")
 
     estado_anterior = doc.estado
-    doc.estado = "VERIFICADO"
+    doc.estado = "VERIFICADO_MANUAL"
+    doc.confianza_validacion = "MANUAL"
+    doc.resumen_validacion = "Documento verificado manualmente por Oficial"
     doc.fecha_verificacion = func.now()
     doc.usuario_verificador = usuario.correo
     db.commit()
 
-    registrar_auditoria(db, usuario.correo, "VERIFICAR_DOCUMENTO", str(doc.id_cliente), estado_anterior, "VERIFICADO")
+    registrar_auditoria(db, usuario.correo, "VERIFICAR_DOCUMENTO", str(doc.id_cliente), estado_anterior, "VERIFICADO_MANUAL")
     verificar_documentos_para_revision(db, str(doc.id_cliente), usuario.correo)
     decision = intentar_activacion_automatica(db, str(doc.id_cliente), "sistema")
 

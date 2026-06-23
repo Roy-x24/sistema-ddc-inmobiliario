@@ -191,6 +191,8 @@ El empleado es quien inicia el expediente. Su trabajo es registrar la informaci�
 
 El Oficial es quien valida la documentación, los beneficiarios finales, las observaciones y toma la decisión final de activar, bloquear o rechazar al cliente.
 
+En el flujo automatizado, el Oficial trabaja principalmente desde la **Bandeja de cumplimiento**. Esta bandeja agrupa expedientes por excepciones: alto riesgo, documentos observados, revision manual, pendientes de informacion y casos listos para autoactivacion.
+
 #### 5.2.1 Validar Beneficiarios Finales
 1. Inicia sesión como `oficial@ddc.com`
 2. Ve al expediente de un cliente jurídico → pestaña **Beneficiarios Finales**
@@ -207,7 +209,22 @@ El Oficial es quien valida la documentación, los beneficiarios finales, las obs
    - **Aprobar:** El documento pasa a estado **VERIFICADO**
    - **Rechazar:** Debes ingresar un **motivo obligatorio** de texto. El documento queda en estado **RECHAZADO**
 
-> **Efecto automático:** Cuando **todos los documentos obligatorios** de un cliente están en estado VERIFICADO, el sistema cambia automáticamente el estado del expediente de **PENDIENTE → EN_REVISION**.
+> **Efecto automático:** Cuando se carga un documento, el motor documental ejecuta reglas de validacion. Si el documento cumple las reglas queda como **VALIDADO_AUTOMATICO**. Si el Oficial lo aprueba manualmente queda como **VERIFICADO_MANUAL**. Cuando todos los documentos obligatorios son validos, el sistema puede cambiar el expediente de **PENDIENTE → EN_REVISION**.
+
+#### 5.2.2.1 Bandeja de cumplimiento
+
+1. Ve al menu **Cumplimiento**.
+2. Revisa los contadores por cola:
+   - Listos auto
+   - Revision oficial
+   - Observados
+   - Alto riesgo
+   - Pendientes
+3. Atiende primero **Alto riesgo** y **Observados**.
+4. Usa **Evaluar** para pedir al sistema que reintente la decision automatica.
+5. Entra al expediente solo cuando la bandeja indique que hay una excepcion real.
+
+La bandeja muestra completitud documental, accion sugerida y motivo principal para evitar que el Oficial tenga que abrir todos los clientes uno por uno.
 
 #### 5.2.3 Crear observaciones
 1. Ve al expediente del cliente → pestaña **Observaciones**

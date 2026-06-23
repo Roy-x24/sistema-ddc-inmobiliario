@@ -23,7 +23,14 @@ ACCIONES_VALIDAS = {
     "DESBLOQUEAR_CLIENTE",
     "REGISTRAR_BF",
     "VALIDAR_BF",
-    "RECHAZAR_BF"
+    "RECHAZAR_BF",
+    "DOCUMENTO_VALIDADO_AUTOMATICO",
+    "DOCUMENTO_OBSERVADO_AUTOMATICO",
+    "EXPEDIENTE_COMPLETO_AUTOMATICO",
+    "ACTIVACION_AUTOMATICA_EVALUADA",
+    "ACTIVACION_AUTOMATICA_APROBADA",
+    "ESCALAMIENTO_AUTOMATICO_OFICIAL",
+    "REGLA_DOCUMENTAL_EJECUTADA"
 }
 
 
@@ -33,7 +40,12 @@ def registrar_auditoria(
     accion: str,
     cliente_id: str | None = None,
     valor_anterior: str | None = None,
-    valor_nuevo: str | None = None
+    valor_nuevo: str | None = None,
+    detalle: dict | None = None,
+    origen: str = "humano",
+    severidad: str = "info",
+    correlation_id: str | None = None,
+    version_regla: str | None = None
 ):
     if accion not in ACCIONES_VALIDAS:
         raise ValueError(f"Accion de auditoria no valida: {accion}")
@@ -43,7 +55,12 @@ def registrar_auditoria(
         accion=accion,
         cliente_id=cliente_id,
         valor_anterior=valor_anterior,
-        valor_nuevo=valor_nuevo
+        valor_nuevo=valor_nuevo,
+        detalle=detalle,
+        origen=origen,
+        severidad=severidad,
+        correlation_id=correlation_id,
+        version_regla=version_regla
     )
     db.add(registro)
     db.commit()

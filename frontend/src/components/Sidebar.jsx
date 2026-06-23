@@ -8,14 +8,17 @@ import {
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['empleado', 'oficial_cumplimiento'] },
-  { label: 'Clientes', icon: Users, path: '/clientes', roles: ['empleado', 'oficial_cumplimiento'] },
-  { label: 'Documentos', icon: FileText, path: '/documentos', roles: ['empleado', 'oficial_cumplimiento'] },
-  { label: 'Perfiles', icon: FileSpreadsheet, path: '/perfiles', roles: ['empleado'] },
-  { label: 'Riesgo', icon: Shield, path: '/riesgo', roles: ['oficial_cumplimiento'] },
+  { label: 'Cumplimiento', icon: Shield, path: '/cumplimiento', roles: ['oficial_cumplimiento', 'auditor'] },
   { label: 'Activacion', icon: AlertTriangle, path: '/activacion', roles: ['oficial_cumplimiento'] },
-  { label: 'Observaciones', icon: MessageSquare, path: '/observaciones', roles: ['empleado', 'oficial_cumplimiento'] },
+  { label: 'Riesgo', icon: Shield, path: '/riesgo', roles: ['oficial_cumplimiento'] },
+  { type: 'divider', roles: ['oficial_cumplimiento'] },
+  { label: 'Documentos', icon: FileText, path: '/documentos', roles: ['empleado', 'oficial_cumplimiento'] },
   { label: 'Beneficiarios', icon: UserCheck, path: '/beneficiarios', roles: ['empleado', 'oficial_cumplimiento'] },
-  { label: 'Auditoria', icon: ClipboardList, path: '/auditoria', roles: ['oficial_cumplimiento', 'auditor'] },
+  { label: 'Observaciones', icon: MessageSquare, path: '/observaciones', roles: ['empleado', 'oficial_cumplimiento'] },
+  { type: 'divider', roles: ['oficial_cumplimiento'] },
+  { label: 'Clientes', icon: Users, path: '/clientes', roles: ['empleado', 'oficial_cumplimiento'] },
+  { label: 'Perfiles', icon: FileSpreadsheet, path: '/perfiles', roles: ['empleado'] },
+  { label: 'Auditoria', icon: ClipboardList, path: '/auditoria', roles: ['auditor'] },
 ];
 
 const adminItems = [
@@ -46,6 +49,9 @@ export default function Sidebar({ mobileOpen = false, onClose, desktopCollapsed 
   const isAdmin = usuario.rol === 'admin';
 
   const renderItem = (item, key) => {
+    if (item.type === 'divider') {
+      return <div key={key} className={`my-3 border-t border-white/10 ${desktopCollapsed ? 'mx-3' : 'mr-5'}`} />;
+    }
     const active = isActive(item.path);
     return (
       <button
@@ -94,9 +100,9 @@ export default function Sidebar({ mobileOpen = false, onClose, desktopCollapsed 
         </button>
       </div>
 
-      <div className={`relative mx-5 mt-5 rounded-xl border border-white/10 bg-white/[0.06] p-4 shadow-inner ${desktopCollapsed ? 'lg:mx-4 lg:p-3' : ''}`}>
+      <div className={`relative mx-5 mt-5 rounded-xl border border-white/10 bg-white/[0.06] p-4 shadow-inner ${desktopCollapsed ? 'lg:hidden' : ''}`}>
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-300 text-slate-950">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-300 text-slate-950">
             <Sparkles className="h-4 w-4" />
           </div>
           <div className={desktopCollapsed ? 'lg:hidden' : ''}>
@@ -110,22 +116,22 @@ export default function Sidebar({ mobileOpen = false, onClose, desktopCollapsed 
         {isAdmin ? (
           <>
             <div className={`px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 ${desktopCollapsed ? 'lg:text-center lg:text-[0px]' : ''}`}>{desktopCollapsed ? 'OP' : 'Operativo'}</div>
-            {navItems.map((item) => renderItem(item, item.path))}
+            {navItems.map((item, index) => renderItem(item, item.path || `divider-${index}`))}
             <div className={`px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 ${desktopCollapsed ? 'lg:text-center lg:text-[0px]' : ''}`}>{desktopCollapsed ? 'AD' : 'Administracion'}</div>
             {adminItems.map((item) => renderItem(item, 'admin-' + item.path))}
           </>
         ) : (
           navItems
             .filter((item) => item.roles.includes(usuario.rol))
-            .map((item) => renderItem(item, item.path))
+            .map((item, index) => renderItem(item, item.path || `divider-${index}`))
         )}
       </nav>
 
-      <div className={`relative space-y-1 border-t border-white/10 px-4 py-5 ${desktopCollapsed ? 'lg:px-3' : ''}`}>
-        <div className={`px-3 pb-3 ${desktopCollapsed ? 'lg:hidden' : ''}`}>
+      <div className={`relative min-h-[142px] space-y-1 border-t border-white/10 px-4 py-5 ${desktopCollapsed ? 'lg:min-h-[116px] lg:px-3' : ''}`}>
+        <div className={`h-[58px] px-3 pb-3 ${desktopCollapsed ? 'lg:hidden' : ''}`}>
           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Usuario</div>
           <div className="truncate text-xs font-bold text-white">{usuario.nombre || usuario.correo}</div>
-          <div className="mt-0.5 text-[10px] font-medium capitalize text-slate-300">{usuario.rol?.replace('_', ' ')}</div>
+          <div className="mt-0.5 truncate text-[10px] font-medium capitalize text-slate-300">{usuario.rol?.replace('_', ' ')}</div>
         </div>
         <button
           onClick={cerrarSesion}

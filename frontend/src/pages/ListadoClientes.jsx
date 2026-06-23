@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import EstadoBadge from '../components/EstadoBadge';
 import PaginationControls from '../components/PaginationControls';
 import { Plus, Search, Building2, User, Eye, SlidersHorizontal, Users } from 'lucide-react';
@@ -15,6 +16,8 @@ export default function ListadoClientes() {
   const [pageSize, setPageSize] = useState(10);
   const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
+  const { usuario } = useAuth();
+  const puedeCrear = ['empleado', 'admin'].includes(usuario?.rol);
 
   const cargar = async () => {
     setCargando(true);
@@ -60,7 +63,7 @@ export default function ListadoClientes() {
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Clientes</h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">Gestion y seguimiento de expedientes registrados.</p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        {puedeCrear && <div className="flex flex-wrap gap-3">
           <button onClick={() => navigate('/clientes/nuevo')} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-teal-700">
             <Plus className="h-4 w-4" />
             Persona natural
@@ -69,7 +72,7 @@ export default function ListadoClientes() {
             <Building2 className="h-4 w-4" />
             Persona juridica
           </button>
-        </div>
+        </div>}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

@@ -18,6 +18,7 @@ import BeneficiarioFinal from './pages/BeneficiarioFinal';
 import Perfiles from './pages/Perfiles';
 import Riesgo from './pages/Riesgo';
 import Activacion from './pages/Activacion';
+import Cumplimiento from './pages/Cumplimiento';
 import Observaciones from './pages/Observaciones';
 import Auditoria from './pages/Auditoria';
 import MatrizRiesgo from './pages/admin/MatrizRiesgo';
@@ -90,6 +91,7 @@ function AppRoutes() {
       <Route path="/riesgo/:id" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'admin']}><Riesgo /></RutaProtegida>} />
       <Route path="/activacion" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'admin']}><Activacion /></RutaProtegida>} />
       <Route path="/activacion/:id" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'admin']}><Activacion /></RutaProtegida>} />
+      <Route path="/cumplimiento" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'auditor', 'admin']}><Cumplimiento /></RutaProtegida>} />
       <Route path="/observaciones" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Observaciones /></RutaProtegida>} />
       <Route path="/observaciones/:id" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Observaciones /></RutaProtegida>} />
       <Route path="/auditoria" element={<RutaProtegida rolesPermitidos={['oficial_cumplimiento', 'auditor', 'admin']}><Auditoria /></RutaProtegida>} />

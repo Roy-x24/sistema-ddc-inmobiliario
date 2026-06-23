@@ -116,3 +116,14 @@ ddc-kyc-sistema/
 - Para reconstruir desde cero (borrar datos): `docker-compose down -v && docker-compose up --build`
 - El frontend usa **pnpm** como gestor de paquetes (prohibido npm/yarn en este proyecto).
 - Todos los paneles comparten un sistema de diseño coherente con tema **Luxury Corporate Dark** (colores dorado, navy y parchment).
+
+## Documentacion de cumplimiento
+
+- `docs/actores-y-responsabilidades.md`: responsabilidades por rol y actor sistema.
+- `docs/flujo-cumplimiento.md`: flujo automatizado del expediente.
+- `docs/motor-documental.md`: motor de reglas, extraccion simulada y ruta a OCR real.
+- `docs/automatizaciones.md`: automatizaciones implementadas y futuras.
+- `docs/auditoria.md`: auditoria funcional y tecnica.
+- `docs/bandeja-oficial.md`: uso de la bandeja inteligente.
+- `docs/manual-operativo.md`: guia operativa por actor.
+- `docs/adr-005-motor-reglas-documental.md`: decision tecnica del motor documental.

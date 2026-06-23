@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import RiesgoIndicador from '../components/RiesgoIndicador';
-import { Shield, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
+import ClienteSelector from '../components/ClienteSelector';
+import EmptyState from '../components/EmptyState';
+import { Shield, RefreshCw, AlertCircle, CheckCircle2, Workflow } from 'lucide-react';
 
 export default function Riesgo() {
   const params = useParams();
@@ -12,6 +13,9 @@ export default function Riesgo() {
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
   const [tipoCliente, setTipoCliente] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [riesgoFiltro, setRiesgoFiltro] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [riesgo, setRiesgo] = useState(null);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
@@ -69,8 +73,38 @@ export default function Riesgo() {
     }
   };
 
-  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
   const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+  const factores = Array.isArray(riesgo?.factores_aplicados?.factores)
+    ? riesgo.factores_aplicados.factores
+    : [];
+  const bloqueantes = factores.filter(f => f.tipo === 'bloqueante');
+  const positivos = factores.filter(f => f.tipo === 'positivo');
+  const mitigantes = factores.filter(f => f.tipo === 'mitigante');
+  const decisionTexto = riesgo?.nivel_riesgo === 'BAJO'
+    ? 'Autoactivable solo si documentos, perfiles, beneficiarios y observaciones estan completos.'
+    : riesgo?.nivel_riesgo === 'ESTANDAR'
+      ? 'Escalado al Oficial: requiere revision manual antes de activar.'
+      : 'No autoactivable: riesgo alto requiere confirmacion explicita del Oficial.';
+
+  const renderFactores = (titulo, lista) => (
+    <div style={{ marginTop: 12 }}>
+      <div className="info-item-label">{titulo}</div>
+      {lista.length === 0 ? (
+        <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 6 }}>Sin factores en esta categoria.</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+          {lista.map((factor, index) => (
+            <div key={`${factor.factor}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '9px 10px', borderRadius: 10, background: 'rgba(15,23,42,0.035)' }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>{String(factor.factor || '').replaceAll('_', ' ')}</span>
+              <span style={{ color: factor.peso < 0 ? '#16A34A' : factor.tipo === 'bloqueante' ? '#DC2626' : '#B7791F', fontWeight: 900 }}>
+                {factor.tipo === 'bloqueante' ? 'Bloqueante' : `${factor.peso > 0 ? '+' : ''}${factor.peso || 0}`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="animate-fade-in-up">
@@ -92,28 +126,21 @@ export default function Riesgo() {
         </div>
       )}
 
-      <div style={{ marginBottom: 24, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ width: 220 }}>
-          <label className="label-upper">Tipo de cliente</label>
-          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); setRiesgo(null); }} className="select-field" style={{ width: '100%' }}>
-            <option value="">Todos</option>
-            <option value="NATURAL">Persona natural</option>
-            <option value="JURIDICA">Persona juridica</option>
-          </select>
-        </div>
-        <div>
-          <label className="label-upper">Cliente</label>
-          <select value={clienteId} onChange={e => { setClienteId(e.target.value); }} className="select-field" style={{ minWidth: 320 }}>
-            <option value="">Seleccione un cliente</option>
-            {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
-          </select>
-        </div>
-        {clienteSeleccionado && (
-          <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
-            {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
-          </span>
-        )}
-      </div>
+      <ClienteSelector
+        clientes={clientes}
+        value={clienteId}
+        onChange={(id) => { setClienteId(id); setRiesgo(null); }}
+        tipo={tipoCliente}
+        onTipoChange={(value) => { setTipoCliente(value); setClienteId(''); setRiesgo(null); }}
+        estado={estadoFiltro}
+        onEstadoChange={(value) => { setEstadoFiltro(value); setClienteId(''); setRiesgo(null); }}
+        riesgo={riesgoFiltro}
+        onRiesgoChange={(value) => { setRiesgoFiltro(value); setClienteId(''); setRiesgo(null); }}
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        title="Seleccionar expediente para riesgo"
+        description="Busca por nombre, cedula, RUC, estado o nivel de riesgo."
+      />
 
       {riesgo && (
         <div className="card" style={{ padding: 32 }}>
@@ -132,6 +159,14 @@ export default function Riesgo() {
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{riesgo.justificacion}</div>
           </div>
 
+          <div style={{ background: riesgo.nivel_riesgo === 'ALTO' ? 'rgba(220,38,38,0.06)' : 'rgba(20,184,166,0.06)', borderRadius: 10, padding: 16, marginBottom: 24, border: '1px solid rgba(148,163,184,0.16)' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
+              <Workflow className="h-4 w-4 text-gold" />
+              <div className="info-item-label">Decision del sistema</div>
+            </div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>{decisionTexto}</div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, fontSize: 13, color: 'var(--text-muted)' }}>
             <div className="card" style={{ padding: 16 }}>
               <div className="info-item-label">Fecha cálculo</div>
@@ -142,16 +177,11 @@ export default function Riesgo() {
               <div className="info-item-value">{riesgo.es_automatica ? 'Sí' : 'No'}</div>
             </div>
             {riesgo.factores_aplicados && (
-              <div className="card" style={{ padding: 16 }}>
+              <div className="card" style={{ padding: 16, gridColumn: 'span 2' }}>
                 <div className="info-item-label">Factores aplicados</div>
-                <div className="info-item-value" style={{ fontSize: 12 }}>
-                  {Object.entries(riesgo.factores_aplicados).map(([k, v]) => (
-                    <div key={k} style={{ display: 'flex', gap: 6 }}>
-                      <span style={{ color: 'var(--text-muted)' }}>{k}:</span>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{String(v)}</span>
-                    </div>
-                  ))}
-                </div>
+                {renderFactores('Bloqueantes', bloqueantes)}
+                {renderFactores('Ponderados', positivos)}
+                {renderFactores('Mitigantes', mitigantes)}
               </div>
             )}
           </div>
@@ -165,11 +195,12 @@ export default function Riesgo() {
         </div>
       )}
 
+      {!riesgo && !clienteId && (
+        <EmptyState icon={Shield} title="Selecciona un expediente" message="Usa la busqueda superior para consultar riesgo, factores aplicados y decision sugerida del sistema." />
+      )}
+
       {!riesgo && clienteId && !error && (
-        <div className="empty-state" style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(212,175,55,0.12)' }}>
-          <div className="empty-state-icon"><Shield className="h-6 w-6" /></div>
-          No se ha calculado el riesgo para este cliente. Verifique que tenga ambos perfiles completos.
-        </div>
+        <EmptyState icon={Shield} title="Riesgo no calculado" message="Este expediente aun no tiene clasificacion. Normalmente faltan perfiles financiero/transaccional o datos transaccionales." />
       )}
     </div>
   );

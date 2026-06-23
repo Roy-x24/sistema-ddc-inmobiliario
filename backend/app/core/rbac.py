@@ -27,6 +27,7 @@ ROLES_PERMITIDOS = {
     "responder_observacion": ["empleado", "admin"],
     "cerrar_observacion": ["oficial_cumplimiento", "admin"],
     "ver_auditoria": ["oficial_cumplimiento", "auditor", "admin"],
+    "ver_cumplimiento": ["oficial_cumplimiento", "auditor", "admin"],
     "exportar_csv_expediente": ["auditor", "admin"],
     "exportar_csv_admin": ["admin"],
     "gestionar_matriz": ["admin"],

@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
+import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
-import { AlertTriangle, CheckCircle2, XCircle, Lock, Unlock, ShieldCheck, Workflow } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Search, XCircle, Lock, Unlock, ShieldCheck, Workflow } from 'lucide-react';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function Activacion() {
+  const { id: urlId } = useParams();
   const [clientes, setClientes] = useState([]);
   const [tipoCliente, setTipoCliente] = useState('');
+  const [riesgoFiltro, setRiesgoFiltro] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [errores, setErrores] = useState([]);
   const [mensaje, setMensaje] = useState('');
   const [confirmando, setConfirmando] = useState({});
@@ -113,13 +118,22 @@ export default function Activacion() {
     }
   };
 
-  const porTipo = (c) => !tipoCliente || c.tipo_cliente === tipoCliente;
-  const pendientes = clientes.filter(c => !['ACTIVO', 'BLOQUEADO', 'RECHAZADO'].includes(c.estado) && porTipo(c));
+  const porFiltros = (c) => {
+    if (tipoCliente && c.tipo_cliente !== tipoCliente) return false;
+    if (riesgoFiltro && c.nivel_riesgo !== riesgoFiltro) return false;
+    if (urlId && c.id_cliente !== urlId) return false;
+    if (busqueda.trim()) {
+      const texto = [c.nombre, c.identificacion, c.id_cliente, c.estado, c.nivel_riesgo].filter(Boolean).join(' ').toLowerCase();
+      if (!texto.includes(busqueda.trim().toLowerCase())) return false;
+    }
+    return true;
+  };
+  const pendientes = clientes.filter(c => !['ACTIVO', 'BLOQUEADO', 'RECHAZADO'].includes(c.estado) && porFiltros(c));
   const casosSistema = pendientes.filter(c => !c.nivel_riesgo || c.nivel_riesgo === 'BAJO').length;
   const casosOficial = pendientes.filter(c => ['ESTANDAR', 'ALTO'].includes(c.nivel_riesgo) || c.estado === 'OBSERVADO' || c.estado === 'PENDIENTE_BF').length;
   const altoPendiente = pendientes.filter(c => c.nivel_riesgo === 'ALTO').length;
   const pendientesPaginados = paginate(pendientes, page, pageSize);
-  const gestionBloqueo = clientes.filter(c => ['ACTIVO', 'BLOQUEADO'].includes(c.estado) && porTipo(c));
+  const gestionBloqueo = clientes.filter(c => ['ACTIVO', 'BLOQUEADO'].includes(c.estado) && porFiltros(c));
   const gestionBloqueoPaginados = paginate(gestionBloqueo, bloqueoPage, bloqueoPageSize);
   const activos = clientes.filter(c => c.estado === 'ACTIVO').length;
   const bloqueados = clientes.filter(c => c.estado === 'BLOQUEADO').length;
@@ -201,6 +215,19 @@ export default function Activacion() {
               <option value="JURIDICA">Persona juridica</option>
             </select>
           </div>
+          <div style={{ width: 220 }}>
+            <label className="label-upper">Riesgo</label>
+            <select value={riesgoFiltro} onChange={e => { setRiesgoFiltro(e.target.value); setPage(1); setBloqueoPage(1); }} className="select-field" style={{ width: '100%' }}>
+              <option value="">Todos</option>
+              <option value="BAJO">Bajo</option>
+              <option value="ESTANDAR">Estandar</option>
+              <option value="ALTO">Alto</option>
+            </select>
+          </div>
+          <div style={{ minWidth: 260, flex: 1 }}>
+            <label className="label-upper" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Search className="h-3.5 w-3.5" /> Busqueda</label>
+            <input value={busqueda} onChange={e => { setBusqueda(e.target.value); setPage(1); setBloqueoPage(1); }} placeholder="Nombre, cedula, RUC o ID..." className="input-field" style={{ width: '100%' }} />
+          </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <div className="card" style={{ padding: '10px 14px', minWidth: 120 }}>
               <div className="info-item-label">Activos</div>
@@ -250,7 +277,7 @@ export default function Activacion() {
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
                     {c.nivel_riesgo === 'BAJO' && (
                       <span className="inline-flex items-center gap-1 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-bold text-green-300">
-                        <ShieldCheck className="h-3.5 w-3.5" /> Auto si completa
+                        <ShieldCheck className="h-3.5 w-3.5" /> Autoactivable si cumple
                       </span>
                     )}
                     {c.nivel_riesgo === 'ALTO' && (
@@ -264,7 +291,7 @@ export default function Activacion() {
                       </label>
                     )}
                     <button onClick={() => activar(c.id_cliente)} className="btn-success" style={{ padding: '8px 16px', fontSize: 12 }}>
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Activar
+                      <CheckCircle2 className="h-3.5 w-3.5" /> {c.nivel_riesgo === 'ALTO' ? 'Activar alto' : c.nivel_riesgo === 'ESTANDAR' ? 'Aprobar manual' : 'Activar'}
                     </button>
                     <button onClick={() => rechazar(c.id_cliente)} className="btn-danger" style={{ padding: '8px 16px', fontSize: 12 }}>
                       <XCircle className="h-3.5 w-3.5" /> Rechazar
@@ -274,7 +301,7 @@ export default function Activacion() {
               </tr>
             ))}
             {pendientes.length === 0 && (
-              <tr><td colSpan={6} className="empty-state">Sin clientes pendientes de activacion.</td></tr>
+              <tr><td colSpan={6}><EmptyState icon={ShieldCheck} title="Sin decisiones pendientes" message="No hay expedientes con estos filtros. Los casos bajo riesgo completos salen de esta lista al activarse automaticamente." /></td></tr>
             )}
           </tbody>
         </table>
@@ -324,7 +351,7 @@ export default function Activacion() {
               </tr>
             ))}
             {gestionBloqueo.length === 0 && (
-              <tr><td colSpan={6} className="empty-state">Sin clientes activos o bloqueados.</td></tr>
+              <tr><td colSpan={6}><EmptyState icon={Lock} title="Sin casos de bloqueo" message="No hay clientes activos o bloqueados con estos filtros." /></td></tr>
             )}
           </tbody>
         </table>

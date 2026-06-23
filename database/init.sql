@@ -111,7 +111,9 @@ CREATE TABLE IF NOT EXISTS documentos (
     tamano_bytes INTEGER,
     formato VARCHAR NOT NULL CHECK (formato IN ('PDF', 'JPG', 'PNG')),
     estado VARCHAR NOT NULL DEFAULT 'PENDIENTE_VERIFICACION'
-        CHECK (estado IN ('PENDIENTE_VERIFICACION', 'VERIFICADO', 'RECHAZADO')),
+        CHECK (estado IN ('PENDIENTE_VERIFICACION', 'VALIDADO_AUTOMATICO', 'VERIFICADO_MANUAL', 'VERIFICADO', 'OBSERVADO', 'RECHAZADO')),
+    confianza_validacion VARCHAR,
+    resumen_validacion VARCHAR,
     fecha_carga TIMESTAMP DEFAULT NOW(),
     fecha_verificacion TIMESTAMP,
     usuario_verificador VARCHAR,
@@ -194,6 +196,25 @@ CREATE TABLE IF NOT EXISTS auditorias (
     cliente_id UUID REFERENCES clientes(id_cliente) ON DELETE SET NULL,
     valor_anterior VARCHAR,
     valor_nuevo VARCHAR,
+    detalle JSONB,
+    origen VARCHAR NOT NULL DEFAULT 'humano',
+    severidad VARCHAR NOT NULL DEFAULT 'info',
+    correlation_id VARCHAR,
+    version_regla VARCHAR,
+    fecha TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS documento_validaciones (
+    id_validacion UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id_documento UUID NOT NULL REFERENCES documentos(id_documento) ON DELETE CASCADE,
+    id_cliente UUID NOT NULL REFERENCES clientes(id_cliente) ON DELETE CASCADE,
+    regla VARCHAR NOT NULL,
+    resultado VARCHAR NOT NULL CHECK (resultado IN ('APROBADO', 'OBSERVADO', 'RECHAZADO')),
+    confianza VARCHAR NOT NULL,
+    mensaje VARCHAR NOT NULL,
+    datos_extraidos JSONB,
+    ejecutado_por VARCHAR NOT NULL DEFAULT 'sistema',
+    version_regla VARCHAR NOT NULL DEFAULT 'documental-v1',
     fecha TIMESTAMP DEFAULT NOW()
 );
 

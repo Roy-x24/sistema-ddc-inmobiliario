@@ -42,9 +42,26 @@ def exportar_csv_expediente(
     registros = db.query(Auditoria).order_by(Auditoria.fecha.desc()).limit(5000).all()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["id_auditoria", "usuario", "accion", "cliente_id", "valor_anterior", "valor_nuevo", "fecha"])
+    writer.writerow([
+        "id_auditoria", "usuario", "accion", "cliente_id", "valor_anterior",
+        "valor_nuevo", "origen", "severidad", "correlation_id",
+        "version_regla", "detalle", "fecha"
+    ])
     for r in registros:
-        writer.writerow([str(r.id_auditoria), r.usuario, r.accion, str(r.cliente_id) if r.cliente_id else "", r.valor_anterior or "", r.valor_nuevo or "", str(r.fecha)])
+        writer.writerow([
+            str(r.id_auditoria),
+            r.usuario,
+            r.accion,
+            str(r.cliente_id) if r.cliente_id else "",
+            r.valor_anterior or "",
+            r.valor_nuevo or "",
+            r.origen or "",
+            r.severidad or "",
+            r.correlation_id or "",
+            r.version_regla or "",
+            str(r.detalle) if r.detalle else "",
+            str(r.fecha)
+        ])
     output.seek(0)
     registrar_auditoria_admin(db, usuario.correo, "EXPORTAR_CSV_EXPEDIENTE")
     return StreamingResponse(io.BytesIO(output.getvalue().encode()), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=auditoria_expediente.csv"})

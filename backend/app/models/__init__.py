@@ -6,6 +6,7 @@ from app.models.persona_juridica import PersonaJuridica
 from app.models.representante_legal import RepresentanteLegal
 from app.models.beneficiario_final import BeneficiarioFinal
 from app.models.documento import Documento
+from app.models.documento_validacion import DocumentoValidacion
 from app.models.perfil_financiero import PerfilFinanciero
 from app.models.perfil_transaccional import PerfilTransaccional
 from app.models.version_matriz_riesgo import VersionMatrizRiesgo
