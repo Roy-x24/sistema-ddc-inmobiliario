@@ -34,7 +34,7 @@ docker-compose up --build
    - Backend API docs (Swagger): http://localhost:8000/docs
    - Backend API redoc: http://localhost:8000/redoc
 
-## Usuarios precargados (seed)
+## Usuarios precargados y seed demo
 
 | Usuario | Rol | Contraseña | Acceso |
 |---------|-----|------------|--------|
@@ -45,6 +45,20 @@ docker-compose up --build
 | demo_empleado@ddc.com | empleado | empleado123 | Usuario adicional para demos y pruebas E2E |
 
 > **Seguridad:** Las contraseñas se almacenan con hash bcrypt. El token de acceso JWT expira en 15 minutos. El refresh token expira en 7 días. Un nuevo login revoca automáticamente la sesión anterior. El admin puede crear nuevos usuarios desde `/admin/usuarios`.
+
+Los usuarios base se cargan desde `database/init.sql` cuando PostgreSQL inicializa una base nueva. El seed demo extendido (`backend/seed_demo.py`) queda desactivado por defecto para no sobrescribir datos de trabajo en cada arranque.
+
+Para iniciar el stack y ejecutar el seed demo una vez:
+
+```bash
+RUN_DEMO_SEED=true docker-compose up --build
+```
+
+También puede ejecutarse manualmente sobre el backend ya levantado:
+
+```bash
+docker-compose exec backend python seed_demo.py
+```
 
 ## Estructura del proyecto
 
@@ -97,6 +111,7 @@ ddc-kyc-sistema/
 - Todo corre dentro de contenedores; no se necesita instalar Python ni PostgreSQL localmente.
 - Los documentos adjuntos se almacenan en el volumen `./uploads` con nombre UUID y hash SHA-256 para integridad.
 - Los usuarios se crean automáticamente al iniciar PostgreSQL por primera vez mediante `database/init.sql`.
+- El seed demo extendido no corre por defecto. Activarlo solo cuando se quieran regenerar datos de demostración, porque reemplaza documentos, observaciones, clasificaciones y auditorías asociadas a los clientes demo.
 - El administrador puede crear usuarios adicionales desde la interfaz web en `/admin/usuarios` sin reiniciar la base de datos.
 - Para reconstruir desde cero (borrar datos): `docker-compose down -v && docker-compose up --build`
 - El frontend usa **pnpm** como gestor de paquetes (prohibido npm/yarn en este proyecto).
