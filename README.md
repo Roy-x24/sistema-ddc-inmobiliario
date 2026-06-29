@@ -266,6 +266,137 @@ Si usas otro modelo generativo local de hasta 8B, cambia `OLLAMA_LLM_MODEL`. Par
 
 Regla crítica: IA/OCR sugiere y documenta; las reglas determinísticas y usuarios autorizados siguen decidiendo activación, rechazo, riesgo y validación final.
 
+### Gobierno IA desde Admin
+
+El administrador tiene pantallas dedicadas para gobernar IA y reglas sin tocar código:
+
+| Ruta | Función |
+|------|---------|
+| `/admin/dashboard` | Salud del sistema, proveedores activos y actividad sensible reciente. |
+| `/admin/ia` | Proveedores OCR/LLM/embeddings, modelos, umbrales y pruebas Groq/Ollama. |
+| `/admin/screening` | Lista local PEP/sanciones para demo y revisión asistida. |
+| `/admin/matriz` | Matriz versionada de riesgo, pesos y publicación. |
+
+La configuración de `/admin/ia` se guarda en base de datos (`ai_runtime_settings`) y el backend la usa en tiempo de ejecución. `.env` sigue siendo el default seguro y la fuente de secretos.
+
+Presets disponibles en `/admin/ia`:
+
+| Preset | Uso |
+|--------|-----|
+| Demo segura | Mock/determinístico, sin dependencias externas. Bueno para explicar flujo, auditoría y UX. |
+| Groq + Ollama | Recomendado actual: OCR local, Groq para LLM, Ollama para embeddings/fallback. |
+| Local / Offline | OCR local y Ollama para LLM/embeddings, sin enviar datos a proveedores. |
+| Google completo | Ruta futura si hay presupuesto/API key para OCR/visión, LLM y embeddings. |
+
+La misma pantalla muestra advertencias si seleccionas Groq/Google sin API key, si Ollama no tiene URL o si el umbral de confianza queda demasiado bajo.
+
+### Asistente IA en pantallas operativas
+
+El panel reutilizable de IA aparece en Expediente, Documentos, Beneficiarios y Observaciones. Permite:
+
+- generar resumen operativo
+- sugerir observaciones
+- detectar beneficiarios finales desde evidencia disponible
+- ejecutar screening local PEP/sanciones
+- calcular prioridad del caso
+- buscar evidencia relacionada dentro del expediente con embeddings
+
+Ninguna de estas acciones cambia estados críticos por sí sola; todo queda auditado.
+
+También está disponible en Riesgo, Activación, Cumplimiento y Post-activación para apoyar decisiones sensibles con resumen, prioridad, screening y observaciones sugeridas. Auditoría muestra además las corridas técnicas IA (`ai_model_runs`) con proveedor, modelo, confianza y errores.
+
+Las decisiones sensibles en Activación y Post-activación usan modal auditable: muestran contexto del expediente, exigen motivo cuando aplica y pueden pedir una frase de confirmación para acciones de mayor riesgo como activar alto riesgo, rechazar, bloquear, desbloquear o revertir.
+
+### Flujo rápido para probar IA/OCR
+
+1. Arranca servicios:
+
+```bash
+docker-compose up --build
+```
+
+2. Entra como admin:
+
+```text
+admin@ddc.com / admin123
+```
+
+3. Ve a `/admin/ia`:
+
+- confirma `AI_MODE=groq`
+- confirma `OCR_PROVIDER=local`
+- confirma `LLM_PROVIDER=groq`
+- confirma `EMBEDDINGS_PROVIDER=local`
+- prueba Groq y Ollama
+
+4. Ve a `/admin/screening`:
+
+- agrega una entrada PEP o sanción local
+- usa nombre/documento parecido a un cliente de demo para probar coincidencias
+
+5. Entra como empleado:
+
+```text
+empleado@ddc.com / empleado123
+```
+
+6. Crea cliente natural o jurídico:
+
+- usa el bloque “Prellenado asistido”
+- sube PDF/JPG/PNG
+- presiona “Analizar”
+- revisa campos detectados
+- presiona “Usar datos detectados” solo si hacen sentido
+- guarda el cliente
+
+7. Ve a Documentos:
+
+- selecciona expediente
+- sube documentos
+- usa botón `OCR/IA` por documento
+- revisa confianza, diferencias y sugerencia
+- usa el panel “Asistente IA documental” para resumen, observación sugerida, screening y prioridad
+- prueba “Buscar evidencia del expediente” con frases como `origen de fondos`, `beneficiario` o `documento ilegible`
+
+8. Para persona jurídica:
+
+- ve a Beneficiarios
+- usa “Detectar BF”
+- registra/aprueba manualmente BF relevantes
+
+9. Entra como Oficial:
+
+```text
+oficial@ddc.com / oficial123
+```
+
+10. Revisa Cumplimiento, Riesgo y Activación:
+
+- usa el panel IA para resumen, screening y prioridad
+- usa la búsqueda contextual para encontrar evidencia y eventos relacionados antes de decidir
+- activa solo si las reglas lo permiten
+- rechaza/observa con motivo cuando existan diferencias o alertas
+
+## Pruebas
+
+Con el stack levantado en `http://localhost:5173`:
+
+```bash
+cd e2e
+npm install
+npm run test:smoke
+npm run test:ai
+```
+
+Pruebas E2E disponibles:
+
+| Comando | Cubre |
+|---------|-------|
+| `npm run test:smoke` | Login y carga basica del dashboard. |
+| `npm run test:ai` | Admin IA, presets, prueba de proveedor y asistente con busqueda contextual. |
+| `npm run test:pn` | Registro PN y carga documental. |
+| `npm run test:pj` | Registro PJ, BF y documentos obligatorios. |
+
 ## Estructura del proyecto
 
 ```

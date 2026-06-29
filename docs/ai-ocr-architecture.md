@@ -222,6 +222,94 @@ flowchart LR
 | `backend/app/core/config.py` | Defaults internos usados por Pydantic Settings. |
 | `backend/app/services/ai_gateway.py` | Selecciona proveedor/modelo y ejecuta llamadas externas/locales. |
 
+## Gobierno Admin IA
+
+El administrador puede configurar proveedores y umbrales desde `/admin/ia`. La configuracion se guarda en `ai_runtime_settings` y el `AI Gateway` la lee en tiempo de ejecucion, usando `.env` como default seguro.
+
+Pantallas admin:
+
+- `/admin/dashboard`: salud del sistema, proveedor IA activo y auditoria reciente.
+- `/admin/ia`: modo IA, proveedores OCR/LLM/embeddings, modelos, umbrales y pruebas de conexion.
+- `/admin/screening`: lista local PEP/sanciones usada por el screening demo.
+- `/admin/matriz`: factores, pesos y versiones de matriz de riesgo.
+
+Presets de `/admin/ia`:
+
+| Preset | Configuracion principal | Uso |
+|--------|-------------------------|-----|
+| Demo segura | `AI_MODE=mock`, `OCR_PROVIDER=mock`, `LLM_PROVIDER=none`, `EMBEDDINGS_PROVIDER=mock` | Demo estable sin llaves ni servicios externos. |
+| Groq + Ollama | `OCR_PROVIDER=local`, `LLM_PROVIDER=groq`, `EMBEDDINGS_PROVIDER=local` | Recomendado para demo con Groq gratis y Ollama como embeddings/fallback. |
+| Local / Offline | `OCR_PROVIDER=local`, `LLM_PROVIDER=local`, `EMBEDDINGS_PROVIDER=local` | Demo privada con Ollama. |
+| Google completo | `OCR_PROVIDER=google`, `LLM_PROVIDER=google`, `EMBEDDINGS_PROVIDER=google` | Ruta avanzada si se habilita presupuesto/API key. |
+
+La prueba de proveedor usa la configuracion efectiva guardada en `ai_runtime_settings`, no solo los defaults de `.env`.
+
+Endpoints principales:
+
+| Endpoint | Uso |
+|----------|-----|
+| `GET /admin/ia/config` | Ver configuracion IA efectiva y estado de secretos. |
+| `PATCH /admin/ia/config` | Guardar proveedores, modelos y umbrales administrables. |
+| `POST /admin/ia/probar` | Probar conexion a Groq u Ollama. |
+| `GET /admin/screening/lista` | Listar entradas PEP/sanciones locales. |
+| `POST /admin/screening/lista` | Agregar entrada manual. |
+| `PATCH /admin/screening/lista/{id}` | Activar/desactivar entrada. |
+
+Las API keys no se muestran ni se editan completas desde UI; siguen viniendo de `.env`.
+
+El toggle `auto_validate_low_risk_documents` controla si un documento que pasa todas las reglas documentales puede quedar en `VALIDADO_AUTOMATICO`. Si se desactiva, las reglas se ejecutan y quedan auditadas, pero el documento permanece en `PENDIENTE_VERIFICACION` para revision humana.
+
+## Asistente IA Operativo
+
+El frontend usa un panel reutilizable `AIAssistantPanel` para llevar la IA a las pantallas diarias. El panel permite ejecutar acciones auditables sin cambiar estados por si solo.
+
+Acciones disponibles:
+
+| Accion | Endpoint | Decision final |
+|--------|----------|----------------|
+| Prellenar registro PN/PJ | `POST /ai/prellenar/{natural|juridica}` | Empleado confirma antes de usar/guardar. |
+| Resumen IA | `POST /ai/clientes/{id}/resumen-operativo` | Informativa. |
+| Observacion sugerida | `POST /ai/clientes/{id}/observacion-sugerida` | Usuario revisa antes de crear/enviar. |
+| Detectar BF | `POST /ai/clientes/{id}/beneficiarios-sugeridos` | Nunca aprueba BF automaticamente. |
+| PEP/sanciones | `POST /ai/clientes/{id}/screening` | Coincidencia fuerte escala a revision. |
+| Prioridad | `POST /ai/clientes/{id}/prioridad` | Score deterministico; IA solo explica. |
+| Buscar contexto | `POST /ai/clientes/{id}/buscar-contexto` | Recupera evidencia por embeddings; no decide estados. |
+
+Payload de busqueda contextual:
+
+```json
+{
+  "query": "origen de fondos o beneficiario pendiente"
+}
+```
+
+El panel aparece en:
+
+- Registro natural/juridico, como bloque de prellenado asistido.
+- Expediente
+- Documentos
+- Beneficiarios finales
+- Observaciones
+- Riesgo
+- Activacion
+- Cumplimiento
+- Post-activacion
+- Auditoria, como panel de corridas tecnicas IA.
+
+El prellenado usa archivo temporal y no guarda documento ni cliente. Devuelve campos sugeridos, confianza, evidencia y errores. El usuario debe presionar `Usar datos detectados` y luego guardar manualmente.
+
+La auditoria operativa muestra eventos del expediente y la auditoria tecnica IA muestra `ai_model_runs`: proposito, proveedor, modelo, estado, confianza y errores. Esto permite explicar no solo que decision ocurrio, sino tambien que automatizacion o proveedor asistio el flujo.
+
+Eventos IA auditados en la auditoria operativa:
+
+- `AI_DOCUMENTO_EXTRAIDO`
+- `AI_RESUMEN_EXPEDIENTE`
+- `AI_OBSERVACION_SUGERIDA`
+- `AI_BF_SUGERIDOS`
+- `AI_SCREENING_LOCAL`
+- `AI_PRIORIDAD_CALCULADA`
+- `AI_CONTEXT_SEARCH`
+
 | Proveedor | Variable | Default | Uso |
 |-----------|----------|---------|-----|
 | Groq | `GROQ_MODEL` | `llama-3.3-70b-versatile` | LLM para resumenes JSON. |
@@ -344,6 +432,8 @@ Uso esperado: demo offline con menor precision; siempre con validacion humana.
 ## Guardrails
 
 Toda corrida queda en `ai_model_runs` con proveedor, modelo, version de prompt, hash de entrada, version de schema, confianza y errores.
+
+Las acciones humanas sensibles no deben ejecutarse como botones mudos: Activacion y Post-activacion usan modales con contexto, motivo obligatorio cuando corresponde y frase de confirmacion para acciones criticas. Esto mejora la UX y deja la decision lista para auditoria funcional.
 
 Las extracciones documentales quedan en `ai_extractions` con:
 

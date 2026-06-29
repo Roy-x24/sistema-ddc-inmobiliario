@@ -7,6 +7,7 @@
     "test": "playwright test",
     "test:pn": "playwright test flujo_pn.spec.js",
     "test:pj": "playwright test flujo_pj_bf.spec.js",
+    "test:ai": "playwright test ai_admin_assistant.spec.js",
     "test:smoke": "playwright test smoke.spec.js",
     "report": "playwright show-report"
   },
