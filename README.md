@@ -386,6 +386,7 @@ cd e2e
 npm install
 npm run test:smoke
 npm run test:ai
+npx playwright test ocr_prefill.spec.js
 ```
 
 Pruebas E2E disponibles:
@@ -394,8 +395,11 @@ Pruebas E2E disponibles:
 |---------|-------|
 | `npm run test:smoke` | Login y carga basica del dashboard. |
 | `npm run test:ai` | Admin IA, presets, prueba de proveedor y asistente con busqueda contextual. |
-| `npm run test:pn` | Registro PN y carga documental. |
-| `npm run test:pj` | Registro PJ, BF y documentos obligatorios. |
+| `npx playwright test ocr_prefill.spec.js` | Prellenado OCR del empleado, comparación registrado vs detectado y aplicación de campos. |
+| `npm run test:pn` | Pendiente de estabilizar: registro PN y carga documental múltiple. Revisar manualmente por ahora. |
+| `npm run test:pj` | Pendiente de estabilizar: registro PJ, BF y documentos obligatorios. Revisar manualmente por ahora. |
+
+Nota de QA: `test:pn` y `test:pj` quedan como pendientes porque el flujo documental múltiple debe revisarse manualmente antes de cerrar automatización. No bloquear la demo por estos comandos; sí validar manualmente registro, redirección al expediente y subida de documentos.
 
 ## Estructura del proyecto
 
