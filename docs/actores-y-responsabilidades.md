@@ -10,6 +10,8 @@ No decide riesgo, no activa clientes y no valida documentos de cumplimiento. Su 
 
 Trabaja por excepciones. Revisa beneficiarios finales, documentos observados, casos de riesgo estandar o alto, observaciones abiertas y decisiones que el sistema no puede cerrar automaticamente.
 
+En personas juridicas, valida todos los beneficiarios finales relevantes antes de activar. El criterio automatico actual marca como relevante a quien tenga participacion mayor o igual a 25%; el Oficial debe documentar excepciones cuando exista control efectivo aunque la participacion sea menor.
+
 En el modelo automatizado, el Oficial deja de revisar todos los documentos de todos los clientes y se concentra en:
 
 - discrepancias documentales

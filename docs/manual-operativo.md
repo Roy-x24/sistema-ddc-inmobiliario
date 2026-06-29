@@ -12,8 +12,15 @@
 1. Abrir Bandeja de cumplimiento.
 2. Revisar primero Alto riesgo y Observados.
 3. Revisar Revision oficial.
-4. Usar Auditoria para entender reglas ejecutadas.
-5. Activar, rechazar, bloquear o crear observaciones solo cuando sea necesario.
+4. Validar beneficiarios finales relevantes antes de activar personas juridicas.
+5. Usar Auditoria para entender reglas ejecutadas.
+6. Activar, rechazar, bloquear o crear observaciones solo cuando sea necesario.
+
+## Regla operativa de BF relevante
+
+Un expediente juridico no debe activarse con BF relevantes pendientes o rechazados. En esta version, `es_relevante` se calcula por porcentaje de participacion mayor o igual a 25%.
+
+Si el Oficial detecta control efectivo con menos de 25%, debe tratarlo como excepcion operativa: dejar observacion, documentar el motivo y no activar hasta que el caso este resuelto.
 
 ## Para el auditor
 

@@ -20,7 +20,19 @@ El sistema activa automaticamente solo si:
 - perfil financiero completo
 - perfil transaccional completo
 - sin observaciones abiertas
-- si es persona juridica, beneficiario final aprobado
+- si es persona juridica, todos los beneficiarios finales relevantes aprobados
+
+## Beneficiarios finales relevantes
+
+En la version actual, el sistema marca un beneficiario final como relevante cuando su porcentaje de participacion es mayor o igual a 25%.
+
+La activacion de una persona juridica se bloquea si:
+
+- no existe ningun BF relevante
+- existe un BF relevante en estado `PENDIENTE`
+- existe un BF relevante en estado `RECHAZADO`
+
+El criterio recomendado para produccion debe considerar control efectivo, no solo porcentaje: control indirecto, representacion, poderes de firma, condicion PEP o decision manual del Oficial con motivo auditado.
 
 ### Escalamiento automatico
 

@@ -88,6 +88,7 @@ ddc-kyc-sistema/
 ├── docker-compose.yml
 ├── .env.example
 ├── CONTEXT.md         # Documento maestro de contexto del proyecto
+├── docs/              # Documentacion operativa, automatizaciones y reglas de cumplimiento
 ├── MANUAL_USUARIO.md  # Guía de uso completa
 └── README.md
 ```
@@ -99,7 +100,7 @@ ddc-kyc-sistema/
 - **Matriz de riesgo versionada:** El administrador puede configurar factores de riesgo, pesos y umbrales sin tocar código.
 - **Observaciones accionables:** El Oficial de Cumplimiento puede crear observaciones sobre expedientes; el Empleado las responde; sin observaciones abiertas no se puede activar.
 - **Bloqueo y desbloqueo de clientes:** Un cliente ACTIVO puede ser bloqueado por el Oficial con motivo obligatorio, y posteriormente desbloqueado.
-- **Beneficiarios Finales con validación OC:** Las personas jurídicas inician en estado `PENDIENTE_BF` hasta que al menos un BF sea aprobado por el Oficial.
+- **Beneficiarios Finales con validación OC:** Las personas jurídicas inician en estado `PENDIENTE_BF` hasta que todos sus beneficiarios finales relevantes sean aprobados por el Oficial.
 - **Sesión única y refresh automático:** El frontend renueva el token de acceso automáticamente vía interceptor Axios. Cierre por inactividad de 30 minutos.
 - **Auditoría administrativa separada:** Registra login/logout, cambios en la matriz, gestión de usuarios y exportaciones CSV.
 - **Exportación CSV:** Auditor y Admin pueden exportar historial de auditoría de expediente y administrativa.

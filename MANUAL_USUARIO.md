@@ -47,9 +47,9 @@ El sistema viene configurado con 5 usuarios de prueba creados automáticamente a
 ## 4. Flujo de trabajo del expediente (resumen visual)
 
 ```
-PENDIENTE_BF  (solo PJ — esperando BF aprobado por OC)
+PENDIENTE_BF  (solo PJ — esperando BF relevantes aprobados por OC)
     ↓
-PENDIENTE     (estado inicial PN / PJ con BF aprobado)
+PENDIENTE     (estado inicial PN / PJ con BF relevantes aprobados)
     │  ← Empleado registra cliente
     │  ← Empleado adjunta documentos (CU-04)
     │  ← Oficial verifica documentos (CU-08)
@@ -121,7 +121,7 @@ El empleado es quien inicia el expediente. Su trabajo es registrar la informaci�
 > - El número de documento/cédula y el RUC deben ser únicos en el sistema
 > - El monto estimado debe ser mayor a $0
 > - Al guardar, la PN queda en estado **PENDIENTE**
-> - La PJ queda en estado **PENDIENTE_BF** (no puede avanzar hasta que un Oficial apruebe al menos un BF)
+> - La PJ queda en estado **PENDIENTE_BF** (no puede avanzar hasta que el Oficial apruebe todos los BF relevantes)
 
 #### 5.1.3 Registrar Beneficiarios Finales (solo PJ)
 1. Ve al expediente de un cliente jurídico
@@ -131,7 +131,9 @@ El empleado es quien inicia el expediente. Su trabajo es registrar la informaci�
    - Porcentaje de participación (el sistema marca como relevante si es ≥ 25%)
    - Tipo de control: directo, indirecto o representación
    - Indicar si es PEP
-4. El Oficial de Cumplimiento deberá aprobar al menos uno para que el expediente avance
+4. El Oficial de Cumplimiento deberá aprobar todos los BF relevantes para que el expediente avance
+
+> **Criterio actual de relevancia:** En esta versión, un BF se marca como relevante cuando su porcentaje de participación es mayor o igual a 25%. Para producción se recomienda ampliar la regla a control efectivo: participación indirecta, representación, poderes de firma, condición PEP u otros indicios documentados por el Oficial.
 
 #### 5.1.4 Adjuntar documentos
 1. Ve al expediente del cliente → pestaña **Documentos**
@@ -198,7 +200,7 @@ En el flujo automatizado, el Oficial trabaja principalmente desde la **Bandeja d
 2. Ve al expediente de un cliente jurídico → pestaña **Beneficiarios Finales**
 3. Revisa cada BF en la tabla
 4. Para cada BF pendiente, tienes dos opciones:
-   - **Aprobar:** El BF pasa a estado **APROBADO**; si es el primero, el expediente pasa de `PENDIENTE_BF` a `PENDIENTE`
+   - **Aprobar:** El BF pasa a estado **APROBADO**; si ya no quedan BF relevantes pendientes, el expediente puede pasar de `PENDIENTE_BF` a `PENDIENTE`
    - **Rechazar:** Debes ingresar un **motivo obligatorio**. El BF queda en estado **RECHAZADO**
 
 #### 5.2.2 Verificar documentos
@@ -270,7 +272,7 @@ La bandeja muestra completitud documental, accion sugerida y motivo principal pa
    - Perfil transaccional completo
    - Riesgo calculado
    - Sin observaciones abiertas
-   - Si es PJ: al menos un BF aprobado
+   - Si es PJ: todos los BF relevantes aprobados
 3. Si todo está completo:
    - Haz clic en **Activar** → Cliente pasa a **ACTIVO**
    - Si el riesgo es ALTO, se mostrará una confirmación adicional
@@ -496,7 +498,7 @@ Panel de gestión completa de usuarios, solo para Admin:
 ### 7.2 Máquina de estados
 | Estado actual | Estado destino | Condición |
 |---------------|----------------|-----------|
-| PENDIENTE_BF | PENDIENTE | Al menos un BF aprobado por OC (automático) |
+| PENDIENTE_BF | PENDIENTE | Todos los BF relevantes aprobados por OC (automático) |
 | PENDIENTE | EN_REVISION | Todos los documentos obligatorios VERIFICADOS (automático) |
 | EN_REVISION | OBSERVADO | OC crea observación |
 | OBSERVADO | EN_REVISION | No quedan observaciones abiertas (automático) |
@@ -532,7 +534,7 @@ Panel de gestión completa de usuarios, solo para Admin:
 - [ ] Perfil transaccional registrado
 - [ ] Riesgo calculado
 - [ ] Sin observaciones abiertas
-- [ ] Si es PJ: al menos un BF aprobado por OC
+- [ ] Si es PJ: todos los BF relevantes aprobados por OC
 - [ ] Si riesgo es ALTO: confirmación manual del Oficial
 
 ---
@@ -551,7 +553,7 @@ Panel de gestión completa de usuarios, solo para Admin:
 | "Documento excede 10 MB" | El archivo es demasiado grande | Comprime el archivo o reduce la resolución de la imagen. |
 | "Formato no permitido" | El archivo no es PDF, JPG ni PNG | Convierte el archivo a uno de los formatos permitidos. |
 | El riesgo no se calcula | Falta uno de los dos perfiles | Registra el perfil financiero y el transaccional. El cálculo es automático. |
-| El expediente PJ no avanza de PENDIENTE_BF | Ningún BF ha sido aprobado por el Oficial | Solicita al Oficial que valide al menos un beneficiario final. |
+| El expediente PJ no avanza de PENDIENTE_BF | Hay BF relevantes pendientes/rechazados o no existe BF relevante aprobado | Solicita al Oficial que valide todos los beneficiarios finales relevantes. |
 | "No se puede activar: observaciones abiertas" | Hay observaciones sin cerrar | Responde las observaciones y solicita al Oficial que las cierre. |
 | No puedo descargar un documento | El backend no está accesible o la ruta es incorrecta | Verifica que el contenedor del backend esté corriendo en http://localhost:8000. |
 | "El correo ya está registrado" | Intentas crear un usuario con un correo existente | Usa un correo diferente o verifica si el usuario ya existe. |
