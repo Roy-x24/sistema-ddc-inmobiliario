@@ -69,8 +69,8 @@ export default function RegistroJuridica() {
           es_pep: b.es_pep === true || b.es_pep === 'true'
         }))
       };
-      await api.post('/clientes/juridica', payload);
-      navigate('/clientes');
+      const res = await api.post('/clientes/juridica', payload);
+      navigate(`/expediente/${res.data.id_cliente}`);
     } catch (e) {
       setError('Error al registrar: ' + (e.response?.data?.detail || e.message));
     }

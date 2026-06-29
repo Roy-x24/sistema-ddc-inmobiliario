@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
@@ -42,12 +42,14 @@ export default function Documentos() {
   const [docs, setDocs] = useState([]);
   const [extracciones, setExtracciones] = useState({});
   const [archivo, setArchivo] = useState(null);
+  const archivoInputRef = useRef(null);
   const [tipo, setTipo] = useState('DOCUMENTO_IDENTIDAD');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
   const [decision, setDecision] = useState(null);
+  const [subiendo, setSubiendo] = useState(false);
 
   const cargarClientes = async (estadoDocumento = estadoDocumentoTrabajo, tipo = tipoCliente) => {
     if (estadoDocumento) {
@@ -121,17 +123,24 @@ export default function Documentos() {
   };
 
   const subir = async () => {
-    if (!clienteId || !archivo) return showError('Seleccione cliente y archivo');
+    const inputArchivo = archivoInputRef.current || document.querySelector('input[name="archivo_upload"]');
+    const archivoSeleccionado = archivo || inputArchivo?.files?.[0];
+    if (subiendo) return;
+    if (!clienteId || !archivoSeleccionado) return showError('Seleccione cliente y archivo');
     const formData = new FormData();
     formData.append('tipo_documento', tipo);
-    formData.append('archivo', archivo);
+    formData.append('archivo', archivoSeleccionado);
     try {
+      setSubiendo(true);
       await api.post(`/clientes/${clienteId}/documentos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await cargarDocs(clienteId);
       setArchivo(null);
+      if (archivoInputRef.current) archivoInputRef.current.value = '';
       showMensaje('Documento subido correctamente');
-      cargarDocs(clienteId);
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al subir documento');
+    } finally {
+      setSubiendo(false);
     }
   };
 
@@ -294,10 +303,10 @@ export default function Documentos() {
           </div>
           <div style={{ flex: 1, minWidth: 220 }}>
             <label className="label-upper">Archivo (PDF/JPG/PNG, máx 10MB)</label>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setArchivo(e.target.files[0])} className="input-field" style={{ padding: 10 }} />
+            <input ref={archivoInputRef} name="archivo_upload" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setArchivo(e.target.files?.[0] || null)} className="input-field" style={{ padding: 10 }} />
           </div>
-          <button onClick={subir} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14 }}>
-            <Upload className="h-4 w-4" /> Subir documento
+          <button onClick={subir} disabled={subiendo} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14, opacity: subiendo ? 0.65 : 1 }}>
+            <Upload className="h-4 w-4" /> {subiendo ? 'Subiendo...' : 'Subir documento'}
           </button>
           </div>
         </div>

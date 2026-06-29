@@ -58,8 +58,8 @@ export default function RegistroNatural() {
         fecha_nacimiento: data.fecha_nacimiento,
         es_pep: data.es_pep === 'true' || data.es_pep === true
       };
-      await api.post('/clientes/natural', payload);
-      navigate('/clientes');
+      const res = await api.post('/clientes/natural', payload);
+      navigate(`/expediente/${res.data.id_cliente}`);
     } catch (e) {
       setError('Error al registrar: ' + (e.response?.data?.detail || e.message));
     }
