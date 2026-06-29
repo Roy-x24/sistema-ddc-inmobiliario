@@ -84,6 +84,134 @@ Flujo:
 
 Esto mantiene la UX operativa aunque un proveedor externo falle y evita que un error de IA bloquee la demo.
 
+## Diagramas
+
+### Arquitectura general
+
+```mermaid
+flowchart LR
+    Usuario["Empleado / Oficial"] --> Frontend["Frontend React"]
+    Frontend --> API["Backend FastAPI"]
+
+    API --> Reglas["Reglas deterministicas<br/>estados, riesgo, activacion"]
+    API --> AIGateway["AI Gateway<br/>proveedores configurables"]
+    API --> DB["PostgreSQL<br/>expedientes, auditoria, IA"]
+    API --> Files["Uploads<br/>documentos"]
+
+    AIGateway --> OCRLocal["OCR local<br/>PyMuPDF / pdfplumber / Tesseract"]
+    AIGateway --> Groq["Groq<br/>LLM principal"]
+    AIGateway --> Ollama["Ollama local<br/>LLM fallback + embeddings"]
+    AIGateway -. opcional .-> Google["Google Gemini<br/>OCR / LLM / embeddings"]
+
+    OCRLocal --> AIGateway
+    Groq --> AIGateway
+    Ollama --> AIGateway
+    Google -.-> AIGateway
+
+    AIGateway --> Runs["ai_model_runs<br/>proveedor, modelo, confianza, errores"]
+    AIGateway --> Extractions["ai_extractions<br/>campos, evidencia, sugerencia"]
+    AIGateway --> Embeddings["document_embeddings<br/>busqueda semantica"]
+
+    Runs --> DB
+    Extractions --> DB
+    Embeddings --> DB
+    Reglas --> DB
+```
+
+### Flujo documental con IA/OCR
+
+```mermaid
+flowchart TD
+    Inicio["Documento subido"] --> Guardar["Guardar archivo y metadata"]
+    Guardar --> ElegirOCR{"OCR_PROVIDER"}
+
+    ElegirOCR -->|mock| OCRMock["Extraccion demo/fallback"]
+    ElegirOCR -->|local| OCRLocal["OCR local<br/>PDF: PyMuPDF/pdfplumber<br/>Imagen: Tesseract"]
+    ElegirOCR -->|groq_vision| OCRGroq["Groq Vision<br/>JPG/PNG"]
+    ElegirOCR -->|google| OCRGoogle["Google Gemini<br/>PDF/imagen"]
+
+    OCRMock --> Normalizar["Normalizar salida a schema IA"]
+    OCRLocal --> Normalizar
+    OCRGroq --> Normalizar
+    OCRGoogle --> Normalizar
+
+    Normalizar --> Comparar["Comparar detectado vs expediente"]
+    Comparar --> Confianza{"Confianza >= AI_MIN_CONFIDENCE<br/>y sin discrepancias criticas?"}
+
+    Confianza -->|Si| Sugerir["Sugerir aprobacion documental"]
+    Confianza -->|No| Revision["Requiere revision humana<br/>observacion o bloqueo"]
+
+    Sugerir --> Auditoria["Guardar ai_model_run + ai_extraction"]
+    Revision --> Auditoria
+    Auditoria --> UI["Mostrar panel OCR/IA<br/>al Empleado u Oficial"]
+
+    UI --> Reglas["Reglas deterministicas deciden<br/>estado real del expediente"]
+    Reglas --> Fin["Accion humana o automatizacion permitida"]
+```
+
+### Fallback LLM y embeddings
+
+```mermaid
+flowchart TD
+    Solicitud["Solicitud de resumen / explicacion"] --> Proveedor{"LLM_PROVIDER"}
+
+    Proveedor -->|groq| GroqCall["Intentar Groq"]
+    GroqCall --> GroqOK{"Groq responde JSON valido?"}
+    GroqOK -->|Si| ResultadoGroq["Usar respuesta Groq"]
+    GroqOK -->|No| OllamaFallback["Intentar Ollama"]
+
+    Proveedor -->|local| OllamaDirecto["Intentar Ollama"]
+    Proveedor -->|none| Deterministico["Resumen deterministico local"]
+    Proveedor -->|google| GoogleCall["Intentar Google Gemini"]
+
+    GoogleCall --> GoogleOK{"Google responde JSON valido?"}
+    GoogleOK -->|Si| ResultadoGoogle["Usar respuesta Google"]
+    GoogleOK -->|No| Deterministico
+
+    OllamaDirecto --> OllamaOK{"Ollama responde JSON valido?"}
+    OllamaFallback --> OllamaOK
+    OllamaOK -->|Si| ResultadoOllama["Usar respuesta Ollama"]
+    OllamaOK -->|No| Deterministico
+
+    ResultadoGroq --> Registrar["Registrar proveedor, modelo, errores y confianza"]
+    ResultadoGoogle --> Registrar
+    ResultadoOllama --> Registrar
+    Deterministico --> Registrar
+
+    Registrar --> UI["Mostrar resumen sin cambiar estados"]
+
+    EmbReq["Solicitud de embedding"] --> EmbProvider{"EMBEDDINGS_PROVIDER"}
+    EmbProvider -->|local| EmbOllama["Intentar Ollama embeddings"]
+    EmbProvider -->|google| EmbGoogle["Intentar Google embeddings"]
+    EmbProvider -->|mock| EmbHash["Vector hash local"]
+
+    EmbOllama --> EmbOK{"Embedding externo OK?"}
+    EmbGoogle --> EmbOK
+    EmbOK -->|Si| GuardarVector["Guardar vector JSON"]
+    EmbOK -->|No| EmbHash
+    EmbHash --> GuardarVector
+```
+
+### Responsabilidad de decisiones
+
+```mermaid
+flowchart LR
+    IA["IA/OCR<br/>extrae, resume, sugiere"] --> Evidencia["Evidencia auditada<br/>campos, confianza, errores"]
+    Evidencia --> Reglas["Reglas deterministicas<br/>matriz de riesgo, checklist, BF, documentos"]
+    Reglas --> Estado{"Resultado operativo"}
+
+    Estado -->|Bajo completo| Auto["Activacion automatica permitida"]
+    Estado -->|Estandar / Alto| Oficial["Revision del Oficial"]
+    Estado -->|Discrepancia / baja confianza| Obs["Observacion o revision humana"]
+    Estado -->|BF relevante pendiente/rechazado| Bloqueo["Bloqueo de activacion PJ"]
+
+    Oficial --> Accion["Aprobar / rechazar / observar / bloquear"]
+    Accion --> Auditoria["Auditoria funcional y tecnica"]
+    Auto --> Auditoria
+    Obs --> Auditoria
+    Bloqueo --> Auditoria
+```
+
 ## Configuracion de modelos
 
 | Archivo | Responsabilidad |
