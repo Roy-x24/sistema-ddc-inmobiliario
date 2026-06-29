@@ -82,7 +82,7 @@ export default function Riesgo() {
   const positivos = factores.filter(f => f.tipo === 'positivo');
   const mitigantes = factores.filter(f => f.tipo === 'mitigante');
   const decisionTexto = riesgo?.nivel_riesgo === 'BAJO'
-    ? 'Autoactivable solo si documentos, perfiles, beneficiarios y observaciones estan completos.'
+    ? 'Candidato a activacion automatica solo si documentos, perfiles, beneficiarios y observaciones estan completos.'
     : riesgo?.nivel_riesgo === 'ESTANDAR'
       ? 'Escalado al Oficial: requiere revision manual antes de activar.'
       : 'No autoactivable: riesgo alto requiere confirmacion explicita del Oficial.';

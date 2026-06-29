@@ -101,13 +101,13 @@ export default function Activacion() {
     setDecision({
       type: 'activar',
       cliente,
-      title: cliente.nivel_riesgo === 'ALTO' ? 'Activar cliente de alto riesgo' : 'Activar cliente',
+      title: cliente.nivel_riesgo === 'ALTO' ? 'Aprobar activacion de alto riesgo' : 'Aprobar activacion',
       description: cliente.nivel_riesgo === 'ALTO'
         ? 'Esta activacion requiere criterio humano reforzado. Confirma que revisaste documentos, riesgo, BF y observaciones antes de aprobar.'
         : 'Confirma que el expediente fue revisado y cumple las reglas para activacion manual.',
       tone: 'success',
-      actionLabel: cliente.nivel_riesgo === 'ALTO' ? 'Activar alto riesgo' : 'Activar',
-      confirmText: cliente.nivel_riesgo === 'ALTO' ? 'ACTIVAR ALTO' : '',
+      actionLabel: 'Aprobar activacion',
+      confirmText: cliente.nivel_riesgo === 'ALTO' ? 'APROBAR' : '',
       details: [
         `Cliente: ${cliente.nombre || cliente.identificacion || cliente.id_cliente}`,
         `Estado actual: ${cliente.estado}`,
