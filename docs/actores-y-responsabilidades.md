@@ -29,6 +29,15 @@ Consulta trazabilidad. Revisa acciones humanas, eventos automaticos, reglas ejec
 
 Gestiona usuarios, matriz de riesgo, auditoria administrativa y configuracion sensible. Puede acceder al flujo operativo para soporte, pero su rol principal es gobierno del sistema.
 
+Responsabilidades administrativas separadas:
+
+- `gestionar_usuarios`: crear usuarios, cambiar roles, activar/desactivar cuentas y mantener accesos.
+- `gestionar_matriz`: mantener versiones, factores y publicacion de la matriz de riesgo.
+- `gestionar_ia`: configurar modo IA/OCR, proveedores, modelos, umbrales y pruebas de conexion.
+- `gestionar_screening`: mantener la lista local PEP/sanciones usada por el screening asistido.
+
+La interfaz del administrador debe mantenerse enfocada en gobierno y configuracion. Las pantallas operativas pueden existir para soporte puntual, pero no deben mezclarse en la navegacion principal del admin.
+
 ## Sistema
 
 Actor automatico formal. Ejecuta validaciones, calcula riesgo, cambia estados cuando se cumplen reglas, escala expedientes y registra auditoria tecnica.

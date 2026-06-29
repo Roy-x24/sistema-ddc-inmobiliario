@@ -46,7 +46,7 @@ def _get_runtime_config(db: Session):
 @router.get("/ia/config")
 def ver_config_ia(
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("gestionar_matriz"))
+    usuario: Usuario = Depends(requiere_rol("gestionar_ia"))
 ):
     config = _get_runtime_config(db)
     return {
@@ -63,7 +63,7 @@ def ver_config_ia(
 def guardar_config_ia(
     datos: dict,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("gestionar_matriz"))
+    usuario: Usuario = Depends(requiere_rol("gestionar_ia"))
 ):
     allowed = set(DEFAULT_AI_CONFIG.keys())
     clean = {k: v for k, v in datos.items() if k in allowed}
@@ -89,7 +89,7 @@ def guardar_config_ia(
 def probar_proveedor_ia(
     datos: dict,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("gestionar_matriz"))
+    usuario: Usuario = Depends(requiere_rol("gestionar_ia"))
 ):
     proveedor = datos.get("proveedor", "ollama")
     config = _get_runtime_config(db)
@@ -143,7 +143,7 @@ def probar_proveedor_ia(
 @router.get("/screening/lista")
 def listar_watchlist(
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("gestionar_matriz"))
+    usuario: Usuario = Depends(requiere_rol("gestionar_screening"))
 ):
     rows = db.execute(text("""
         SELECT id_watchlist, nombre, documento, tipo, pais, fuente, activo, creado_en
@@ -158,7 +158,7 @@ def listar_watchlist(
 def crear_watchlist(
     datos: dict,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("gestionar_matriz"))
+    usuario: Usuario = Depends(requiere_rol("gestionar_screening"))
 ):
     nombre = (datos.get("nombre") or "").strip()
     if not nombre:
@@ -187,7 +187,7 @@ def actualizar_watchlist(
     watchlist_id: str,
     datos: dict,
     db: Session = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_rol("gestionar_matriz"))
+    usuario: Usuario = Depends(requiere_rol("gestionar_screening"))
 ):
     db.execute(
         text("""

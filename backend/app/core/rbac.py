@@ -31,6 +31,8 @@ ROLES_PERMITIDOS = {
     "ver_cumplimiento": ["oficial_cumplimiento", "auditor", "admin"],
     "exportar_csv_expediente": ["auditor", "admin"],
     "exportar_csv_admin": ["admin"],
+    "gestionar_ia": ["admin"],
+    "gestionar_screening": ["admin"],
     "gestionar_matriz": ["admin"],
     "gestionar_usuarios": ["admin"],
 }
