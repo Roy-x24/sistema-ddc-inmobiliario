@@ -4,6 +4,7 @@ import api from '../api/axiosConfig';
 import RiesgoIndicador from '../components/RiesgoIndicador';
 import ClienteSelector from '../components/ClienteSelector';
 import EmptyState from '../components/EmptyState';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 import { Shield, RefreshCw, AlertCircle, CheckCircle2, Workflow } from 'lucide-react';
 
 export default function Riesgo() {
@@ -141,6 +142,17 @@ export default function Riesgo() {
         title="Seleccionar expediente para riesgo"
         description="Busca por nombre, cedula, RUC, estado o nivel de riesgo."
       />
+
+      {clienteSeleccionado && (
+        <div style={{ marginTop: 18, marginBottom: 18 }}>
+          <AIAssistantPanel
+            clienteId={clienteId}
+            tipoCliente={clienteSeleccionado.tipo_cliente}
+            actions={['resumen', 'screening', 'prioridad', 'observacion', 'buscar']}
+            title="Asistente IA de riesgo"
+          />
+        </div>
+      )}
 
       {riesgo && (
         <div className="card" style={{ padding: 32 }}>

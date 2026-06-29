@@ -198,12 +198,14 @@ export default function Dashboard() {
                 Ver cumplimiento
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
               {[
                 ['Alto riesgo', operativo.alto_riesgo, AlertTriangle],
                 ['Observados', operativo.observados, ShieldAlert],
                 ['Revisión manual', operativo.revision_manual, Eye],
                 ['Pendientes BF', operativo.pendientes_bf, Users],
+                ['PEP/Sanciones', operativo.screening_alertas || 0, ShieldAlert],
+                ['Prioridad alta', operativo.prioridades_criticas || 0, Activity],
               ].map(([label, value, Icon]) => (
                 <button key={label} onClick={() => navigate('/cumplimiento')} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-teal-200 hover:bg-teal-50">
                   <Icon className="mb-3 h-5 w-5 text-gold" />

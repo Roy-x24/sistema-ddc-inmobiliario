@@ -5,12 +5,37 @@ import api from '../api/axiosConfig';
 import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 import Boton from '../components/ui/Boton';
+import { Bot, FileSearch, Wand2 } from 'lucide-react';
 
 export default function RegistroNatural() {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [archivoAI, setArchivoAI] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+  const [analizando, setAnalizando] = useState(false);
   const steps = ['Datos básicos', 'Perfil y transacción', 'Revisión'];
+
+  const analizarDocumento = async () => {
+    if (!archivoAI) return;
+    setAnalizando(true);
+    const formData = new FormData();
+    formData.append('archivo', archivoAI);
+    try {
+      const res = await api.post('/ai/prellenar/natural', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setPrefill(res.data);
+    } catch {
+      setPrefill({ error: 'No se pudo analizar el documento', fields: {}, confidence: 0 });
+    } finally {
+      setAnalizando(false);
+    }
+  };
+
+  const usarDetectados = () => {
+    Object.entries(prefill?.fields || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') setValue(key, value);
+    });
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -35,6 +60,41 @@ export default function RegistroNatural() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="card" style={{ padding: 28 }}>
+        <div className="card" style={{ padding: 16, marginBottom: 20, borderColor: 'rgba(20,184,166,0.22)', background: 'linear-gradient(135deg, rgba(20,184,166,0.07), rgba(255,255,255,0.96))' }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ fontWeight: 900, color: 'var(--text-primary)' }}>Prellenado asistido</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sube cédula, pasaporte o soporte para detectar datos. Nada se guarda sin tu confirmación.</div>
+            </div>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setArchivoAI(e.target.files?.[0] || null)} className="input-field" style={{ maxWidth: 280, padding: 9 }} />
+            <button type="button" onClick={analizarDocumento} disabled={!archivoAI || analizando} className="btn-secondary" style={{ padding: '10px 14px', fontSize: 12 }}>
+              <FileSearch className="h-4 w-4" /> {analizando ? 'Analizando...' : 'Analizar'}
+            </button>
+            {prefill?.fields && Object.keys(prefill.fields).length > 0 && (
+              <button type="button" onClick={usarDetectados} className="btn-primary" style={{ padding: '10px 14px', fontSize: 12 }}>
+                <Wand2 className="h-4 w-4" /> Usar datos detectados
+              </button>
+            )}
+          </div>
+          {prefill && (
+            <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+              {Object.entries(prefill.fields || {}).map(([key, value]) => (
+                <div key={key} style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 10, background: '#fff' }}>
+                  <div className="info-item-label">{key.replaceAll('_', ' ')}</div>
+                  <div className="info-item-value">{String(value || '-')}</div>
+                </div>
+              ))}
+              <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 10, background: '#fff' }}>
+                <div className="info-item-label">Confianza OCR</div>
+                <div className="info-item-value">{Math.round((prefill.confidence || 0) * 100)}%</div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 22 }}>
           {steps.map((label, index) => (
             <button

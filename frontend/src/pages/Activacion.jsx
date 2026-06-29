@@ -6,6 +6,8 @@ import RiesgoIndicador from '../components/RiesgoIndicador';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import InfoHint from '../components/InfoHint';
+import AIAssistantPanel from '../components/AIAssistantPanel';
+import DecisionModal from '../components/DecisionModal';
 import { AlertTriangle, CheckCircle2, Search, XCircle, ShieldCheck, Workflow } from 'lucide-react';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
@@ -35,6 +37,8 @@ export default function Activacion() {
   const [busqueda, setBusqueda] = useState('');
   const [errores, setErrores] = useState([]);
   const [mensaje, setMensaje] = useState('');
+  const [clienteAsistido, setClienteAsistido] = useState(null);
+  const [decision, setDecision] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -57,20 +61,14 @@ export default function Activacion() {
     setTimeout(() => setMensaje(''), 4000);
   };
 
-  const activar = async (id) => {
-    const cliente = clientes.find(c => c.id_cliente === id);
+  const ejecutarActivacion = async (cliente) => {
+    const id = cliente.id_cliente;
     const necesitaConfirmacion = cliente?.nivel_riesgo === 'ALTO';
 
     if (cliente?.estado !== 'EN_REVISION') {
       mostrarErrores(['El expediente debe estar en EN_REVISION para poder activarse.']);
       return;
     }
-
-    const mensajeConfirmacion = necesitaConfirmacion
-      ? 'Este cliente es de riesgo ALTO. Confirma que revisaste el expediente, aceptas el riesgo residual y deseas activarlo manualmente.'
-      : 'Confirma que desea activar este cliente?';
-
-    if (!window.confirm(mensajeConfirmacion)) return;
     setErrores([]);
     try {
       await api.patch(`/clientes/${id}/activar`, null, {
@@ -90,9 +88,32 @@ export default function Activacion() {
           mostrarErrores(['Error desconocido del servidor']);
         }
       } else {
-        mostrarErrores(['Error de conexion con el servidor']);
+      mostrarErrores(['Error de conexion con el servidor']);
       }
     }
+  };
+
+  const activar = (cliente) => {
+    if (cliente?.estado !== 'EN_REVISION') {
+      mostrarErrores(['El expediente debe estar en EN_REVISION para poder activarse.']);
+      return;
+    }
+    setDecision({
+      type: 'activar',
+      cliente,
+      title: cliente.nivel_riesgo === 'ALTO' ? 'Activar cliente de alto riesgo' : 'Activar cliente',
+      description: cliente.nivel_riesgo === 'ALTO'
+        ? 'Esta activacion requiere criterio humano reforzado. Confirma que revisaste documentos, riesgo, BF y observaciones antes de aprobar.'
+        : 'Confirma que el expediente fue revisado y cumple las reglas para activacion manual.',
+      tone: 'success',
+      actionLabel: cliente.nivel_riesgo === 'ALTO' ? 'Activar alto riesgo' : 'Activar',
+      confirmText: cliente.nivel_riesgo === 'ALTO' ? 'ACTIVAR ALTO' : '',
+      details: [
+        `Cliente: ${cliente.nombre || cliente.identificacion || cliente.id_cliente}`,
+        `Estado actual: ${cliente.estado}`,
+        `Riesgo: ${cliente.nivel_riesgo || 'Sin calcular'}`,
+      ],
+    });
   };
 
   const puedeActivar = (c) => c.estado === 'EN_REVISION';
@@ -121,9 +142,8 @@ export default function Activacion() {
     return 'Revisar expediente';
   };
 
-  const rechazar = async (id) => {
-    const motivo = window.prompt('Motivo de rechazo obligatorio');
-    if (!motivo) return;
+  const ejecutarRechazo = async (cliente, motivo) => {
+    const id = cliente.id_cliente;
     setErrores([]);
     try {
       await api.patch(`/clientes/${id}/rechazar?motivo=${encodeURIComponent(motivo)}`);
@@ -132,6 +152,36 @@ export default function Activacion() {
     } catch (err) {
       const detail = err.response?.data?.detail;
       mostrarErrores([typeof detail === 'string' ? detail : 'Error al rechazar cliente']);
+    }
+  };
+
+  const rechazar = (cliente) => {
+    setDecision({
+      type: 'rechazar',
+      cliente,
+      title: 'Rechazar expediente',
+      description: 'El rechazo cierra el expediente para decision de cumplimiento y debe quedar sustentado con un motivo claro.',
+      tone: 'danger',
+      actionLabel: 'Rechazar',
+      requireReason: true,
+      reasonLabel: 'Motivo de rechazo',
+      reasonPlaceholder: 'Ej: documentos inconsistentes, origen de fondos no verificable, alerta no mitigada...',
+      confirmText: 'RECHAZAR',
+      details: [
+        `Cliente: ${cliente.nombre || cliente.identificacion || cliente.id_cliente}`,
+        `Estado actual: ${cliente.estado}`,
+        `Riesgo: ${cliente.nivel_riesgo || 'Sin calcular'}`,
+      ],
+    });
+  };
+
+  const confirmarDecision = async ({ reason }) => {
+    if (!decision?.cliente) return;
+    if (decision.type === 'activar') {
+      await ejecutarActivacion(decision.cliente);
+    }
+    if (decision.type === 'rechazar') {
+      await ejecutarRechazo(decision.cliente, reason);
     }
   };
 
@@ -323,6 +373,17 @@ export default function Activacion() {
         </div>
       </div>
 
+      {clienteAsistido && (
+        <div style={{ marginTop: 18 }}>
+          <AIAssistantPanel
+            clienteId={clienteAsistido.id_cliente}
+            tipoCliente={clienteAsistido.tipo_cliente}
+            actions={['resumen', 'screening', 'prioridad', 'observacion', 'buscar']}
+            title={`Asistente IA para activar: ${clienteAsistido.nombre || clienteAsistido.identificacion || 'expediente'}`}
+          />
+        </div>
+      )}
+
       <div className="table-container" style={{ marginTop: 16 }}>
         <div style={{ padding: '16px 18px 0' }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Revision del Oficial</h2>
@@ -359,8 +420,11 @@ export default function Activacion() {
                 </td>
                 <td style={{ textAlign: 'right', minWidth: 270 }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
+                    <button onClick={() => setClienteAsistido(c)} className="btn-secondary" style={{ padding: '8px 12px', fontSize: 12, minWidth: 92, whiteSpace: 'nowrap' }}>
+                      Asistir
+                    </button>
                     {puedeActivar(c) ? (
-                      <button onClick={() => activar(c.id_cliente)} className="btn-success" style={{ padding: '8px 16px', fontSize: 12, minWidth: 108, whiteSpace: 'nowrap' }}>
+                      <button onClick={() => activar(c)} className="btn-success" style={{ padding: '8px 16px', fontSize: 12, minWidth: 108, whiteSpace: 'nowrap' }}>
                         <CheckCircle2 className="h-3.5 w-3.5" /> Activar
                       </button>
                     ) : (
@@ -369,7 +433,7 @@ export default function Activacion() {
                       </button>
                     )}
                     {puedeRechazar(c) && (
-                      <button onClick={() => rechazar(c.id_cliente)} className="btn-danger" style={{ padding: '8px 16px', fontSize: 12, minWidth: 108, whiteSpace: 'nowrap' }}>
+                      <button onClick={() => rechazar(c)} className="btn-danger" style={{ padding: '8px 16px', fontSize: 12, minWidth: 108, whiteSpace: 'nowrap' }}>
                         <XCircle className="h-3.5 w-3.5" /> Rechazar
                       </button>
                     )}
@@ -393,6 +457,20 @@ export default function Activacion() {
           }}
         />
       </div>
+      <DecisionModal
+        open={!!decision}
+        title={decision?.title}
+        description={decision?.description}
+        actionLabel={decision?.actionLabel}
+        tone={decision?.tone}
+        requireReason={decision?.requireReason}
+        reasonLabel={decision?.reasonLabel}
+        reasonPlaceholder={decision?.reasonPlaceholder}
+        confirmText={decision?.confirmText}
+        details={decision?.details || []}
+        onClose={() => setDecision(null)}
+        onConfirm={confirmarDecision}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import RutaProtegida from './components/RutaProtegida';
+import AdminShell from './shells/AdminShell';
 
 import Login from './pages/Login';
 import SesionExpirada from './pages/SesionExpirada';
@@ -25,6 +26,9 @@ import Auditoria from './pages/Auditoria';
 import MatrizRiesgo from './pages/admin/MatrizRiesgo';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
 import AdminAuditoria from './pages/admin/AdminAuditoria';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminIA from './pages/admin/AdminIA';
+import AdminScreening from './pages/admin/AdminScreening';
 
 function OperativeLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -63,9 +67,10 @@ function AppRoutes() {
     );
   }
 
-  const loginRedirect = usuario?.rol === 'admin' ? '/admin/matriz' : usuario?.rol === 'auditor' ? '/auditoria' : '/dashboard';
+  const loginRedirect = usuario?.rol === 'admin' ? '/admin/dashboard' : usuario?.rol === 'auditor' ? '/auditoria' : '/dashboard';
   const sinMarco = ['/login', '/sesion-expirada', '/no-autorizado'];
-  const usaMarco = !!usuario && !sinMarco.includes(location.pathname);
+  const esAdminPath = location.pathname.startsWith('/admin');
+  const usaMarco = !!usuario && !sinMarco.includes(location.pathname) && !esAdminPath;
 
   const routes = (
     <Routes>
@@ -73,9 +78,12 @@ function AppRoutes() {
       <Route path="/sesion-expirada" element={<SesionExpirada />} />
       <Route path="/no-autorizado" element={<NoAutorizado />} />
 
-      <Route path="/admin/matriz" element={<RutaProtegida rolesPermitidos={['admin']}><MatrizRiesgo /></RutaProtegida>} />
-      <Route path="/admin/usuarios" element={<RutaProtegida rolesPermitidos={['admin']}><AdminUsuarios /></RutaProtegida>} />
-      <Route path="/admin/auditoria" element={<RutaProtegida rolesPermitidos={['admin']}><AdminAuditoria /></RutaProtegida>} />
+      <Route path="/admin/dashboard" element={<RutaProtegida rolesPermitidos={['admin']}><AdminShell><AdminDashboard /></AdminShell></RutaProtegida>} />
+      <Route path="/admin/matriz" element={<RutaProtegida rolesPermitidos={['admin']}><AdminShell><MatrizRiesgo /></AdminShell></RutaProtegida>} />
+      <Route path="/admin/ia" element={<RutaProtegida rolesPermitidos={['admin']}><AdminShell><AdminIA /></AdminShell></RutaProtegida>} />
+      <Route path="/admin/screening" element={<RutaProtegida rolesPermitidos={['admin']}><AdminShell><AdminScreening /></AdminShell></RutaProtegida>} />
+      <Route path="/admin/usuarios" element={<RutaProtegida rolesPermitidos={['admin']}><AdminShell><AdminUsuarios /></AdminShell></RutaProtegida>} />
+      <Route path="/admin/auditoria" element={<RutaProtegida rolesPermitidos={['admin']}><AdminShell><AdminAuditoria /></AdminShell></RutaProtegida>} />
 
       <Route path="/dashboard" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Dashboard /></RutaProtegida>} />
       <Route path="/clientes" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><ListadoClientes /></RutaProtegida>} />

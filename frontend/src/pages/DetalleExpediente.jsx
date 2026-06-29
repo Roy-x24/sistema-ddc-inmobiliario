@@ -4,6 +4,7 @@ import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 import {
   FileText, FileSpreadsheet, Shield, AlertTriangle, MessageSquare,
   UserCheck, ArrowLeft, User, Mail, Phone, MapPin, Building2, Briefcase, Bot, CheckCircle2, XCircle
@@ -88,6 +89,14 @@ export default function DetalleExpediente() {
           <Bot className="h-3.5 w-3.5" />
           Resumen IA
         </button>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <AIAssistantPanel
+          clienteId={id}
+          tipoCliente={cliente.tipo_cliente}
+          actions={['resumen', 'observacion', 'beneficiarios', 'screening', 'prioridad', 'buscar']}
+        />
       </div>
 
       {checklist && (

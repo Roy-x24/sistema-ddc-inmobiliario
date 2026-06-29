@@ -5,6 +5,7 @@ import {
   ClipboardList, Settings, Users, LogOut, ShieldCheck, Search, Bell, Menu, X,
   PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
+import { Bot, LayoutDashboard, ShieldAlert, ArrowRightLeft } from 'lucide-react';
 
 export default function AdminShell({ children }) {
   const { usuario, cerrarSesion } = useAuth();
@@ -16,7 +17,10 @@ export default function AdminShell({ children }) {
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
 
   const navItems = [
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', hint: 'Salud y control' },
     { label: 'Matriz de Riesgo', icon: Settings, path: '/admin/matriz', hint: 'Pesos y versiones' },
+    { label: 'IA y Proveedores', icon: Bot, path: '/admin/ia', hint: 'Modelos y umbrales' },
+    { label: 'PEP / Sanciones', icon: ShieldAlert, path: '/admin/screening', hint: 'Listas locales' },
     { label: 'Usuarios', icon: Users, path: '/admin/usuarios', hint: 'Roles y accesos' },
     { label: 'Auditoria Admin', icon: ClipboardList, path: '/admin/auditoria', hint: 'Eventos sensibles' },
   ];
@@ -106,6 +110,18 @@ export default function AdminShell({ children }) {
               </button>
             );
           })}
+          <div className={`my-3 border-t border-white/10 ${desktopCollapsed ? 'mx-3' : 'mr-5'}`} />
+          <button
+            onClick={() => goTo('/dashboard')}
+            title={desktopCollapsed ? 'Ir a operacion' : undefined}
+            className={`sidebar-nav-item group flex w-full items-center gap-3 rounded-l-2xl px-4 py-3 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white ${desktopCollapsed ? 'lg:justify-center lg:px-0' : ''}`}
+          >
+            <ArrowRightLeft className="sidebar-nav-icon h-5 w-5 text-cyan-100/80 group-hover:text-white" />
+            <span className={`sidebar-nav-label flex-1 text-left ${desktopCollapsed ? 'lg:hidden' : ''}`}>
+              <span className="block">Ir a operacion</span>
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 group-hover:text-slate-300">Soporte operativo</span>
+            </span>
+          </button>
         </nav>
         <div className={`relative space-y-1 border-t border-white/10 px-4 py-5 ${desktopCollapsed ? 'lg:px-3' : ''}`}>
           <div className={`px-3 pb-3 ${desktopCollapsed ? 'lg:hidden' : ''}`}>

@@ -22,7 +22,7 @@ export default function Login() {
       const { access_token, refresh_token } = res.data;
       const me = await api.get('/auth/me', { headers: { Authorization: `Bearer ${access_token}` } });
       iniciarSesion(access_token, refresh_token, me.data);
-      const destino = me.data.rol === 'admin' ? '/admin/matriz' : me.data.rol === 'auditor' ? '/auditoria' : '/dashboard';
+      const destino = me.data.rol === 'admin' ? '/admin/dashboard' : me.data.rol === 'auditor' ? '/auditoria' : '/dashboard';
       navigate(destino);
     } catch (err) {
       setError('Credenciales incorrectas');

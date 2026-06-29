@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ClienteSelector from '../components/ClienteSelector';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 import { UserCheck, Plus, AlertCircle, CheckCircle2, XCircle, User, Flag } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -183,6 +184,17 @@ export default function BeneficiarioFinal() {
         emptyText="No hay sociedades con esos filtros."
         showTipoFilter={false}
       />
+
+      {clienteSeleccionado && (
+        <div style={{ marginTop: 18 }}>
+          <AIAssistantPanel
+            clienteId={clienteId}
+            tipoCliente="JURIDICA"
+            actions={['beneficiarios', 'screening', 'prioridad', 'resumen', 'buscar']}
+            title="Asistente IA para beneficiarios finales"
+          />
+        </div>
+      )}
 
       {clienteSeleccionado && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 16, marginBottom: 20 }}>

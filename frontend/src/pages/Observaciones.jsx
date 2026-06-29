@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ClienteSelector from '../components/ClienteSelector';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 import { MessageSquare, Send, Lock, Unlock, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -169,6 +170,17 @@ export default function Observaciones() {
         description="Busca expedientes con observaciones y filtra por tipo, estado del cliente o riesgo."
         emptyText="No hay expedientes con observaciones para esos filtros."
       />
+
+      {clienteSeleccionado && (
+        <div style={{ marginTop: 18 }}>
+          <AIAssistantPanel
+            clienteId={clienteId}
+            tipoCliente={clienteSeleccionado.tipo_cliente}
+            actions={['observacion', 'resumen', 'prioridad', 'buscar']}
+            title="Asistente IA de observaciones"
+          />
+        </div>
+      )}
 
       {clienteSeleccionado && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 16, marginBottom: 20 }}>

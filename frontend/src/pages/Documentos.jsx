@@ -6,6 +6,8 @@ import EstadoBadge from '../components/EstadoBadge';
 import ClienteSelector from '../components/ClienteSelector';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
+import AIAssistantPanel from '../components/AIAssistantPanel';
+import DecisionModal from '../components/DecisionModal';
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText, Bot } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -45,6 +47,7 @@ export default function Documentos() {
   const [pageSize, setPageSize] = useState(10);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
+  const [decision, setDecision] = useState(null);
 
   const cargarClientes = async (estadoDocumento = estadoDocumentoTrabajo, tipo = tipoCliente) => {
     if (estadoDocumento) {
@@ -132,7 +135,7 @@ export default function Documentos() {
     }
   };
 
-  const verificar = async (docId) => {
+  const verificarDocumento = async (docId) => {
     try {
       await api.patch(`/clientes/documentos/${docId}/verificar`);
       showMensaje('Documento verificado');
@@ -142,9 +145,7 @@ export default function Documentos() {
     }
   };
 
-  const rechazar = async (docId) => {
-    const motivo = prompt('Motivo de rechazo');
-    if (!motivo) return;
+  const rechazarDocumento = async (docId, motivo) => {
     try {
       await api.patch(`/clientes/documentos/${docId}/rechazar?motivo=${encodeURIComponent(motivo)}`);
       showMensaje('Documento rechazado');
@@ -152,6 +153,47 @@ export default function Documentos() {
     } catch {
       showError('Error al rechazar documento');
     }
+  };
+
+  const abrirDecisionDocumento = (type, doc) => {
+    const baseDetails = [
+      `Archivo: ${doc.nombre_archivo}`,
+      `Tipo: ${doc.tipo_documento}`,
+      `Estado actual: ${doc.estado}`,
+      `Validacion: ${doc.confianza_validacion || 'Pendiente'}`,
+    ];
+    if (type === 'aprobar') {
+      setDecision({
+        type,
+        doc,
+        title: 'Aprobar documento',
+        description: 'Confirma que revisaste el archivo y que la evidencia es legible, vigente y coincide con el expediente.',
+        tone: 'success',
+        actionLabel: 'Aprobar',
+        confirmText: 'APROBAR',
+        details: baseDetails,
+      });
+      return;
+    }
+    setDecision({
+      type,
+      doc,
+      title: 'Rechazar documento',
+      description: 'El rechazo debe explicar por que el documento no puede sustentar el expediente.',
+      tone: 'danger',
+      actionLabel: 'Rechazar',
+      requireReason: true,
+      reasonLabel: 'Motivo de rechazo',
+      reasonPlaceholder: 'Ej: ilegible, vencido, datos no coinciden, documento incorrecto...',
+      confirmText: 'RECHAZAR',
+      details: baseDetails,
+    });
+  };
+
+  const confirmarDecision = async ({ reason }) => {
+    if (!decision?.doc) return;
+    if (decision.type === 'aprobar') await verificarDocumento(decision.doc.id_documento);
+    if (decision.type === 'rechazar') await rechazarDocumento(decision.doc.id_documento, reason);
   };
 
   const descargar = async (docId, nombre) => {
@@ -261,6 +303,17 @@ export default function Documentos() {
         </div>
       )}
 
+      {clienteSeleccionado && (
+        <div style={{ marginTop: 18 }}>
+          <AIAssistantPanel
+            clienteId={clienteId}
+            tipoCliente={clienteSeleccionado.tipo_cliente}
+            actions={['resumen', 'observacion', 'screening', 'prioridad', 'buscar']}
+            title="Asistente IA documental"
+          />
+        </div>
+      )}
+
       {!clienteId && (
         <EmptyState
           icon={FileText}
@@ -332,10 +385,10 @@ export default function Documentos() {
                     </button>
                     {puedeVerificar && ['PENDIENTE_VERIFICACION', 'OBSERVADO'].includes(d.estado) && (
                       <>
-                        <button onClick={() => verificar(d.id_documento)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        <button onClick={() => abrirDecisionDocumento('aprobar', d)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
                         </button>
-                        <button onClick={() => rechazar(d.id_documento)} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        <button onClick={() => abrirDecisionDocumento('rechazar', d)} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <XCircle className="h-3.5 w-3.5" /> Rechazar
                         </button>
                       </>
@@ -369,6 +422,20 @@ export default function Documentos() {
         />
       </div>
       )}
+      <DecisionModal
+        open={!!decision}
+        title={decision?.title}
+        description={decision?.description}
+        actionLabel={decision?.actionLabel}
+        tone={decision?.tone}
+        requireReason={decision?.requireReason}
+        reasonLabel={decision?.reasonLabel}
+        reasonPlaceholder={decision?.reasonPlaceholder}
+        confirmText={decision?.confirmText}
+        details={decision?.details || []}
+        onClose={() => setDecision(null)}
+        onConfirm={confirmarDecision}
+      />
     </div>
   );
 }

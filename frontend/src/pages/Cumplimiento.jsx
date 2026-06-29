@@ -6,6 +6,7 @@ import RiesgoIndicador from '../components/RiesgoIndicador';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import InfoHint from '../components/InfoHint';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 import { AlertTriangle, Bot, RefreshCw, FileWarning, Search, ShieldCheck, UserCheck } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
@@ -62,6 +63,7 @@ export default function Cumplimiento() {
   const [busqueda, setBusqueda] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
+  const [clienteAsistido, setClienteAsistido] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -188,6 +190,17 @@ export default function Cumplimiento() {
         <button onClick={() => { setCola(''); setEstado(''); setTipo(''); setBusqueda(''); setPage(1); }} className="btn-secondary" style={{ padding: '12px 18px' }}>Limpiar</button>
       </div>
 
+      {clienteAsistido && (
+        <div style={{ marginTop: 18 }}>
+          <AIAssistantPanel
+            clienteId={clienteAsistido.id_cliente}
+            tipoCliente={clienteAsistido.tipo_cliente}
+            actions={['resumen', 'screening', 'prioridad', 'observacion', 'beneficiarios', 'buscar']}
+            title={`Asistente IA de cumplimiento: ${clienteAsistido.nombre || clienteAsistido.identificacion}`}
+          />
+        </div>
+      )}
+
       <div className="table-container" style={{ marginTop: 16 }}>
         <table>
           <thead>
@@ -244,6 +257,13 @@ export default function Cumplimiento() {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setClienteAsistido(item)}
+                      className="btn-secondary"
+                      style={{ padding: '8px 12px', fontSize: 12 }}
+                    >
+                      Asistir
+                    </button>
                     <button
                       onClick={() => navigate(item.cola === 'OBSERVADOS_DOCUMENTOS' || item.cola === 'PENDIENTES_INFORMACION' ? `/documentos/${item.id_cliente}` : `/expediente/${item.id_cliente}`)}
                       className="btn-secondary"

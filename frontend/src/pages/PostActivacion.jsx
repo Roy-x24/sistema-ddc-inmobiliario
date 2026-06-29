@@ -5,6 +5,8 @@ import RiesgoIndicador from '../components/RiesgoIndicador';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import InfoHint from '../components/InfoHint';
+import AIAssistantPanel from '../components/AIAssistantPanel';
+import DecisionModal from '../components/DecisionModal';
 import { AlertTriangle, CheckCircle2, Lock, RotateCcw, Search, Unlock } from 'lucide-react';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
@@ -22,6 +24,8 @@ export default function PostActivacion() {
   const [busqueda, setBusqueda] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [errores, setErrores] = useState([]);
+  const [clienteAsistido, setClienteAsistido] = useState(null);
+  const [decision, setDecision] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -65,11 +69,9 @@ export default function PostActivacion() {
     if (page > totalPages) setPage(totalPages);
   }, [lista, page, pageSize]);
 
-  const bloquear = async (id) => {
-    const motivo = window.prompt('Motivo de bloqueo obligatorio');
-    if (!motivo) return;
+  const ejecutarBloqueo = async (cliente, motivo) => {
     try {
-      await api.patch(`/clientes/${id}/bloquear?motivo=${encodeURIComponent(motivo)}`);
+      await api.patch(`/clientes/${cliente.id_cliente}/bloquear?motivo=${encodeURIComponent(motivo)}`);
       mostrarMensaje('Cliente bloqueado');
       cargar();
     } catch (err) {
@@ -77,10 +79,9 @@ export default function PostActivacion() {
     }
   };
 
-  const desbloquear = async (id) => {
-    if (!window.confirm('Confirma que desea desbloquear este cliente?')) return;
+  const ejecutarDesbloqueo = async (cliente) => {
     try {
-      await api.patch(`/clientes/${id}/desbloquear`);
+      await api.patch(`/clientes/${cliente.id_cliente}/desbloquear`);
       mostrarMensaje('Cliente desbloqueado');
       cargar();
     } catch (err) {
@@ -88,16 +89,59 @@ export default function PostActivacion() {
     }
   };
 
-  const revertir = async (id) => {
-    const motivo = window.prompt('Motivo de reversion obligatorio');
-    if (!motivo) return;
+  const ejecutarReversion = async (cliente, motivo) => {
     try {
-      await api.patch(`/clientes/${id}/revertir-activacion?motivo=${encodeURIComponent(motivo)}`);
+      await api.patch(`/clientes/${cliente.id_cliente}/revertir-activacion?motivo=${encodeURIComponent(motivo)}`);
       mostrarMensaje('Activacion revertida. El expediente volvio a revision.');
       cargar();
     } catch (err) {
       mostrarError(err.response?.data?.detail || 'Error al revertir activacion');
     }
+  };
+
+  const abrirDecision = (type, cliente) => {
+    const baseDetails = [
+      `Cliente: ${cliente.nombre || cliente.identificacion || cliente.id_cliente}`,
+      `Estado actual: ${cliente.estado}`,
+      `Riesgo: ${cliente.nivel_riesgo || 'Sin calcular'}`,
+    ];
+    const configs = {
+      bloquear: {
+        title: 'Bloquear cliente activo',
+        description: 'El bloqueo suspende la operación del cliente y debe estar sustentado por una alerta o corrección posterior.',
+        tone: 'danger',
+        actionLabel: 'Bloquear',
+        requireReason: true,
+        reasonLabel: 'Motivo de bloqueo',
+        reasonPlaceholder: 'Ej: alerta posterior, documentación vencida, coincidencia PEP/sanciones...',
+        confirmText: 'BLOQUEAR',
+      },
+      desbloquear: {
+        title: 'Desbloquear cliente',
+        description: 'Confirma que el motivo de bloqueo fue resuelto y que el cliente puede volver a operar.',
+        tone: 'success',
+        actionLabel: 'Desbloquear',
+        confirmText: 'DESBLOQUEAR',
+      },
+      revertir: {
+        title: 'Revertir activacion',
+        description: 'Devuelve el expediente a revisión cuando una activación fue hecha por error o falta nueva validación.',
+        tone: 'neutral',
+        actionLabel: 'Revertir activacion',
+        requireReason: true,
+        reasonLabel: 'Motivo de reversion',
+        reasonPlaceholder: 'Ej: activación accidental, documento observado después de activar, alerta pendiente...',
+        confirmText: 'REVERTIR',
+      },
+    };
+    setDecision({ type, cliente, details: baseDetails, ...configs[type] });
+  };
+
+  const confirmarDecision = async ({ reason }) => {
+    if (!decision?.cliente) return;
+    if (decision.type === 'bloquear') await ejecutarBloqueo(decision.cliente, reason);
+    if (decision.type === 'desbloquear') await ejecutarDesbloqueo(decision.cliente);
+    if (decision.type === 'revertir') await ejecutarReversion(decision.cliente, reason);
   };
 
   return (
@@ -171,6 +215,17 @@ export default function PostActivacion() {
         <button onClick={() => { setTipoCliente(''); setRiesgoFiltro(''); setBusqueda(''); setPage(1); }} className="btn-secondary" style={{ padding: '12px 18px' }}>Limpiar</button>
       </div>
 
+      {clienteAsistido && (
+        <div style={{ marginTop: 18 }}>
+          <AIAssistantPanel
+            clienteId={clienteAsistido.id_cliente}
+            tipoCliente={clienteAsistido.tipo_cliente}
+            actions={['resumen', 'screening', 'prioridad', 'observacion', 'buscar']}
+            title={`Asistente IA post-activacion: ${clienteAsistido.nombre || clienteAsistido.identificacion}`}
+          />
+        </div>
+      )}
+
       <div className="table-container" style={{ marginTop: 16 }}>
         <div style={{ padding: '16px 18px 0' }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{segmento === 'ACTIVOS' ? 'Clientes activos' : 'Clientes bloqueados'}</h2>
@@ -207,17 +262,25 @@ export default function PostActivacion() {
                 <td style={{ textAlign: 'right' }}>
                   {c.estado === 'ACTIVO' ? (
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                      <button onClick={() => revertir(c.id_cliente)} className="btn-secondary" style={{ padding: '8px 14px', fontSize: 12 }}>
+                      <button onClick={() => setClienteAsistido(c)} className="btn-secondary" style={{ padding: '8px 14px', fontSize: 12 }}>
+                        Asistir
+                      </button>
+                      <button onClick={() => abrirDecision('revertir', c)} className="btn-secondary" style={{ padding: '8px 14px', fontSize: 12 }}>
                         <RotateCcw className="h-3.5 w-3.5" /> Revertir
                       </button>
-                      <button onClick={() => bloquear(c.id_cliente)} className="btn-danger" style={{ padding: '8px 14px', fontSize: 12 }}>
+                      <button onClick={() => abrirDecision('bloquear', c)} className="btn-danger" style={{ padding: '8px 14px', fontSize: 12 }}>
                         <Lock className="h-3.5 w-3.5" /> Bloquear
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => desbloquear(c.id_cliente)} className="btn-success" style={{ padding: '8px 14px', fontSize: 12 }}>
-                      <Unlock className="h-3.5 w-3.5" /> Desbloquear
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                      <button onClick={() => setClienteAsistido(c)} className="btn-secondary" style={{ padding: '8px 14px', fontSize: 12 }}>
+                        Asistir
+                      </button>
+                      <button onClick={() => abrirDecision('desbloquear', c)} className="btn-success" style={{ padding: '8px 14px', fontSize: 12 }}>
+                        <Unlock className="h-3.5 w-3.5" /> Desbloquear
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -242,6 +305,20 @@ export default function PostActivacion() {
           }}
         />
       </div>
+      <DecisionModal
+        open={!!decision}
+        title={decision?.title}
+        description={decision?.description}
+        actionLabel={decision?.actionLabel}
+        tone={decision?.tone}
+        requireReason={decision?.requireReason}
+        reasonLabel={decision?.reasonLabel}
+        reasonPlaceholder={decision?.reasonPlaceholder}
+        confirmText={decision?.confirmText}
+        details={decision?.details || []}
+        onClose={() => setDecision(null)}
+        onConfirm={confirmarDecision}
+      />
     </div>
   );
 }

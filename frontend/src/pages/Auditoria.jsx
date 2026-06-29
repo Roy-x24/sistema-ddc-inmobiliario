@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
-import { Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Download, CheckCircle2, AlertCircle, Bot, ClipboardList } from 'lucide-react';
 
 export default function Auditoria() {
   const { usuario } = useAuth();
   const [registros, setRegistros] = useState([]);
+  const [modelRuns, setModelRuns] = useState([]);
   const [clienteId, setClienteId] = useState('');
   const [exportando, setExportando] = useState(false);
   const [exportandoAdmin, setExportandoAdmin] = useState(false);
@@ -17,20 +18,30 @@ export default function Auditoria() {
 
   const cargar = async () => {
     try {
-      const res = await api.get('/auditoria');
+      const [res, runs] = await Promise.all([
+        api.get('/auditoria'),
+        api.get('/ai/model-runs'),
+      ]);
       setRegistros(res.data || []);
+      setModelRuns(runs.data || []);
     } catch {
       setRegistros([]);
+      setModelRuns([]);
     }
   };
 
   const cargarPorCliente = async (id) => {
     if (!id) { cargar(); return; }
     try {
-      const res = await api.get(`/clientes/${id}/auditoria`);
+      const [res, runs] = await Promise.all([
+        api.get(`/clientes/${id}/auditoria`),
+        api.get(`/ai/model-runs?cliente_id=${encodeURIComponent(id)}`),
+      ]);
       setRegistros(res.data || []);
+      setModelRuns(runs.data || []);
     } catch {
       setRegistros([]);
+      setModelRuns([]);
     }
   };
 
@@ -128,6 +139,32 @@ export default function Auditoria() {
             {exportandoAdmin ? 'Exportando...' : 'Exportar CSV Admin'}
           </button>
         )}
+      </div>
+
+      <div className="card" style={{ padding: 18, marginBottom: 20, borderColor: 'rgba(20,184,166,0.22)', background: 'linear-gradient(135deg, rgba(20,184,166,0.06), rgba(255,255,255,0.98))' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <Bot className="h-5 w-5 text-gold" />
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Auditoría técnica IA</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Corridas de modelos, proveedores, confianza y errores asociados.</p>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10 }}>
+          {modelRuns.slice(0, 6).map((run) => (
+            <div key={run.id_run} className="card" style={{ padding: 14, background: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ClipboardList className="h-4 w-4 text-gold" />
+                <div className="info-item-label" style={{ marginBottom: 0 }}>{run.purpose?.replaceAll('_', ' ')}</div>
+              </div>
+              <div className="info-item-value" style={{ marginTop: 8 }}>{run.provider} · {run.model}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6 }}>
+                Estado {run.status} · Confianza {Math.round((run.confidence || 0) * 100)}%
+              </div>
+              {run.errors?.length > 0 && <div style={{ color: '#DC2626', fontSize: 12, marginTop: 6 }}>{run.errors.join(', ')}</div>}
+            </div>
+          ))}
+          {modelRuns.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sin corridas IA registradas para este filtro.</div>}
+        </div>
       </div>
 
       <div className="table-container">
