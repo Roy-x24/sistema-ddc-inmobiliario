@@ -15,3 +15,6 @@ from app.models.clasificacion_riesgo import ClasificacionRiesgo
 from app.models.observacion import Observacion
 from app.models.auditoria import Auditoria
 from app.models.auditoria_admin import AuditoriaAdmin
+from app.models.ai_model_run import AIModelRun
+from app.models.ai_extraction import AIExtraction
+from app.models.ai_embedding import DocumentEmbedding, AuditEmbedding

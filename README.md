@@ -12,6 +12,7 @@ Sistema web para la gestión de Debida Diligencia de Clientes (DDC/KYC) enfocado
 - **Contenedores:** Docker + Docker Compose
 - **Testing E2E:** Playwright
 - **QA:** SonarQube Community (métricas obligatorias para el parcial)
+- **IA/OCR asistida:** capa configurable `mock/local/groq/google` para extracción documental, resúmenes auditables y búsqueda semántica sin tomar decisiones regulatorias finales.
 
 ## Requisitos previos
 
@@ -60,6 +61,138 @@ También puede ejecutarse manualmente sobre el backend ya levantado:
 docker-compose exec backend python seed_demo.py
 ```
 
+## Configuración IA/OCR
+
+La IA/OCR no está hardcoded: se configura por variables de entorno en el servicio `backend`. En Docker Compose hoy queda así por defecto:
+
+```env
+AI_MODE=mock
+OCR_PROVIDER=mock
+LLM_PROVIDER=none
+EMBEDDINGS_PROVIDER=mock
+AI_STRICT_MODE=true
+AI_MIN_CONFIDENCE=0.82
+```
+
+### Qué funciona actualmente
+
+| Variable | Valores | Estado actual |
+|----------|---------|---------------|
+| `AI_MODE` | `mock`, `local`, `groq`, `google` | Proveedor general reportado en auditoría cuando OCR está en `mock`. |
+| `OCR_PROVIDER` | `mock`, `local`, `groq_vision`, `google` | `local` usa PyMuPDF/pdfplumber/Tesseract. `groq_vision` usa Groq para imágenes. `google` usa Gemini multimodal. |
+| `LLM_PROVIDER` | `none`, `local`, `groq`, `google` | Conecta resúmenes JSON a Ollama, Groq o Google. `none` usa resumen determinístico local. |
+| `EMBEDDINGS_PROVIDER` | `mock`, `local`, `google` | `mock` guarda vector hash JSON. `local` usa Ollama embeddings. `google` usa Gemini embeddings. |
+| `AI_MIN_CONFIDENCE` | decimal `0-1` | Umbral para mandar a revisión humana si la confianza IA/OCR es baja. |
+
+### Matriz de funciones IA/OCR
+
+| Función | Mock | Local | Groq | Google | Recomendación |
+|---------|------|-------|------|--------|---------------|
+| Extracción documental | Simula extracción auditable y permite probar UI/flujos sin archivos reales. | Extrae texto de PDF con PyMuPDF/pdfplumber y OCR de imágenes con Tesseract. | Usa visión para JPG/PNG; no es la mejor opción para PDF. | Usa Gemini multimodal para leer PDF/imágenes; ruta recomendada para demo con API. | Para demo seria: `OCR_PROVIDER=local` si no hay internet/API; `google` si se quiere mejor lectura documental. |
+| Clasificación de documento | Determinística/demo según nombre, tipo y fallback. | Usa texto OCR local y reglas del sistema. | Puede apoyar clasificación desde imagen. | Puede apoyar clasificación multimodal. | La clasificación puede sugerirse con IA, pero la aceptación debe pasar por reglas y confianza mínima. |
+| Comparación contra expediente | Usa datos mock y reglas. | Compara campos OCR contra nombre, cédula/RUC y datos registrados. | Útil para explicar diferencias si se usa LLM. | Útil para extraer y comparar campos con mejor contexto. | Las discrepancias críticas deben generar observación o revisión humana, no aprobación automática. |
+| Resumen de expediente | Resumen determinístico local (`LLM_PROVIDER=none`). | Ollama genera JSON local si está activo. | Groq genera JSON rápido para demo conectada. | Gemini genera JSON y puede usar mejor contexto documental. | Para presentación: Groq si quieres velocidad; Google si también usarás OCR/embeddings del mismo proveedor. |
+| Embeddings/búsqueda semántica | Vector hash JSON para demo básica. | Ollama embeddings locales. | No configurado como proveedor de embeddings en este proyecto. | Gemini Embeddings. | Para producción: PostgreSQL + `pgvector` + Google/local multilingual. Hoy se persiste JSON y se calcula similitud en app. |
+| Auditoría IA | Registra corrida, proveedor, modelo, confianza, errores y hash. | Igual, marcando proveedor local/Ollama. | Igual, con modelo Groq. | Igual, con modelo Google. | Siempre guardar evidencia, versión de prompt/schema y nunca guardar API keys ni secretos. |
+
+### Formas de uso recomendadas
+
+| Caso | Variables | Cuándo usarlo | Buenas prácticas |
+|------|-----------|---------------|------------------|
+| Demo estable sin dependencias | `AI_MODE=mock`, `OCR_PROVIDER=mock`, `LLM_PROVIDER=none`, `EMBEDDINGS_PROVIDER=mock` | Presentación donde importa que todo funcione sin internet ni llaves. | Úsalo para validar UX, estados, auditoría y flujos. No lo vendas como precisión OCR real. |
+| OCR local sin LLM | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=none`, `EMBEDDINGS_PROVIDER=mock` | Demo con extracción real básica y cero API keys. | Reconstruir contenedores; usar documentos limpios; mantener revisión humana por baja confianza. |
+| Local completo con Ollama | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=local`, `EMBEDDINGS_PROVIDER=local`, `OLLAMA_BASE_URL=http://host.docker.internal:11434`, `OLLAMA_MODEL=gemma3:4b` | Demo offline con resúmenes y embeddings locales. | Descargar modelo antes; usar modelos pequeños para latencia; no confiar en campos críticos sin reglas. |
+| Groq para resúmenes rápidos | `AI_MODE=groq`, `OCR_PROVIDER=mock` o `local`, `LLM_PROVIDER=groq`, `EMBEDDINGS_PROVIDER=mock`, `GROQ_API_KEY=...` | Demo conectada donde quieres respuestas JSON rápidas. | Mantener OCR local/Google para PDF; usar temperatura baja y JSON estricto. |
+| Groq visión para imágenes | `OCR_PROVIDER=groq_vision`, `GROQ_VISION_MODEL=...`, `GROQ_API_KEY=...` | Documentos JPG/PNG puntuales. | No usarlo como OCR principal de PDF; mandar a revisión si no hay confianza suficiente. |
+| Google completo | `AI_MODE=google`, `OCR_PROVIDER=google`, `LLM_PROVIDER=google`, `EMBEDDINGS_PROVIDER=google`, `GOOGLE_API_KEY=...` | Demo más completa con OCR/visión, resúmenes y embeddings del mismo proveedor. | Mejor opción de API única para demo avanzada; en producción evaluar Google Document AI nativo. |
+
+### Modo demo recomendado
+
+Sin API keys, estable para presentación:
+
+```env
+AI_MODE=mock
+OCR_PROVIDER=mock
+LLM_PROVIDER=none
+EMBEDDINGS_PROVIDER=mock
+```
+
+### Modo OCR local
+
+Ejecuta OCR real dentro del contenedor backend. Requiere reconstruir porque instala Tesseract y librerías Python:
+
+```env
+AI_MODE=local
+OCR_PROVIDER=local
+LLM_PROVIDER=none
+EMBEDDINGS_PROVIDER=mock
+```
+
+Luego:
+
+```bash
+docker-compose up --build
+```
+
+### Groq
+
+Para resúmenes JSON por Groq:
+
+```env
+AI_MODE=groq
+OCR_PROVIDER=mock
+LLM_PROVIDER=groq
+EMBEDDINGS_PROVIDER=mock
+GROQ_API_KEY=tu_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+Para OCR/visión con imágenes por Groq:
+
+```env
+OCR_PROVIDER=groq_vision
+GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
+```
+
+Nota: para PDF, usa `OCR_PROVIDER=local` o `google`; Groq visión queda pensado para JPG/PNG.
+
+### Google Gemini
+
+Para resúmenes, visión/OCR y embeddings:
+
+```env
+AI_MODE=google
+OCR_PROVIDER=google
+LLM_PROVIDER=google
+EMBEDDINGS_PROVIDER=google
+GOOGLE_API_KEY=tu_api_key
+GOOGLE_MODEL=gemini-1.5-flash
+GOOGLE_EMBEDDING_MODEL=text-embedding-004
+```
+
+### Ollama local
+
+Levanta Ollama en tu máquina y descarga un modelo, por ejemplo:
+
+```bash
+ollama pull gemma3:4b
+```
+
+Configura:
+
+```env
+AI_MODE=local
+OCR_PROVIDER=local
+LLM_PROVIDER=local
+EMBEDDINGS_PROVIDER=local
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=gemma3:4b
+```
+
+Si usas otro modelo local de hasta 8B, cambia `OLLAMA_MODEL`.
+
+Regla crítica: IA/OCR sugiere y documenta; las reglas determinísticas y usuarios autorizados siguen decidiendo activación, rechazo, riesgo y validación final.
+
 ## Estructura del proyecto
 
 ```
@@ -106,6 +239,8 @@ ddc-kyc-sistema/
 - **Exportación CSV:** Auditor y Admin pueden exportar historial de auditoría de expediente y administrativa.
 - **Rediseño luxury coherente:** Todos los paneles operativos y de administración comparten un mismo sistema de diseño con cards, tablas, badges, banners y botones estilizados.
 - **Fixes funcionales:** Búsqueda de clientes por nombre/documento/RUC, campos correctos en perfil transaccional, confirmación manual para riesgo ALTO, descarga de documentos y manejo de UUID/datetime en schemas.
+- **IA/OCR auditable:** nuevas rutas `/ai/*`, extracción documental asistida, `ai_model_runs`, `ai_extractions`, embeddings demo y guardrails de confianza.
+- **Dashboards operativos por rol:** el Empleado ve próximos pasos de captura; el Oficial ve prioridades, alto riesgo, observados, BF pendientes y auditoría IA reciente.
 
 ## Notas
 
@@ -128,3 +263,4 @@ ddc-kyc-sistema/
 - `docs/bandeja-oficial.md`: uso de la bandeja inteligente.
 - `docs/manual-operativo.md`: guia operativa por actor.
 - `docs/adr-005-motor-reglas-documental.md`: decision tecnica del motor documental.
+- `docs/ai-ocr-architecture.md`: arquitectura IA/OCR, proveedores, embeddings y guardrails.

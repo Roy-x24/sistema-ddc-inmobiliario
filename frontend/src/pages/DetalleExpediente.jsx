@@ -6,7 +6,7 @@ import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
 import {
   FileText, FileSpreadsheet, Shield, AlertTriangle, MessageSquare,
-  UserCheck, ArrowLeft, Clock, User, Mail, Phone, MapPin, Building2, Briefcase
+  UserCheck, ArrowLeft, User, Mail, Phone, MapPin, Building2, Briefcase, Bot, CheckCircle2, XCircle
 } from 'lucide-react';
 
 export default function DetalleExpediente() {
@@ -14,6 +14,8 @@ export default function DetalleExpediente() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
   const [cliente, setCliente] = useState(null);
+  const [checklist, setChecklist] = useState(null);
+  const [resumenAI, setResumenAI] = useState(null);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -21,7 +23,17 @@ export default function DetalleExpediente() {
     api.get(`/clientes/${id}`).then(res => {
       setCliente(res.data);
     }).catch(() => setCliente(null)).finally(() => setCargando(false));
+    api.post(`/clientes/${id}/checklist`).then(res => setChecklist(res.data)).catch(() => setChecklist(null));
   }, [id]);
+
+  const generarResumenAI = async () => {
+    try {
+      const res = await api.post(`/ai/clientes/${id}/resumen`);
+      setResumenAI(res.data);
+    } catch {
+      setResumenAI(null);
+    }
+  };
 
   if (cargando) return (
     <div className="animate-fade-in-up" style={{ color: 'var(--text-muted)', padding: 40 }}>
@@ -72,7 +84,68 @@ export default function DetalleExpediente() {
             {a.label}
           </button>
         ))}
+        <button onClick={generarResumenAI} className="btn-primary" style={{ padding: '8px 14px', fontSize: 12 }}>
+          <Bot className="h-3.5 w-3.5" />
+          Resumen IA
+        </button>
       </div>
+
+      {checklist && (
+        <div className="card" style={{ padding: 18, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+            <div>
+              <div className="info-item-label">Checklist operativo</div>
+              <h2 style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>
+                {checklist.ready_for_officer ? 'Expediente listo para revisión' : `${checklist.blocking_count} bloqueo(s) por resolver`}
+              </h2>
+            </div>
+            <span className="badge" style={{ backgroundColor: checklist.ready_for_officer ? 'rgba(22,163,74,0.1)' : 'rgba(212,175,55,0.12)', color: checklist.ready_for_officer ? '#16A34A' : '#B7791F', border: '1px solid rgba(148,163,184,0.2)' }}>
+              {checklist.ready_for_officer ? 'Listo' : 'En progreso'}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
+            {checklist.items.map((item) => {
+              const ok = item.status === 'COMPLETO' || item.status === 'NO_APLICA';
+              return (
+                <div key={item.key} className="card" style={{ padding: 14, borderColor: item.blocking ? 'rgba(220,38,38,0.22)' : undefined }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {ok ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-amber-600" />}
+                    <div className="info-item-label" style={{ marginBottom: 0 }}>{item.label}</div>
+                  </div>
+                  <div style={{ marginTop: 8, color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.45 }}>{item.message}</div>
+                  {item.action && <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: 'var(--accent-gold)' }}>{item.action}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {resumenAI && (
+        <div className="card" style={{ padding: 18, marginBottom: 20, borderColor: 'rgba(20,184,166,0.25)', background: 'linear-gradient(135deg, rgba(20,184,166,0.08), rgba(255,255,255,0.96))' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <Bot className="h-5 w-5 text-gold" />
+            <h2 style={{ fontSize: 18, fontWeight: 900 }}>Resumen asistido del expediente</h2>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>{resumenAI.titulo}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 14 }}>
+            <div>
+              <div className="info-item-label">Bloqueos detectados</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.5 }}>
+                {resumenAI.bloqueos?.length ? resumenAI.bloqueos.map(b => b.message).join('; ') : 'Sin bloqueos críticos.'}
+              </div>
+            </div>
+            <div>
+              <div className="info-item-label">Eventos fuente</div>
+              <div className="info-item-value">{resumenAI.eventos_fuente?.length || 0}</div>
+            </div>
+            <div>
+              <div className="info-item-label">Guardrail</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{resumenAI.nota_guardrail}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 32, marginTop: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border-subtle)' }}>

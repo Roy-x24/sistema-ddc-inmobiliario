@@ -6,7 +6,7 @@ import EstadoBadge from '../components/EstadoBadge';
 import ClienteSelector from '../components/ClienteSelector';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
-import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText } from 'lucide-react';
+import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText, Bot } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
 const DOCUMENTOS_NATURAL = [
@@ -38,6 +38,7 @@ export default function Documentos() {
   const [estadoDocumentoTrabajo, setEstadoDocumentoTrabajo] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [docs, setDocs] = useState([]);
+  const [extracciones, setExtracciones] = useState({});
   const [archivo, setArchivo] = useState(null);
   const [tipo, setTipo] = useState('DOCUMENTO_IDENTIDAD');
   const [page, setPage] = useState(1);
@@ -99,9 +100,20 @@ export default function Documentos() {
     if (!id) return;
     try {
       const res = await api.get(`/clientes/${id}/documentos`);
-      setDocs(res.data || []);
+      const lista = res.data || [];
+      setDocs(lista);
+      const pares = await Promise.all(lista.map(async (doc) => {
+        try {
+          const ext = await api.get(`/ai/documentos/${doc.id_documento}/extraccion`);
+          return [doc.id_documento, ext.data];
+        } catch {
+          return [doc.id_documento, null];
+        }
+      }));
+      setExtracciones(Object.fromEntries(pares.filter(([, value]) => value)));
     } catch {
       setDocs([]);
+      setExtracciones({});
     }
   };
 
@@ -155,6 +167,16 @@ export default function Documentos() {
       URL.revokeObjectURL(url);
     } catch {
       showError('Error al descargar documento');
+    }
+  };
+
+  const extraerAI = async (docId) => {
+    try {
+      const res = await api.post(`/ai/documentos/${docId}/extraer`);
+      setExtracciones(prev => ({ ...prev, [docId]: res.data }));
+      showMensaje('Extracción OCR/IA actualizada');
+    } catch {
+      showError('No se pudo ejecutar la extracción IA');
     }
   };
 
@@ -280,9 +302,31 @@ export default function Documentos() {
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                     {d.resumen_validacion || 'Sin evaluacion automatica registrada'}
                   </div>
+                  {extracciones[d.id_documento] && (
+                    <div style={{ marginTop: 8, padding: 8, borderRadius: 10, background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.14)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontSize: 12, fontWeight: 900 }}>
+                        <Bot className="h-3.5 w-3.5 text-gold" />
+                        OCR/IA {Math.round((extracciones[d.id_documento].confidence || 0) * 100)}%
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
+                        {extracciones[d.id_documento].decision_suggestion?.reason}
+                      </div>
+                      <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
+                        {(extracciones[d.id_documento].comparisons || []).slice(0, 3).map((item) => (
+                          <div key={item.field} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11 }}>
+                            <span style={{ color: 'var(--text-muted)', fontWeight: 800 }}>{item.field}</span>
+                            <span style={{ color: item.match ? '#16A34A' : '#DC2626', fontWeight: 900 }}>{item.match ? 'Coincide' : 'Revisar'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button onClick={() => extraerAI(d.id_documento)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
+                      <Bot className="h-3.5 w-3.5" /> OCR/IA
+                    </button>
                     <button onClick={() => descargar(d.id_documento, d.nombre_archivo)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                       <Download className="h-3.5 w-3.5" /> Descargar
                     </button>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
@@ -16,6 +17,8 @@ export default function RegistroJuridica() {
   });
   const { fields, append } = useFieldArray({ control, name: 'beneficiarios_finales' });
   const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const steps = ['Sociedad', 'Representante', 'Beneficiarios', 'Perfil', 'Revisión'];
 
   const onSubmit = async (data) => {
     try {
@@ -43,6 +46,23 @@ export default function RegistroJuridica() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="card" style={{ padding: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 22 }}>
+          {steps.map((label, index) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setStep(index)}
+              disabled={index > step}
+              className={step === index ? 'btn-primary' : 'btn-secondary'}
+              style={{ padding: '9px 10px', fontSize: 12 }}
+            >
+              {index + 1}. {label}
+            </button>
+          ))}
+        </div>
+
+        {step === 0 && (
+        <>
         <FormField label="Razón social" error={errors.razon_social?.message}>
           <Input {...register('razon_social', { required: 'Razón social es obligatoria' })} />
         </FormField>
@@ -80,7 +100,10 @@ export default function RegistroJuridica() {
           <input type="checkbox" {...register('es_pep')} style={{ width: 18, height: 18, accentColor: 'var(--accent-gold)' }} />
           <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>¿Es PEP?</span>
         </label>
+        </>
+        )}
 
+        {step === 1 && (
         <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '20px 0', paddingTop: 20 }}>
           <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Representante legal</h3>
           <FormField label="Nombre completo" error={errors.representante_legal?.nombre_completo?.message}>
@@ -96,7 +119,9 @@ export default function RegistroJuridica() {
             <Input {...register('representante_legal.poderes_otorgados', { required: 'Poderes son obligatorios' })} />
           </FormField>
         </div>
+        )}
 
+        {step === 2 && (
         <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '20px 0', paddingTop: 20 }}>
           <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Beneficiarios finales</h3>
           {fields.map((field, index) => (
@@ -123,7 +148,9 @@ export default function RegistroJuridica() {
             + Agregar beneficiario
           </Boton>
         </div>
+        )}
 
+        {step === 3 && (
         <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '20px 0', paddingTop: 20 }}>
           <h3 style={{ fontSize: 14, color: 'var(--accent-gold)', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Perfil y transacción</h3>
           <FormField label="Fuente de ingresos" error={errors.fuente_ingresos?.message}>
@@ -145,11 +172,30 @@ export default function RegistroJuridica() {
             <Input type="number" {...register('monto_estimado', { required: 'Monto estimado es obligatorio', min: { value: 0, message: 'Monto debe ser positivo' } })} />
           </FormField>
         </div>
+        )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
-          <Boton type="submit" variant="primario" loading={isSubmitting} style={{ padding: '12px 28px' }}>
-            {isSubmitting ? 'Guardando...' : 'Guardar cliente'}
+        {step === 4 && (
+          <div className="card" style={{ padding: 20, backgroundColor: 'var(--bg-elevated)', marginBottom: 20 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Revisión final</h3>
+            <p style={{ marginTop: 8, color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+              Confirma sociedad, representante, beneficiarios finales y perfil. Al guardar, la persona jurídica inicia en PENDIENTE BF hasta que el Oficial apruebe los BF relevantes.
+            </p>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 24 }}>
+          <Boton type="button" variant="secundario" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
+            Atrás
           </Boton>
+          {step < 4 ? (
+            <Boton type="button" variant="primario" onClick={() => setStep(Math.min(4, step + 1))} style={{ padding: '12px 28px' }}>
+              Continuar
+            </Boton>
+          ) : (
+            <Boton type="submit" variant="primario" loading={isSubmitting} style={{ padding: '12px 28px' }}>
+              {isSubmitting ? 'Guardando...' : 'Guardar cliente'}
+            </Boton>
+          )}
         </div>
       </form>
     </div>

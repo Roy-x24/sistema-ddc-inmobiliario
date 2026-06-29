@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
-import { Users, Clock, CheckCircle, AlertTriangle, ShieldAlert, Eye, FileCheck, Activity, ArrowUpRight } from 'lucide-react';
+import { Users, Clock, CheckCircle, AlertTriangle, ShieldAlert, Eye, FileCheck, Activity, ArrowUpRight, Bot, ClipboardList } from 'lucide-react';
 
 const EMPTY_STATS = {
   total: 0,
@@ -16,8 +17,10 @@ const EMPTY_STATS = {
 
 export default function Dashboard() {
   const { usuario } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(EMPTY_STATS);
   const [reciente, setReciente] = useState([]);
+  const [operativo, setOperativo] = useState(null);
   const [cargando, setCargando] = useState(true);
   const rol = usuario?.rol;
   const puedeVerAuditoria = ['oficial_cumplimiento', 'auditor', 'admin'].includes(rol);
@@ -60,6 +63,17 @@ export default function Dashboard() {
 
     return () => controller.abort();
   }, [puedeVerAuditoria]);
+
+  useEffect(() => {
+    if (!rol) return;
+    const endpoint = rol === 'empleado'
+      ? '/dashboard/empleado'
+      : rol === 'oficial_cumplimiento'
+        ? '/dashboard/oficial'
+        : '';
+    if (!endpoint) return;
+    api.get(endpoint).then(res => setOperativo(res.data)).catch(() => setOperativo(null));
+  }, [rol]);
 
   const statCards = useMemo(() => ([
     { label: 'Total expedientes', value: stats.total, icon: Users, tone: 'bg-slate-950 text-white', hint: 'Universo registrado', visible: true },
@@ -113,6 +127,143 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {rol === 'empleado' && operativo && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-teal-700">Trabajo del empleado</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">Próximos expedientes a completar</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                ['Incompletos', operativo.incompletos],
+                ['Docs faltantes', operativo.documentos_faltantes],
+                ['Observaciones', operativo.observaciones_por_responder],
+                ['Pendientes BF', operativo.pendientes_bf],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+                  <div className="text-lg font-black text-slate-950">{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-slate-100">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Cliente</th>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Bloqueos</th>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Condición</th>
+                  <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-slate-400">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(operativo.items || []).slice(0, 8).map((item) => (
+                  <tr key={item.id_cliente}>
+                    <td className="px-4 py-3">
+                      <div className="font-black text-slate-950">{item.nombre}</div>
+                      <div className="font-mono text-xs text-slate-400">{item.identificacion}</div>
+                    </td>
+                    <td className="px-4 py-3 font-black text-slate-950">{item.blocking_count}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-500">
+                      {item.observaciones_por_responder > 0 ? 'Observación sin respuesta' : item.documentos_faltantes?.length ? 'Faltan documentos' : item.blocking_count ? 'Requisitos pendientes' : 'Listo para revisión'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => navigate(item.destino)} className="btn-primary" style={{ padding: '8px 12px', fontSize: 12 }}>
+                        {item.accion_sugerida}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {(!operativo.items || operativo.items.length === 0) && (
+                  <tr><td colSpan={4} className="px-4 py-10 text-center text-sm font-semibold text-slate-500">No tienes expedientes pendientes.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {rol === 'oficial_cumplimiento' && operativo && (
+        <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-teal-700">Bandeja del Oficial</p>
+                <h2 className="mt-1 text-xl font-black text-slate-950">Prioridades operativas</h2>
+              </div>
+              <button onClick={() => navigate('/cumplimiento')} className="btn-secondary" style={{ padding: '8px 12px', fontSize: 12 }}>
+                Ver cumplimiento
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[
+                ['Alto riesgo', operativo.alto_riesgo, AlertTriangle],
+                ['Observados', operativo.observados, ShieldAlert],
+                ['Revisión manual', operativo.revision_manual, Eye],
+                ['Pendientes BF', operativo.pendientes_bf, Users],
+              ].map(([label, value, Icon]) => (
+                <button key={label} onClick={() => navigate('/cumplimiento')} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-teal-200 hover:bg-teal-50">
+                  <Icon className="mb-3 h-5 w-5 text-gold" />
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</div>
+                  <div className="mt-1 text-2xl font-black text-slate-950">{value}</div>
+                </button>
+              ))}
+            </div>
+            <div className="mt-5 overflow-hidden rounded-xl border border-slate-100">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Cliente</th>
+                    <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Cola</th>
+                    <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Motivo</th>
+                    <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-slate-400">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(operativo.prioridad || []).slice(0, 8).map((item) => (
+                    <tr key={item.id_cliente}>
+                      <td className="px-4 py-3">
+                        <div className="font-black text-slate-950">{item.nombre}</div>
+                        <div className="font-mono text-xs text-slate-400">{item.identificacion}</div>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500">{item.cola?.replaceAll('_', ' ')}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-500">{item.motivo_principal}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => navigate(`/expediente/${item.id_cliente}`)} className="btn-primary" style={{ padding: '8px 12px', fontSize: 12 }}>
+                          Ver flujo
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-gold" />
+              <h2 className="text-lg font-black text-slate-950">Auditoría IA reciente</h2>
+            </div>
+            <div className="mt-4 space-y-3">
+              {(operativo.auditoria_ia || []).map((item) => (
+                <div key={item.id_auditoria} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    {item.accion?.replaceAll('_', ' ')}
+                  </div>
+                  <div className="mt-2 text-xs font-semibold text-slate-500">{new Date(item.fecha).toLocaleString()}</div>
+                </div>
+              ))}
+              {(!operativo.auditoria_ia || operativo.auditoria_ia.length === 0) && (
+                <p className="py-8 text-center text-sm font-semibold text-slate-500">Aún no hay eventos IA.</p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((card, i) => (

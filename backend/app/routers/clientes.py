@@ -13,6 +13,7 @@ from app.schemas.cliente import PersonaNaturalCreate, PersonaJuridicaCreate, Cli
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
+from app.services.checklist_service import checklist_expediente
 from app.services.estado_service import verificar_documentos_para_revision
 from sqlalchemy import or_, func
 
@@ -355,3 +356,15 @@ def detalle_cliente(
             }
 
     return data
+
+
+@router.post("/{id}/checklist")
+def obtener_checklist_cliente(
+    id: str,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
+    checklist = checklist_expediente(db, id)
+    if not checklist:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return checklist

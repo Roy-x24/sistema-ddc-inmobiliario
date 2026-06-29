@@ -38,6 +38,76 @@ def asegurar_esquema_automatizacion():
             fecha TIMESTAMP DEFAULT NOW()
         )
         """,
+        """
+        CREATE TABLE IF NOT EXISTS ai_model_runs (
+            id_run UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id_cliente UUID NULL REFERENCES clientes(id_cliente) ON DELETE SET NULL,
+            id_documento UUID NULL REFERENCES documentos(id_documento) ON DELETE SET NULL,
+            provider VARCHAR NOT NULL,
+            model VARCHAR NOT NULL,
+            prompt_version VARCHAR NOT NULL,
+            input_hash VARCHAR NOT NULL,
+            output_schema_version VARCHAR NOT NULL,
+            confidence NUMERIC NOT NULL DEFAULT 0,
+            status VARCHAR NOT NULL,
+            purpose VARCHAR NOT NULL,
+            request_summary JSONB,
+            response_summary JSONB,
+            errors JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS ai_extractions (
+            id_extraction UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id_run UUID NOT NULL REFERENCES ai_model_runs(id_run) ON DELETE CASCADE,
+            id_cliente UUID NOT NULL REFERENCES clientes(id_cliente) ON DELETE CASCADE,
+            id_documento UUID NOT NULL REFERENCES documentos(id_documento) ON DELETE CASCADE,
+            provider VARCHAR NOT NULL,
+            model VARCHAR NOT NULL,
+            document_type_detected VARCHAR,
+            confidence NUMERIC NOT NULL DEFAULT 0,
+            requires_human_review BOOLEAN NOT NULL DEFAULT TRUE,
+            fields_extracted JSONB NOT NULL DEFAULT '{}'::jsonb,
+            comparisons JSONB,
+            evidence JSONB,
+            decision_suggestion JSONB NOT NULL DEFAULT '{}'::jsonb,
+            errors JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS document_embeddings (
+            id_embedding UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id_cliente UUID NULL REFERENCES clientes(id_cliente) ON DELETE CASCADE,
+            id_documento UUID NULL REFERENCES documentos(id_documento) ON DELETE CASCADE,
+            source_type VARCHAR NOT NULL,
+            source_id VARCHAR NOT NULL,
+            provider VARCHAR NOT NULL,
+            model VARCHAR NOT NULL,
+            source_text TEXT NOT NULL,
+            embedding JSONB NOT NULL,
+            metadata_json JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS audit_embeddings (
+            id_embedding UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id_auditoria UUID NULL REFERENCES auditorias(id_auditoria) ON DELETE CASCADE,
+            id_cliente UUID NULL REFERENCES clientes(id_cliente) ON DELETE CASCADE,
+            provider VARCHAR NOT NULL,
+            model VARCHAR NOT NULL,
+            source_text TEXT NOT NULL,
+            embedding JSONB NOT NULL,
+            metadata_json JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_ai_model_runs_cliente ON ai_model_runs(id_cliente)",
+        "CREATE INDEX IF NOT EXISTS idx_ai_model_runs_documento ON ai_model_runs(id_documento)",
+        "CREATE INDEX IF NOT EXISTS idx_ai_extractions_documento ON ai_extractions(id_documento)",
+        "CREATE INDEX IF NOT EXISTS idx_document_embeddings_cliente ON document_embeddings(id_cliente)",
     ]
     with engine.begin() as conn:
         for sentencia in sentencias:

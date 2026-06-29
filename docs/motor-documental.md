@@ -14,7 +14,13 @@ Automatizar la revision inicial de documentos para que el Oficial de Cumplimient
 6. Se registra auditoria tecnica por cada regla y por el resultado global.
 7. Si el expediente queda completo, el sistema intenta avanzar estado y evaluar activacion automatica.
 
-## Extraccion simulada
+## Extraccion IA/OCR asistida
+
+La version actual agrega una capa `ai_gateway` configurable. En `mock` no requiere API keys; con `OCR_PROVIDER=local` intenta extraer texto con PyMuPDF/pdfplumber para PDF y Tesseract para imagenes.
+
+Cada corrida registra `ai_model_runs`, `ai_extractions`, auditoria `AI_DOCUMENTO_EXTRAIDO` y embeddings demo. La IA genera campos detectados, comparaciones, confianza, evidencia y sugerencia; no cambia por si sola la decision regulatoria.
+
+## Extraccion simulada historica
 
 La extraccion simulada es una capa deterministica que imita lo que haria un OCR real:
 
@@ -44,7 +50,7 @@ Esto no pretende validar documentos reales en produccion. Sirve para demostrar e
 
 ## Evolucion a OCR real
 
-Para produccion, reemplazar la funcion de extraccion simulada por un adaptador:
+Para produccion, reemplazar o complementar el adaptador local por:
 
 - OCR local para PDF/imagenes: Tesseract, OCRmyPDF, pdfplumber, PyMuPDF.
 - OCR administrado: AWS Textract, Azure Document Intelligence, Google Document AI.

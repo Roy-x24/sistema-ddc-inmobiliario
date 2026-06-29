@@ -28,6 +28,20 @@ services:
       REFRESH_TOKEN_EXPIRE_DAYS: 7
       INACTIVITY_TIMEOUT_MINUTES: 30
       RUN_DEMO_SEED: "false"
+      AI_MODE: ${AI_MODE:-mock}
+      OCR_PROVIDER: ${OCR_PROVIDER:-mock}
+      LLM_PROVIDER: ${LLM_PROVIDER:-none}
+      EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-mock}
+      AI_STRICT_MODE: ${AI_STRICT_MODE:-true}
+      AI_MIN_CONFIDENCE: ${AI_MIN_CONFIDENCE:-0.82}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GROQ_VISION_MODEL: ${GROQ_VISION_MODEL:-meta-llama/llama-4-scout-17b-16e-instruct}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GOOGLE_MODEL: ${GOOGLE_MODEL:-gemini-1.5-flash}
+      GOOGLE_EMBEDDING_MODEL: ${GOOGLE_EMBEDDING_MODEL:-text-embedding-004}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:4b}
     depends_on:
       db:
         condition: service_healthy

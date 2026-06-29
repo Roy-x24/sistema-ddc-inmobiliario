@@ -12,6 +12,7 @@ from app.schemas.documento import DocumentoResponse
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
+from app.services.ai_gateway import extraer_documento
 from app.services.documento_validation_service import evaluar_documento, obtener_validaciones_documento
 from app.services.estado_service import intentar_activacion_automatica, verificar_documentos_para_revision
 from app.schemas.documento import DocumentoValidacionResponse
@@ -67,6 +68,8 @@ def adjuntar_documento(
 
     registrar_auditoria(db, usuario.correo, "ADJUNTAR_DOCUMENTO", id, None, doc.tipo_documento)
     evaluar_documento(db, doc, "sistema")
+    db.refresh(doc)
+    extraer_documento(db, str(doc.id_documento), "sistema")
     db.refresh(doc)
     verificar_documentos_para_revision(db, id, "sistema")
     decision = intentar_activacion_automatica(db, id, "sistema")

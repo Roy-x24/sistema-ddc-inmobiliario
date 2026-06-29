@@ -25,9 +25,6 @@ venv/
 pnpm-lock.yaml
 package-lock.json
 
-# Docker
-.dockerignore
-
 # SonarQube
 .scannerwork/
 .sonartmp/
