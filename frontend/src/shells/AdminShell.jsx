@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  ClipboardList, Settings, Users, LogOut, ArrowLeft, ShieldCheck, Search, Bell, Menu, X,
+  ClipboardList, Settings, Users, LogOut, ShieldCheck, Search, Bell, Menu, X,
   PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 
@@ -84,14 +84,6 @@ export default function AdminShell({ children }) {
         </div>
 
         <nav className={`relative flex-1 space-y-1 overflow-x-hidden overflow-y-auto pl-4 py-6 ${desktopCollapsed ? 'lg:pl-3 lg:pr-0' : ''}`}>
-          <button
-            onClick={() => goTo('/dashboard')}
-            title={desktopCollapsed ? 'Volver al Dashboard' : undefined}
-            className={`group mb-4 flex w-[calc(100%-1rem)] items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition-all hover:bg-white/10 hover:text-white ${desktopCollapsed ? 'lg:w-full lg:justify-center lg:px-0' : ''}`}
-          >
-            <ArrowLeft className="h-4 w-4 text-cyan-100/80 group-hover:text-white" />
-            <span className={desktopCollapsed ? 'lg:hidden' : ''}>Volver al Dashboard</span>
-          </button>
           <div className={`px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 ${desktopCollapsed ? 'lg:text-center lg:text-[0px]' : ''}`}>{desktopCollapsed ? 'GE' : 'Gestion'}</div>
           {navItems.map((item) => {
             const active = activePath === item.path;

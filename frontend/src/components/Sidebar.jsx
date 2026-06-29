@@ -28,6 +28,33 @@ const adminItems = [
   { label: 'Auditoria Admin', icon: ClipboardList, path: '/admin/auditoria' },
 ];
 
+const empleadoNavOrder = [
+  'dashboard',
+  'clientes',
+  'divider',
+  'documentos',
+  'beneficiarios',
+  'observaciones',
+  'perfiles',
+];
+
+const navItemGroups = {
+  dashboard: navItems[0],
+  documentos: navItems[6],
+  beneficiarios: navItems[7],
+  observaciones: navItems[8],
+  clientes: navItems[10],
+  perfiles: navItems[11],
+};
+
+const getNavItemsForRole = (rol) => {
+  if (rol === 'empleado') {
+    return empleadoNavOrder.map((key) => (key === 'divider' ? { type: 'divider' } : navItemGroups[key]));
+  }
+
+  return navItems.filter((item) => item.roles.includes(rol));
+};
+
 export default function Sidebar({ mobileOpen = false, onClose, desktopCollapsed = false }) {
   const { usuario, cerrarSesion } = useAuth();
   const location = useLocation();
@@ -122,9 +149,7 @@ export default function Sidebar({ mobileOpen = false, onClose, desktopCollapsed 
             {adminItems.map((item) => renderItem(item, 'admin-' + item.path))}
           </>
         ) : (
-          navItems
-            .filter((item) => item.roles.includes(usuario.rol))
-            .map((item, index) => renderItem(item, item.path || `divider-${index}`))
+          getNavItemsForRole(usuario.rol).map((item, index) => renderItem(item, item.path || `divider-${index}`))
         )}
       </nav>
 

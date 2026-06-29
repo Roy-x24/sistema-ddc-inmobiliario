@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
+import ClienteSelector from '../components/ClienteSelector';
+import EmptyState from '../components/EmptyState';
 import { FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { clienteOptionLabel, filtrarClientesPorTipo, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 
 const PERFIL_FINANCIERO_DEFAULT = {
   fuente_ingresos: '',
@@ -30,6 +31,9 @@ export default function Perfiles() {
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
   const [tipoCliente, setTipoCliente] = useState('');
+  const [estadoCliente, setEstadoCliente] = useState('');
+  const [riesgoCliente, setRiesgoCliente] = useState('');
+  const [busquedaCliente, setBusquedaCliente] = useState('');
   const [financiero, setFinanciero] = useState(PERFIL_FINANCIERO_DEFAULT);
   const [transaccional, setTransaccional] = useState(PERFIL_TRANSACCIONAL_DEFAULT);
   const [finExiste, setFinExiste] = useState(false);
@@ -139,8 +143,8 @@ export default function Perfiles() {
   };
 
   const puedeEditar = ['empleado', 'admin'].includes(usuario?.rol);
-  const clientesFiltrados = filtrarClientesPorTipo(clientes, tipoCliente);
   const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+  const perfilesRegistrados = Number(finExiste) + Number(transExiste);
 
   return (
     <div className="animate-fade-in-up">
@@ -162,30 +166,57 @@ export default function Perfiles() {
         </div>
       )}
 
-      <div style={{ marginBottom: 20, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ width: 220 }}>
-          <label className="label-upper">Tipo de cliente</label>
-          <select value={tipoCliente} onChange={e => { setTipoCliente(e.target.value); setClienteId(''); }} className="select-field" style={{ width: '100%' }}>
-            <option value="">Todos</option>
-            <option value="NATURAL">Persona natural</option>
-            <option value="JURIDICA">Persona juridica</option>
-          </select>
-        </div>
+      <div className="card" style={{ padding: 16, marginTop: 22, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div>
-          <label className="label-upper">Cliente</label>
-          <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="select-field" style={{ minWidth: 320 }}>
-            <option value="">Seleccione un cliente</option>
-            {clientesFiltrados.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
-          </select>
+          <div className="label-upper">Filtro de trabajo</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Encuentra expedientes para registrar o actualizar sus perfiles financiero y transaccional.</div>
         </div>
-        {clienteSeleccionado && (
-          <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
-            {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
-          </span>
-        )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <ClienteSelector
+        clientes={clientes}
+        value={clienteId}
+        onChange={setClienteId}
+        tipo={tipoCliente}
+        onTipoChange={(valor) => { setTipoCliente(valor); setClienteId(''); setBusquedaCliente(''); }}
+        estado={estadoCliente}
+        onEstadoChange={setEstadoCliente}
+        riesgo={riesgoCliente}
+        onRiesgoChange={setRiesgoCliente}
+        busqueda={busquedaCliente}
+        onBusquedaChange={setBusquedaCliente}
+        title="Seleccionar expediente para perfiles"
+        description="Busca clientes por nombre, cedula, RUC, estado o riesgo antes de editar sus perfiles."
+        emptyText="No hay expedientes con esos filtros."
+      />
+
+      {clienteSeleccionado && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 16, marginBottom: 20 }}>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="info-item-label">Perfiles registrados</div>
+            <div className="info-item-value">{perfilesRegistrados}/2</div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="info-item-label">Financiero</div>
+            <div className="info-item-value" style={{ fontSize: 18 }}>{finExiste ? 'Registrado' : 'Pendiente'}</div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="info-item-label">Transaccional</div>
+            <div className="info-item-value" style={{ fontSize: 18 }}>{transExiste ? 'Registrado' : 'Pendiente'}</div>
+          </div>
+        </div>
+      )}
+
+      {!clienteId && (
+        <EmptyState
+          icon={FileSpreadsheet}
+          title="Selecciona un expediente"
+          message="Usa el buscador superior para ubicar el cliente y registrar sus perfiles financiero y transaccional."
+        />
+      )}
+
+      {clienteId && (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24 }}>
         <div className="card" style={{ padding: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <FileSpreadsheet className="h-5 w-5" style={{ color: 'var(--accent-gold)' }} />
@@ -270,6 +301,7 @@ export default function Perfiles() {
           {puedeEditar && <button onClick={guardarTransaccional} className="btn-primary" style={{ width: '100%' }}>{transExiste ? 'Actualizar' : 'Guardar'} perfil transaccional</button>}
         </div>
       </div>
+      )}
     </div>
   );
 }
