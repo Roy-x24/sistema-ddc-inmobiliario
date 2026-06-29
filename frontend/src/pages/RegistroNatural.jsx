@@ -8,6 +8,14 @@ import Boton from '../components/ui/Boton';
 import OCRPrefillPanel from '../components/OCRPrefillPanel';
 import { Bot, FileSearch, AlertCircle, CheckCircle2 } from 'lucide-react';
 
+const apiErrorMessage = (error, fallback) => {
+  const detail = error.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) return detail.map((item) => item.msg || item.message || JSON.stringify(item)).join('; ');
+  if (detail && typeof detail === 'object') return detail.message || detail.error || JSON.stringify(detail);
+  return error.message || fallback;
+};
+
 export default function RegistroNatural() {
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm();
   const navigate = useNavigate();
@@ -61,7 +69,7 @@ export default function RegistroNatural() {
       const res = await api.post('/clientes/natural', payload);
       navigate(`/expediente/${res.data.id_cliente}`);
     } catch (e) {
-      setError('Error al registrar: ' + (e.response?.data?.detail || e.message));
+      setError(`Error al registrar: ${apiErrorMessage(e, 'No se pudo crear el expediente')}`);
     }
   };
 
