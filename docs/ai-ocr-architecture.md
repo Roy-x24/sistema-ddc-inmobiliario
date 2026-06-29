@@ -54,10 +54,75 @@ En otras palabras: no esta hardcoded a un proveedor. El proveedor se cambia por 
 |------|-------------------|-----------|------------------|
 | Mock seguro | `AI_MODE=mock`, `OCR_PROVIDER=mock`, `LLM_PROVIDER=none`, `EMBEDDINGS_PROVIDER=mock` | Probar pantallas, estados, auditoria y demo sin dependencias externas. | Mantenerlo como default; no requiere API keys; no usarlo para validar precision documental. |
 | OCR local | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=none`, `EMBEDDINGS_PROVIDER=mock` | Leer documentos reales basicos sin enviar datos fuera del entorno. | Reconstruir imagen Docker; usar documentos nítidos; enviar baja confianza a revision humana. |
-| Local con Ollama | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=local`, `EMBEDDINGS_PROVIDER=local`, `OLLAMA_BASE_URL=http://host.docker.internal:11434`, `OLLAMA_MODEL=gemma3:4b` | Demo offline con resumenes y busqueda semantica local. | Descargar el modelo antes; temperatura baja; aceptar menor precision que proveedores gestionados. |
+| Local con Ollama | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=local`, `EMBEDDINGS_PROVIDER=local`, `OLLAMA_BASE_URL=http://host.docker.internal:11434`, `OLLAMA_LLM_MODEL=gemma3:4b`, `OLLAMA_EMBEDDING_MODEL=nomic-embed-text` | Demo offline con resumenes y busqueda semantica local. | Descargar ambos modelos antes; temperatura baja; aceptar menor precision que proveedores gestionados. |
 | Groq LLM | `AI_MODE=groq`, `LLM_PROVIDER=groq`, `GROQ_API_KEY=...`, `GROQ_MODEL=...` | Resumenes JSON rapidos y explicaciones operativas. | Usar JSON estricto; mantener OCR local/Google para PDF; no enviar secretos innecesarios. |
 | Groq vision | `OCR_PROVIDER=groq_vision`, `GROQ_VISION_MODEL=...`, `GROQ_API_KEY=...` | Imagenes JPG/PNG donde se quiere lectura visual rapida. | No usarlo como OCR documental principal de PDF; registrar confianza y evidencia. |
 | Google completo | `AI_MODE=google`, `OCR_PROVIDER=google`, `LLM_PROVIDER=google`, `EMBEDDINGS_PROVIDER=google`, `GOOGLE_API_KEY=...` | Demo conectada mas completa: OCR/vision, resumenes y embeddings. | Usar un solo proveedor reduce complejidad; para produccion documental evaluar Document AI nativo. |
+
+## Politica de fallback actual
+
+Configuracion recomendada para demo con bajo costo:
+
+```env
+AI_MODE=groq
+OCR_PROVIDER=local
+LLM_PROVIDER=groq
+EMBEDDINGS_PROVIDER=local
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_LLM_MODEL=gemma3:4b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+```
+
+Flujo:
+
+- LLM: Groq es proveedor principal.
+- LLM fallback: si Groq falla, no tiene API key o devuelve error/rate limit, se intenta Ollama.
+- LLM fallback final: si Ollama falla, se usa resumen deterministico local.
+- Embeddings: Ollama es proveedor principal.
+- Embeddings fallback: si Ollama falla, se usa vector hash local para mantener busqueda basica.
+- OCR: `local` es el proveedor recomendado para PDF y documentos de demo sin costo.
+
+Esto mantiene la UX operativa aunque un proveedor externo falle y evita que un error de IA bloquee la demo.
+
+## Configuracion de modelos
+
+| Archivo | Responsabilidad |
+|---------|-----------------|
+| `.env` | Configuracion local real: proveedor activo, API keys y modelos. |
+| `.env.example` | Plantilla versionada sin secretos. |
+| `docker-compose.yml` | Expone variables al contenedor backend y define defaults seguros. |
+| `backend/app/core/config.py` | Defaults internos usados por Pydantic Settings. |
+| `backend/app/services/ai_gateway.py` | Selecciona proveedor/modelo y ejecuta llamadas externas/locales. |
+
+| Proveedor | Variable | Default | Uso |
+|-----------|----------|---------|-----|
+| Groq | `GROQ_MODEL` | `llama-3.3-70b-versatile` | LLM para resumenes JSON. |
+| Groq | `GROQ_VISION_MODEL` | `meta-llama/llama-4-scout-17b-16e-instruct` | Vision/OCR para imagenes. |
+| Google | `GOOGLE_MODEL` | `gemini-1.5-flash` | OCR/vision multimodal y resumenes JSON. |
+| Google | `GOOGLE_EMBEDDING_MODEL` | `text-embedding-004` | Embeddings. |
+| Ollama | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` en Docker | URL del servidor Ollama. |
+| Ollama | `OLLAMA_LLM_MODEL` | `gemma3:4b` | LLM local para resumenes JSON. |
+| Ollama | `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Embeddings locales. |
+
+Ollama usa un solo `OLLAMA_BASE_URL` porque la URL apunta al servidor, no al modelo. El backend escoge el modelo por request. Para modo local completo:
+
+```bash
+ollama pull gemma3:4b
+ollama pull nomic-embed-text
+```
+
+## Docker y proveedores IA
+
+| Componente | En Docker | Motivo |
+|------------|-----------|--------|
+| Backend | Si | Reglas, auditoria, endpoints IA y llamadas a proveedores. |
+| OCR local | Si | Tesseract, PyMuPDF y pdfplumber quedan reproducibles en la imagen backend. |
+| PostgreSQL | Si | Base de datos reproducible para demo/desarrollo. |
+| Frontend | Si | Entorno consistente de React/Vite. |
+| Ollama | No recomendado | Es mejor correrlo en el host y conectarse desde Docker via `host.docker.internal`. |
+| Groq/Google | No aplica | Son APIs externas; el backend solo necesita API keys. |
+
+Docker no es requisito conceptual para IA externa, pero si reduce variabilidad del entorno para backend, OCR local y base de datos. Para Ollama, meterlo en el mismo Compose agrega peso y consumo de recursos; conviene dejarlo como servicio local separado.
 
 ## Buenas practicas de configuracion
 
@@ -142,7 +207,8 @@ OCR_PROVIDER=local
 LLM_PROVIDER=local
 EMBEDDINGS_PROVIDER=local
 OLLAMA_BASE_URL=http://host.docker.internal:11434
-OLLAMA_MODEL=gemma3:4b
+OLLAMA_LLM_MODEL=gemma3:4b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 ```
 
 Uso esperado: demo offline con menor precision; siempre con validacion humana.

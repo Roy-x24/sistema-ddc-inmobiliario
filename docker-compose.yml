@@ -41,7 +41,8 @@ services:
       GOOGLE_MODEL: ${GOOGLE_MODEL:-gemini-1.5-flash}
       GOOGLE_EMBEDDING_MODEL: ${GOOGLE_EMBEDDING_MODEL:-text-embedding-004}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:4b}
+      OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-gemma3:4b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
     depends_on:
       db:
         condition: service_healthy

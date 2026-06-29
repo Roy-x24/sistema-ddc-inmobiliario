@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     GOOGLE_MODEL: str = "gemini-1.5-flash"
     GOOGLE_EMBEDDING_MODEL: str = "text-embedding-004"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "gemma3:4b"
+    OLLAMA_LLM_MODEL: str = "gemma3:4b"
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
 
     class Config:
         env_file = ".env"

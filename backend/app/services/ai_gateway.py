@@ -304,7 +304,7 @@ def _provider_model() -> tuple[str, str]:
     if provider in {"google", "google_document_ai", "gemini"}:
         return "google", settings.GOOGLE_MODEL
     if provider == "local":
-        return "local", settings.OLLAMA_MODEL
+        return "local", settings.OLLAMA_LLM_MODEL
     return "mock", "deterministic-ocr-mock-v1"
 
 
@@ -500,21 +500,41 @@ def _external_embedding(text: str) -> tuple[list[float], str, str, list[str]]:
         try:
             res = requests.post(
                 f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/embeddings",
-                json={"model": settings.OLLAMA_MODEL, "prompt": text[:8000]},
+                json={"model": settings.OLLAMA_EMBEDDING_MODEL, "prompt": text[:8000]},
                 timeout=30,
             )
             res.raise_for_status()
-            return res.json()["embedding"], "local", settings.OLLAMA_MODEL, []
+            return res.json()["embedding"], "local", settings.OLLAMA_EMBEDDING_MODEL, []
         except Exception as exc:
             return _simple_embedding(text), "mock", "mock-hash-embedding-v1", [f"ollama_embedding_error:{type(exc).__name__}"]
     return _simple_embedding(text), "mock", "mock-hash-embedding-v1", []
+
+
+def _ollama_llm_json(prompt: str, fallback: dict[str, Any]) -> tuple[dict[str, Any], str, str, list[str]]:
+    try:
+        res = requests.post(
+            f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate",
+            json={
+                "model": settings.OLLAMA_LLM_MODEL,
+                "prompt": "Devuelve solo JSON valido. Usa solo este contexto:\n" + prompt,
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": 0},
+            },
+            timeout=60,
+        )
+        res.raise_for_status()
+        return _json_from_text(res.json().get("response", "{}")), "local", settings.OLLAMA_LLM_MODEL, []
+    except Exception as exc:
+        return fallback, "mock", "deterministic-summary-v1", [f"ollama_llm_error:{type(exc).__name__}"]
 
 
 def _llm_json(prompt: str, fallback: dict[str, Any]) -> tuple[dict[str, Any], str, str, list[str]]:
     provider = settings.LLM_PROVIDER
     if provider == "groq":
         if not settings.GROQ_API_KEY:
-            return fallback, "mock", "deterministic-summary-v1", ["groq_api_key_faltante"]
+            data, fallback_provider, fallback_model, errors = _ollama_llm_json(prompt, fallback)
+            return data, fallback_provider, fallback_model, ["groq_api_key_faltante"] + errors
         try:
             res = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -533,7 +553,8 @@ def _llm_json(prompt: str, fallback: dict[str, Any]) -> tuple[dict[str, Any], st
             res.raise_for_status()
             return _json_from_text(res.json()["choices"][0]["message"]["content"]), "groq", settings.GROQ_MODEL, []
         except Exception as exc:
-            return fallback, "mock", "deterministic-summary-v1", [f"groq_llm_error:{type(exc).__name__}"]
+            data, fallback_provider, fallback_model, errors = _ollama_llm_json(prompt, fallback)
+            return data, fallback_provider, fallback_model, [f"groq_llm_error:{type(exc).__name__}"] + errors
     if provider == "google":
         if not settings.GOOGLE_API_KEY:
             return fallback, "mock", "deterministic-summary-v1", ["google_api_key_faltante"]
@@ -553,22 +574,7 @@ def _llm_json(prompt: str, fallback: dict[str, Any]) -> tuple[dict[str, Any], st
         except Exception as exc:
             return fallback, "mock", "deterministic-summary-v1", [f"google_llm_error:{type(exc).__name__}"]
     if provider == "local":
-        try:
-            res = requests.post(
-                f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate",
-                json={
-                    "model": settings.OLLAMA_MODEL,
-                    "prompt": "Devuelve solo JSON valido. Usa solo este contexto:\n" + prompt,
-                    "stream": False,
-                    "format": "json",
-                    "options": {"temperature": 0},
-                },
-                timeout=60,
-            )
-            res.raise_for_status()
-            return _json_from_text(res.json().get("response", "{}")), "local", settings.OLLAMA_MODEL, []
-        except Exception as exc:
-            return fallback, "mock", "deterministic-summary-v1", [f"ollama_llm_error:{type(exc).__name__}"]
+        return _ollama_llm_json(prompt, fallback)
     return fallback, "mock", "deterministic-summary-v1", []
 
 

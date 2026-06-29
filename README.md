@@ -84,6 +84,48 @@ AI_MIN_CONFIDENCE=0.82
 | `EMBEDDINGS_PROVIDER` | `mock`, `local`, `google` | `mock` guarda vector hash JSON. `local` usa Ollama embeddings. `google` usa Gemini embeddings. |
 | `AI_MIN_CONFIDENCE` | decimal `0-1` | Umbral para mandar a revisión humana si la confianza IA/OCR es baja. |
 
+### Dónde se configuran los modelos
+
+| Archivo | Uso |
+|---------|-----|
+| `.env` | Configuración local real. Aquí van API keys y modelos que usarás en tu máquina. No se commitea. |
+| `.env.example` | Plantilla versionada para el equipo, sin secretos. |
+| `docker-compose.yml` | Inyecta variables del `.env` al contenedor `backend`. Define defaults seguros si falta alguna variable. |
+| `backend/app/core/config.py` | Defaults internos de FastAPI/Pydantic si la variable no existe. |
+| `backend/app/services/ai_gateway.py` | Usa esas variables para llamar Groq, Google u Ollama. |
+
+Modelos actuales por proveedor:
+
+| Proveedor | Variable | Default | Para qué se usa |
+|-----------|----------|---------|-----------------|
+| Groq | `GROQ_MODEL` | `llama-3.3-70b-versatile` | Resúmenes JSON y explicación operativa. |
+| Groq | `GROQ_VISION_MODEL` | `meta-llama/llama-4-scout-17b-16e-instruct` | Visión/OCR sobre imágenes JPG/PNG. |
+| Google | `GOOGLE_MODEL` | `gemini-1.5-flash` | OCR/visión multimodal y resúmenes JSON. |
+| Google | `GOOGLE_EMBEDDING_MODEL` | `text-embedding-004` | Embeddings/búsqueda semántica. |
+| Ollama | `OLLAMA_LLM_MODEL` | `gemma3:4b` | Resúmenes JSON locales. |
+| Ollama | `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Embeddings locales. |
+| Ollama | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` en Docker | URL del servidor Ollama. Es la misma aunque uses varios modelos. |
+
+Ollama usa un solo servidor (`OLLAMA_BASE_URL`) y varios modelos por nombre. Antes de usar modo local completo:
+
+```bash
+ollama pull gemma3:4b
+ollama pull nomic-embed-text
+```
+
+### Qué hay en Docker para IA/OCR
+
+| Parte | Corre en Docker | Motivo |
+|-------|-----------------|--------|
+| Backend FastAPI | Sí | Centraliza API, reglas, auditoría y llamadas a proveedores. |
+| OCR local con Tesseract/PyMuPDF/pdfplumber | Sí | Hace reproducible el OCR local sin instalar dependencias manuales en cada máquina. |
+| Frontend React | Sí | Entorno uniforme para demo/desarrollo. |
+| PostgreSQL | Sí | Base reproducible para demos y seed. |
+| Ollama | No | Recomendado correrlo en tu máquina host. Docker se conecta con `http://host.docker.internal:11434`. |
+| Groq/Google | No | Son APIs externas; Docker solo envía requests desde backend usando API keys. |
+
+No es obligatorio usar Docker para IA externa, pero en este proyecto sí conviene usar Docker para backend/base/frontend porque reduce diferencias de entorno. Para Ollama, lo correcto en Mac es dejarlo fuera de Docker y apuntar al host.
+
 ### Matriz de funciones IA/OCR
 
 | Función | Mock | Local | Groq | Google | Recomendación |
@@ -101,10 +143,40 @@ AI_MIN_CONFIDENCE=0.82
 |------|-----------|---------------|------------------|
 | Demo estable sin dependencias | `AI_MODE=mock`, `OCR_PROVIDER=mock`, `LLM_PROVIDER=none`, `EMBEDDINGS_PROVIDER=mock` | Presentación donde importa que todo funcione sin internet ni llaves. | Úsalo para validar UX, estados, auditoría y flujos. No lo vendas como precisión OCR real. |
 | OCR local sin LLM | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=none`, `EMBEDDINGS_PROVIDER=mock` | Demo con extracción real básica y cero API keys. | Reconstruir contenedores; usar documentos limpios; mantener revisión humana por baja confianza. |
-| Local completo con Ollama | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=local`, `EMBEDDINGS_PROVIDER=local`, `OLLAMA_BASE_URL=http://host.docker.internal:11434`, `OLLAMA_MODEL=gemma3:4b` | Demo offline con resúmenes y embeddings locales. | Descargar modelo antes; usar modelos pequeños para latencia; no confiar en campos críticos sin reglas. |
+| Local completo con Ollama | `AI_MODE=local`, `OCR_PROVIDER=local`, `LLM_PROVIDER=local`, `EMBEDDINGS_PROVIDER=local`, `OLLAMA_BASE_URL=http://host.docker.internal:11434`, `OLLAMA_LLM_MODEL=gemma3:4b`, `OLLAMA_EMBEDDING_MODEL=nomic-embed-text` | Demo offline con resúmenes y embeddings locales. | Descargar ambos modelos antes; usar modelos pequeños para latencia; no confiar en campos críticos sin reglas. |
 | Groq para resúmenes rápidos | `AI_MODE=groq`, `OCR_PROVIDER=mock` o `local`, `LLM_PROVIDER=groq`, `EMBEDDINGS_PROVIDER=mock`, `GROQ_API_KEY=...` | Demo conectada donde quieres respuestas JSON rápidas. | Mantener OCR local/Google para PDF; usar temperatura baja y JSON estricto. |
 | Groq visión para imágenes | `OCR_PROVIDER=groq_vision`, `GROQ_VISION_MODEL=...`, `GROQ_API_KEY=...` | Documentos JPG/PNG puntuales. | No usarlo como OCR principal de PDF; mandar a revisión si no hay confianza suficiente. |
 | Google completo | `AI_MODE=google`, `OCR_PROVIDER=google`, `LLM_PROVIDER=google`, `EMBEDDINGS_PROVIDER=google`, `GOOGLE_API_KEY=...` | Demo más completa con OCR/visión, resúmenes y embeddings del mismo proveedor. | Mejor opción de API única para demo avanzada; en producción evaluar Google Document AI nativo. |
+
+### Modo recomendado actual: Groq + Ollama
+
+Para ahorrar presupuesto y mantener la demo útil:
+
+```env
+AI_MODE=groq
+OCR_PROVIDER=local
+LLM_PROVIDER=groq
+EMBEDDINGS_PROVIDER=local
+GROQ_API_KEY=tu_api_key
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_LLM_MODEL=gemma3:4b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+```
+
+Comportamiento:
+
+- Groq intenta primero los resúmenes/explicaciones JSON.
+- Si Groq falla, no hay llave o se alcanza límite/rate limit, el backend intenta Ollama.
+- Si Ollama también falla, usa fallback determinístico local y registra el error en auditoría técnica.
+- Los embeddings intentan siempre Ollama primero.
+- Si Ollama embeddings falla, usa vector hash local para no romper el flujo.
+
+Antes de usar este modo:
+
+```bash
+ollama pull gemma3:4b
+ollama pull nomic-embed-text
+```
 
 ### Modo demo recomendado
 
@@ -186,10 +258,11 @@ OCR_PROVIDER=local
 LLM_PROVIDER=local
 EMBEDDINGS_PROVIDER=local
 OLLAMA_BASE_URL=http://host.docker.internal:11434
-OLLAMA_MODEL=gemma3:4b
+OLLAMA_LLM_MODEL=gemma3:4b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 ```
 
-Si usas otro modelo local de hasta 8B, cambia `OLLAMA_MODEL`.
+Si usas otro modelo generativo local de hasta 8B, cambia `OLLAMA_LLM_MODEL`. Para embeddings, usa un modelo específico de embeddings como `nomic-embed-text`; no conviene reutilizar el LLM generativo para vectores.
 
 Regla crítica: IA/OCR sugiere y documenta; las reglas determinísticas y usuarios autorizados siguen decidiendo activación, rechazo, riesgo y validación final.
 
