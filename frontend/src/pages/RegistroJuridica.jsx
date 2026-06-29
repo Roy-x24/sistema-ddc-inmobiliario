@@ -5,10 +5,11 @@ import api from '../api/axiosConfig';
 import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 import Boton from '../components/ui/Boton';
-import { Bot, FileSearch, Wand2 } from 'lucide-react';
+import OCRPrefillPanel from '../components/OCRPrefillPanel';
+import { Bot, FileSearch, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function RegistroJuridica() {
-  const { register, control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm({
+  const { register, control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       tipo_pj: 'SA',
       representante_legal: { nombre_completo: '', numero_identificacion: '', cargo: '', poderes_otorgados: '' },
@@ -22,6 +23,9 @@ export default function RegistroJuridica() {
   const [archivoAI, setArchivoAI] = useState(null);
   const [prefill, setPrefill] = useState(null);
   const [analizando, setAnalizando] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+  const [error, setError] = useState('');
+  const valoresActuales = watch();
   const steps = ['Sociedad', 'Representante', 'Beneficiarios', 'Perfil', 'Revisión'];
 
   const analizarDocumento = async () => {
@@ -34,15 +38,24 @@ export default function RegistroJuridica() {
       setPrefill(res.data);
     } catch {
       setPrefill({ error: 'No se pudo analizar el documento', fields: {}, confidence: 0 });
+      setError('No se pudo analizar el documento. Puedes continuar manualmente.');
     } finally {
       setAnalizando(false);
     }
   };
 
+  const usarDetectado = (key, value) => {
+    setValue(key, value, { shouldDirty: true, shouldValidate: true });
+    setMensaje(`Campo actualizado desde OCR: ${key.replaceAll('_', ' ')}`);
+    setError('');
+  };
+
   const usarDetectados = () => {
     Object.entries(prefill?.fields || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') setValue(key, value);
+      if (value !== undefined && value !== null && value !== '') setValue(key, value, { shouldDirty: true, shouldValidate: true });
     });
+    setMensaje('Datos detectados aplicados. Revisa sociedad, representante y BF antes de guardar.');
+    setError('');
   };
 
   const onSubmit = async (data) => {
@@ -59,7 +72,7 @@ export default function RegistroJuridica() {
       await api.post('/clientes/juridica', payload);
       navigate('/clientes');
     } catch (e) {
-      alert('Error al registrar: ' + (e.response?.data?.detail || e.message));
+      setError('Error al registrar: ' + (e.response?.data?.detail || e.message));
     }
   };
 
@@ -69,6 +82,19 @@ export default function RegistroJuridica() {
         <h1 style={{ fontSize: 22 }}>Persona jurídica</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Registro de empresa o entidad</p>
       </div>
+
+      {mensaje && (
+        <div className="success-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CheckCircle2 className="h-4 w-4" />
+          {mensaje}
+        </div>
+      )}
+      {error && (
+        <div className="error-banner" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="card" style={{ padding: 28 }}>
         <div className="card" style={{ padding: 16, marginBottom: 20, borderColor: 'rgba(20,184,166,0.22)', background: 'linear-gradient(135deg, rgba(20,184,166,0.07), rgba(255,255,255,0.96))' }}>
@@ -84,26 +110,13 @@ export default function RegistroJuridica() {
             <button type="button" onClick={analizarDocumento} disabled={!archivoAI || analizando} className="btn-secondary" style={{ padding: '10px 14px', fontSize: 12 }}>
               <FileSearch className="h-4 w-4" /> {analizando ? 'Analizando...' : 'Analizar'}
             </button>
-            {prefill?.fields && Object.keys(prefill.fields).length > 0 && (
-              <button type="button" onClick={usarDetectados} className="btn-primary" style={{ padding: '10px 14px', fontSize: 12 }}>
-                <Wand2 className="h-4 w-4" /> Usar datos detectados
-              </button>
-            )}
           </div>
-          {prefill && (
-            <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
-              {Object.entries(prefill.fields || {}).map(([key, value]) => (
-                <div key={key} style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 10, background: '#fff' }}>
-                  <div className="info-item-label">{key.replaceAll('_', ' ')}</div>
-                  <div className="info-item-value">{String(value || '-')}</div>
-                </div>
-              ))}
-              <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 10, background: '#fff' }}>
-                <div className="info-item-label">Confianza OCR</div>
-                <div className="info-item-value">{Math.round((prefill.confidence || 0) * 100)}%</div>
-              </div>
-            </div>
-          )}
+          <OCRPrefillPanel
+            result={prefill}
+            currentValues={valoresActuales}
+            onApplyField={usarDetectado}
+            onApplyAll={usarDetectados}
+          />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 22 }}>
