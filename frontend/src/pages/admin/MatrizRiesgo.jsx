@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axiosConfig';
+import DecisionModal from '../../components/DecisionModal';
 import {
   AlertCircle,
   CheckCircle2,
@@ -16,6 +17,7 @@ export default function MatrizRiesgo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [decision, setDecision] = useState(null);
 
   const fetchMatriz = async () => {
     try {
@@ -56,7 +58,6 @@ export default function MatrizRiesgo() {
   };
 
   const publicarVersion = async (versionId) => {
-    if (!window.confirm('Publicar esta version? Se marcaran todos los expedientes para reevaluacion.')) return;
     try {
       await api.patch(`/admin/matriz/${versionId}/publicar`);
       showMensaje('Version publicada correctamente');
@@ -67,9 +68,7 @@ export default function MatrizRiesgo() {
     }
   };
 
-  const crearVersion = async () => {
-    const descripcion = window.prompt('Descripcion de la nueva version');
-    if (descripcion === null) return;
+  const crearVersion = async (descripcion) => {
     try {
       await api.post('/admin/matriz', { descripcion });
       showMensaje('Version creada correctamente');
@@ -77,6 +76,46 @@ export default function MatrizRiesgo() {
     } catch {
       showError('Error al crear version');
     }
+  };
+
+  const abrirCrearVersion = () => {
+    setDecision({
+      tipo: 'crear',
+      title: 'Crear version de matriz',
+      description: 'Describe el cambio para que auditoria pueda entender por que existe esta nueva version.',
+      actionLabel: 'Crear version',
+      tone: 'neutral',
+      requireReason: true,
+      reasonLabel: 'Descripcion',
+      reasonPlaceholder: 'Ej. Ajuste de pesos para PEP y monto transaccional...'
+    });
+  };
+
+  const abrirPublicarVersion = (version) => {
+    setDecision({
+      tipo: 'publicar',
+      version,
+      title: 'Publicar matriz de riesgo',
+      description: 'Esta version quedara activa y los expedientes se marcaran para reevaluacion.',
+      actionLabel: 'Publicar version',
+      tone: 'danger',
+      confirmText: 'PUBLICAR',
+      details: [
+        { label: 'Version', value: version.version_numero },
+        { label: 'Descripcion', value: version.descripcion || 'Sin descripcion' },
+        { label: 'Estado actual', value: version.esta_activa ? 'Activa' : 'Inactiva' }
+      ]
+    });
+  };
+
+  const confirmarDecision = async ({ reason }) => {
+    if (!decision) return;
+    if (decision.tipo === 'crear') {
+      await crearVersion(reason);
+    } else {
+      await publicarVersion(decision.version.id);
+    }
+    setDecision(null);
   };
 
   const totalFactores = matriz?.factores?.length || 0;
@@ -198,7 +237,7 @@ export default function MatrizRiesgo() {
             <h2 className="mt-1 text-xl font-black text-slate-950">Versiones publicadas</h2>
           </div>
           <Activity className="ml-auto h-5 w-5 text-slate-400" />
-          <button onClick={crearVersion} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-teal-700">
+          <button onClick={abrirCrearVersion} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-teal-700">
             Crear nueva version
           </button>
         </div>
@@ -233,7 +272,7 @@ export default function MatrizRiesgo() {
                   </td>
                   <td className="px-5 py-4 text-right">
                     {!v.esta_activa && (
-                      <button onClick={() => publicarVersion(v.id)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-teal-700">
+                      <button onClick={() => abrirPublicarVersion(v)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-teal-700">
                         <RotateCcw className="h-3.5 w-3.5" /> Publicar
                       </button>
                     )}
@@ -247,6 +286,21 @@ export default function MatrizRiesgo() {
           </table>
         </div>
       </section>
+      <DecisionModal
+        open={Boolean(decision)}
+        title={decision?.title}
+        description={decision?.description}
+        actionLabel={decision?.actionLabel}
+        tone={decision?.tone}
+        requireReason={decision?.requireReason}
+        reasonLabel={decision?.reasonLabel}
+        reasonPlaceholder={decision?.reasonPlaceholder}
+        confirmText={decision?.confirmText}
+        confirmHelp="Escribe PUBLICAR para confirmar el cambio de matriz activa."
+        details={decision?.details || []}
+        onClose={() => setDecision(null)}
+        onConfirm={confirmarDecision}
+      />
     </div>
   );
 }

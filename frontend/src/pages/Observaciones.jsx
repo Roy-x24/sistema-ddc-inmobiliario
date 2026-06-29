@@ -6,6 +6,7 @@ import ClienteSelector from '../components/ClienteSelector';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import AIAssistantPanel from '../components/AIAssistantPanel';
+import DecisionModal from '../components/DecisionModal';
 import { MessageSquare, Send, Lock, Unlock, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -26,6 +27,7 @@ export default function Observaciones() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
+  const [decision, setDecision] = useState(null);
 
   const cargarClientesConObservaciones = async (tipo = tipoCliente) => {
     const params = new URLSearchParams();
@@ -83,17 +85,31 @@ export default function Observaciones() {
     }
   };
 
-  const responder = async (obsId) => {
-    const resp = prompt('Respuesta:');
-    if (!resp) return;
+  const responder = async (obsId, respuesta) => {
     try {
-      await api.patch(`/clientes/observaciones/${obsId}/responder`, null, { params: { respuesta: resp } });
+      await api.patch(`/clientes/observaciones/${obsId}/responder`, null, { params: { respuesta } });
       showMensaje('Respuesta registrada');
       cargarClientesConObservaciones();
       fetchObs(clienteId);
     } catch {
       showError('Error al responder observación');
     }
+  };
+
+  const abrirRespuesta = (observacion) => {
+    setDecision({
+      observacion,
+      title: 'Responder observacion',
+      description: 'Escribe la respuesta que quedara registrada para revision del Oficial.',
+      actionLabel: 'Enviar respuesta',
+      tone: 'success'
+    });
+  };
+
+  const confirmarRespuesta = async ({ reason }) => {
+    if (!decision) return;
+    await responder(decision.observacion.id, reason);
+    setDecision(null);
   };
 
   const cerrar = async (obsId) => {
@@ -297,7 +313,7 @@ export default function Observaciones() {
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                       {usuario.rol === 'empleado' && row.estado === 'ABIERTA' && !row.respuesta && (
-                        <button onClick={() => responder(row.id)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        <button onClick={() => abrirRespuesta(row)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <Send className="h-3 w-3" /> Responder
                         </button>
                       )}
@@ -324,6 +340,24 @@ export default function Observaciones() {
           />
         </div>
       )}
+      <DecisionModal
+        open={Boolean(decision)}
+        title={decision?.title}
+        description={decision?.description}
+        actionLabel={decision?.actionLabel}
+        tone={decision?.tone}
+        requireReason
+        reasonLabel="Respuesta"
+        reasonPlaceholder="Indica como se atendio la observacion..."
+        confirmHelp="La respuesta quedara disponible para que el Oficial pueda cerrar o mantener abierta la observacion."
+        details={decision?.observacion ? [
+          { label: 'Observacion', value: decision.observacion.descripcion },
+          { label: 'Estado actual', value: decision.observacion.estado },
+          { label: 'Creada por', value: decision.observacion.creada_por }
+        ] : []}
+        onClose={() => setDecision(null)}
+        onConfirm={confirmarRespuesta}
+      />
     </div>
   );
 }

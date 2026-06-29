@@ -72,7 +72,15 @@ export default function DecisionModal({
             <p className="font-bold text-slate-900">{description}</p>
             {details.length > 0 && (
               <ul className="mt-3 space-y-1 text-sm font-semibold text-slate-500">
-                {details.map((item) => <li key={item}>- {item}</li>)}
+                {details.map((item, index) => {
+                  const label = typeof item === 'object' ? item.label : '';
+                  const value = typeof item === 'object' ? item.value : item;
+                  return (
+                    <li key={`${label || 'detail'}-${index}`}>
+                      {label ? `${label}: ${value || '-'}` : `- ${value || '-'}`}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

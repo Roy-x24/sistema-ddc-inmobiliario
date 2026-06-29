@@ -6,6 +6,7 @@ import ClienteSelector from '../components/ClienteSelector';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import AIAssistantPanel from '../components/AIAssistantPanel';
+import DecisionModal from '../components/DecisionModal';
 import { UserCheck, Plus, AlertCircle, CheckCircle2, XCircle, User, Flag } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -24,6 +25,7 @@ export default function BeneficiarioFinal() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
+  const [decision, setDecision] = useState(null);
   const [form, setForm] = useState({
     nombre_completo: '',
     numero_documento: '',
@@ -101,14 +103,12 @@ export default function BeneficiarioFinal() {
     }
   };
 
-  const validar = async (bfId, accion) => {
+  const ejecutarValidacion = async (bfId, accion, motivo = '') => {
     try {
       if (accion === 'aprobar') {
         await api.patch(`/clientes/beneficiarios/${bfId}/aprobar`);
         showMensaje('Beneficiario aprobado');
       } else {
-        const motivo = prompt('Motivo de rechazo:');
-        if (!motivo) return;
         await api.patch(`/clientes/beneficiarios/${bfId}/rechazar?motivo=${encodeURIComponent(motivo)}`);
         showMensaje('Beneficiario rechazado');
       }
@@ -116,6 +116,28 @@ export default function BeneficiarioFinal() {
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al validar beneficiario');
     }
+  };
+
+  const abrirDecision = (accion, beneficiario) => {
+    const esAprobacion = accion === 'aprobar';
+    setDecision({
+      accion,
+      beneficiario,
+      title: esAprobacion ? 'Aprobar beneficiario final' : 'Rechazar beneficiario final',
+      description: esAprobacion
+        ? 'Confirma que el beneficiario fue revisado y puede quedar aprobado para el expediente.'
+        : 'Registra el motivo del rechazo para que el empleado pueda corregir el expediente.',
+      actionLabel: esAprobacion ? 'Aprobar beneficiario' : 'Rechazar beneficiario',
+      tone: esAprobacion ? 'success' : 'danger',
+      confirmText: esAprobacion ? 'APROBAR' : 'RECHAZAR',
+      requireReason: !esAprobacion
+    });
+  };
+
+  const confirmarDecision = async ({ reason }) => {
+    if (!decision) return;
+    await ejecutarValidacion(decision.beneficiario.id, decision.accion, reason);
+    setDecision(null);
   };
 
   const clientesJuridicos = clientes.filter(c => c.tipo_cliente === 'JURIDICA');
@@ -336,10 +358,10 @@ export default function BeneficiarioFinal() {
                   <td style={{ textAlign: 'right' }}>
                     {['oficial_cumplimiento', 'admin'].includes(usuario?.rol) && row.estado_validacion === 'PENDIENTE' ? (
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button onClick={() => validar(row.id, 'aprobar')} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        <button onClick={() => abrirDecision('aprobar', row)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
                         </button>
-                        <button onClick={() => validar(row.id, 'rechazar')} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        <button onClick={() => abrirDecision('rechazar', row)} className="btn-danger" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <XCircle className="h-3.5 w-3.5" /> Rechazar
                         </button>
                       </div>
@@ -363,6 +385,26 @@ export default function BeneficiarioFinal() {
           />
         </div>
       )}
+      <DecisionModal
+        open={Boolean(decision)}
+        title={decision?.title}
+        description={decision?.description}
+        actionLabel={decision?.actionLabel}
+        tone={decision?.tone}
+        requireReason={decision?.requireReason}
+        reasonLabel="Motivo"
+        reasonPlaceholder="Explica el criterio aplicado..."
+        confirmText={decision?.confirmText}
+        confirmHelp="Esto deja trazabilidad de la decisión sobre el beneficiario final."
+        details={decision?.beneficiario ? [
+          { label: 'Beneficiario', value: decision.beneficiario.nombre_completo },
+          { label: 'Documento', value: decision.beneficiario.numero_documento },
+          { label: 'Participacion', value: `${decision.beneficiario.porcentaje_participacion}%` },
+          { label: 'Estado actual', value: decision.beneficiario.estado_validacion }
+        ] : []}
+        onClose={() => setDecision(null)}
+        onConfirm={confirmarDecision}
+      />
     </div>
   );
 }

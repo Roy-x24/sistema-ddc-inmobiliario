@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
+import DecisionModal from '../../components/DecisionModal';
 import {
   Users,
   Plus,
@@ -42,6 +43,7 @@ export default function AdminUsuarios() {
   const [form, setForm] = useState({ nombre: '', correo: '', password: '', rol: 'empleado' });
   const [editandoId, setEditandoId] = useState('');
   const [editForm, setEditForm] = useState({ nombre: '', correo: '', password: '', activo: true });
+  const [decision, setDecision] = useState(null);
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -107,19 +109,16 @@ export default function AdminUsuarios() {
   };
 
   const cambiarEstado = async (usuario, activo) => {
-    const accion = activo ? 'desbloquear' : 'bloquear';
-    if (!window.confirm(`Desea ${accion} a ${usuario.nombre}?`)) return;
     try {
       await api.patch(`/auth/usuarios/${usuario.id}`, { activo });
       showMensaje(activo ? 'Usuario desbloqueado' : 'Usuario bloqueado');
       fetchUsuarios();
     } catch (err) {
-      showError(err.response?.data?.detail || `Error al ${accion} usuario`);
+      showError(err.response?.data?.detail || `Error al ${activo ? 'desbloquear' : 'bloquear'} usuario`);
     }
   };
 
   const eliminar = async (id) => {
-    if (!window.confirm('Eliminar este usuario? Esta accion no se puede deshacer.')) return;
     try {
       await api.delete(`/auth/usuarios/${id}`);
       showMensaje('Usuario eliminado');
@@ -127,6 +126,54 @@ export default function AdminUsuarios() {
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al eliminar usuario');
     }
+  };
+
+  const abrirEstado = (usuario, activo) => {
+    const accion = activo ? 'desbloquear' : 'bloquear';
+    setDecision({
+      tipo: 'estado',
+      usuario,
+      activo,
+      title: activo ? 'Desbloquear usuario' : 'Bloquear usuario',
+      description: activo
+        ? 'El usuario recuperara acceso al sistema con su rol actual.'
+        : 'El usuario perdera acceso hasta que un administrador lo desbloquee.',
+      actionLabel: activo ? 'Desbloquear' : 'Bloquear',
+      tone: activo ? 'success' : 'danger',
+      confirmText: accion.toUpperCase(),
+      details: [
+        { label: 'Usuario', value: usuario.nombre },
+        { label: 'Correo', value: usuario.correo },
+        { label: 'Rol', value: usuario.rol.replace('_', ' ') }
+      ]
+    });
+  };
+
+  const abrirEliminar = (usuario) => {
+    setDecision({
+      tipo: 'eliminar',
+      usuario,
+      title: 'Eliminar usuario',
+      description: 'Esta accion elimina el usuario del sistema. Usa bloqueo si solo quieres retirar acceso temporalmente.',
+      actionLabel: 'Eliminar usuario',
+      tone: 'danger',
+      confirmText: 'ELIMINAR',
+      details: [
+        { label: 'Usuario', value: usuario.nombre },
+        { label: 'Correo', value: usuario.correo },
+        { label: 'Rol', value: usuario.rol.replace('_', ' ') }
+      ]
+    });
+  };
+
+  const confirmarDecision = async () => {
+    if (!decision) return;
+    if (decision.tipo === 'estado') {
+      await cambiarEstado(decision.usuario, decision.activo);
+    } else {
+      await eliminar(decision.usuario.id);
+    }
+    setDecision(null);
   };
 
   const rolBadge = (rol) => (
@@ -289,7 +336,7 @@ export default function AdminUsuarios() {
                           </button>
                         )}
                         <button
-                          onClick={() => cambiarEstado(u, !u.activo)}
+                          onClick={() => abrirEstado(u, !u.activo)}
                           disabled={u.correo === usuarioActual?.correo}
                           title={u.activo ? 'Bloquear usuario' : 'Desbloquear usuario'}
                           className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
@@ -300,7 +347,11 @@ export default function AdminUsuarios() {
                         >
                           {u.activo ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                         </button>
-                        <button onClick={() => eliminar(u.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100">
+                        <button
+                          onClick={() => abrirEliminar(u)}
+                          disabled={u.correo === usuarioActual?.correo}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -423,6 +474,18 @@ export default function AdminUsuarios() {
           </div>
         </aside>
       </section>
+      <DecisionModal
+        open={Boolean(decision)}
+        title={decision?.title}
+        description={decision?.description}
+        actionLabel={decision?.actionLabel}
+        tone={decision?.tone}
+        confirmText={decision?.confirmText}
+        confirmHelp={`Escribe ${decision?.confirmText || ''} para confirmar esta accion administrativa.`}
+        details={decision?.details || []}
+        onClose={() => setDecision(null)}
+        onConfirm={confirmarDecision}
+      />
     </div>
   );
 }
