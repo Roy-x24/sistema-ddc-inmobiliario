@@ -23,7 +23,10 @@ const navItems = [
 ];
 
 const adminItems = [
+  { label: 'Dashboard Admin', icon: LayoutDashboard, path: '/admin/dashboard' },
   { label: 'Matriz de Riesgo', icon: Settings, path: '/admin/matriz' },
+  { label: 'IA y Proveedores', icon: Sparkles, path: '/admin/ia' },
+  { label: 'PEP / Sanciones', icon: Shield, path: '/admin/screening' },
   { label: 'Usuarios', icon: Users, path: '/admin/usuarios' },
   { label: 'Auditoria Admin', icon: ClipboardList, path: '/admin/auditoria' },
 ];
@@ -143,9 +146,7 @@ export default function Sidebar({ mobileOpen = false, onClose, desktopCollapsed 
       <nav className={`relative flex-1 space-y-1 overflow-x-hidden overflow-y-auto pl-4 py-6 ${desktopCollapsed ? 'lg:pl-3 lg:pr-0' : ''}`}>
         {isAdmin ? (
           <>
-            <div className={`px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 ${desktopCollapsed ? 'lg:text-center lg:text-[0px]' : ''}`}>{desktopCollapsed ? 'OP' : 'Operativo'}</div>
-            {navItems.map((item, index) => renderItem(item, item.path || `divider-${index}`))}
-            <div className={`px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 ${desktopCollapsed ? 'lg:text-center lg:text-[0px]' : ''}`}>{desktopCollapsed ? 'AD' : 'Administracion'}</div>
+            <div className={`px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 ${desktopCollapsed ? 'lg:text-center lg:text-[0px]' : ''}`}>{desktopCollapsed ? 'AD' : 'Administracion'}</div>
             {adminItems.map((item) => renderItem(item, 'admin-' + item.path))}
           </>
         ) : (
