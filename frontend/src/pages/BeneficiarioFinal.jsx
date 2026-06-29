@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
+import ClienteSelector from '../components/ClienteSelector';
+import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import { UserCheck, Plus, AlertCircle, CheckCircle2, XCircle, User, Flag } from 'lucide-react';
-import { clienteOptionLabel, tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function BeneficiarioFinal() {
@@ -12,6 +13,9 @@ export default function BeneficiarioFinal() {
   const { usuario } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState(urlId || '');
+  const [estadoCliente, setEstadoCliente] = useState('');
+  const [riesgoCliente, setRiesgoCliente] = useState('');
+  const [busquedaCliente, setBusquedaCliente] = useState('');
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -98,6 +102,9 @@ export default function BeneficiarioFinal() {
   const clientesJuridicos = clientes.filter(c => c.tipo_cliente === 'JURIDICA');
   const clienteSeleccionado = clientesJuridicos.find(c => c.id_cliente === clienteId);
   const beneficiariosPaginados = paginate(beneficiarios, page, pageSize);
+  const pendientes = beneficiarios.filter(row => row.estado_validacion === 'PENDIENTE').length;
+  const aprobados = beneficiarios.filter(row => row.estado_validacion === 'APROBADO').length;
+  const rechazados = beneficiarios.filter(row => row.estado_validacion === 'RECHAZADO').length;
 
   useEffect(() => {
     const totalPages = pageCountFor(beneficiarios, pageSize);
@@ -124,20 +131,44 @@ export default function BeneficiarioFinal() {
         </div>
       )}
 
-      <div style={{ marginBottom: 20, marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div>
-          <label className="label-upper">Cliente juridico</label>
-          <select value={clienteId} onChange={e => { setClienteId(e.target.value); setPage(1); }} className="select-field" style={{ minWidth: 320 }}>
-            <option value="">Seleccione un cliente juridico</option>
-            {clientesJuridicos.map(c => <option key={c.id_cliente} value={c.id_cliente}>{clienteOptionLabel(c)}</option>)}
-          </select>
+      <ClienteSelector
+        clientes={clientesJuridicos}
+        value={clienteId}
+        onChange={(id) => { setClienteId(id); setPage(1); }}
+        tipo=""
+        onTipoChange={() => {}}
+        estado={estadoCliente}
+        onEstadoChange={(valor) => { setEstadoCliente(valor); setPage(1); }}
+        riesgo={riesgoCliente}
+        onRiesgoChange={(valor) => { setRiesgoCliente(valor); setPage(1); }}
+        busqueda={busquedaCliente}
+        onBusquedaChange={(valor) => { setBusquedaCliente(valor); setPage(1); }}
+        title="Seleccionar expediente juridico"
+        description="Busca sociedades por nombre, RUC, estado o riesgo para revisar sus beneficiarios finales."
+        emptyText="No hay sociedades con esos filtros."
+        showTipoFilter={false}
+      />
+
+      {clienteSeleccionado && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 16, marginBottom: 20 }}>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="info-item-label">Registrados</div>
+            <div className="info-item-value">{beneficiarios.length}</div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="info-item-label">Pendientes</div>
+            <div className="info-item-value">{pendientes}</div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="info-item-label">Aprobados</div>
+            <div className="info-item-value">{aprobados}</div>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="info-item-label">Rechazados</div>
+            <div className="info-item-value">{rechazados}</div>
+          </div>
         </div>
-        {clienteSeleccionado && (
-          <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${tipoClienteBadgeClass(clienteSeleccionado.tipo_cliente)}`}>
-            {tipoClienteLabel(clienteSeleccionado.tipo_cliente)}
-          </span>
-        )}
-      </div>
+      )}
 
       {clienteId && usuario?.rol === 'empleado' && (
         <div className="card" style={{ padding: 24, marginBottom: 24 }}>
@@ -183,11 +214,20 @@ export default function BeneficiarioFinal() {
 
       {loading && <p style={{ color: 'var(--text-muted)', padding: 24 }}>Cargando beneficiarios...</p>}
 
+      {!clienteId && (
+        <EmptyState
+          icon={UserCheck}
+          title="Selecciona una sociedad"
+          message="Usa el buscador superior para revisar, registrar o validar beneficiarios finales. Esta vista solo aplica a clientes juridicos."
+        />
+      )}
+
       {!loading && beneficiarios.length === 0 && clienteId && (
-        <div className="empty-state">
-          <div className="empty-state-icon"><UserCheck className="h-6 w-6" /></div>
-          Sin beneficiarios finales registrados.
-        </div>
+        <EmptyState
+          icon={UserCheck}
+          title="Sin beneficiarios finales"
+          message={usuario?.rol === 'empleado' ? 'Registra el primer beneficiario final para completar el expediente juridico.' : 'Todavia no hay beneficiarios para validar en esta sociedad.'}
+        />
       )}
 
       {!loading && beneficiarios.length > 0 && (

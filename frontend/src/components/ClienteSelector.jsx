@@ -34,6 +34,7 @@ export default function ClienteSelector({
   title = 'Buscar expediente',
   description = 'Filtra por nombre, identificacion, estado o riesgo.',
   emptyText = 'No hay expedientes con esos filtros.',
+  showTipoFilter = true,
 }) {
   const [expandido, setExpandido] = useState(!value);
 
@@ -105,7 +106,7 @@ export default function ClienteSelector({
 
       {expandido && (
       <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) repeat(3, minmax(150px, 190px))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: showTipoFilter ? 'minmax(260px, 1fr) repeat(3, minmax(150px, 190px))' : 'minmax(260px, 1fr) repeat(2, minmax(150px, 190px))', gap: 12 }}>
         <div>
           <label className="label-upper" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <Search className="h-3.5 w-3.5" /> Busqueda
@@ -118,14 +119,16 @@ export default function ClienteSelector({
             style={{ width: '100%' }}
           />
         </div>
-        <div>
-          <label className="label-upper">Tipo</label>
-          <select value={tipo} onChange={(e) => onTipoChange(e.target.value)} className="select-field" style={{ width: '100%' }}>
-            <option value="">Todos</option>
-            <option value="NATURAL">Natural</option>
-            <option value="JURIDICA">Juridica</option>
-          </select>
-        </div>
+        {showTipoFilter && (
+          <div>
+            <label className="label-upper">Tipo</label>
+            <select value={tipo} onChange={(e) => onTipoChange(e.target.value)} className="select-field" style={{ width: '100%' }}>
+              <option value="">Todos</option>
+              <option value="NATURAL">Natural</option>
+              <option value="JURIDICA">Juridica</option>
+            </select>
+          </div>
+        )}
         <div>
           <label className="label-upper">Estado</label>
           <select value={estado} onChange={(e) => onEstadoChange(e.target.value)} className="select-field" style={{ width: '100%' }}>
