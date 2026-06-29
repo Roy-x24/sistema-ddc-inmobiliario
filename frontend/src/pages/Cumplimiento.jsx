@@ -5,6 +5,7 @@ import EstadoBadge from '../components/EstadoBadge';
 import RiesgoIndicador from '../components/RiesgoIndicador';
 import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
+import InfoHint from '../components/InfoHint';
 import { AlertTriangle, Bot, RefreshCw, FileWarning, Search, ShieldCheck, UserCheck } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
@@ -41,6 +42,14 @@ const prioridad = {
   REVISION_OFICIAL: 3,
   PENDIENTES_INFORMACION: 4,
   LISTOS_AUTOACTIVACION: 5,
+};
+
+const colaInfo = {
+  LISTOS_AUTOACTIVACION: 'Expedientes de riesgo bajo, completos y sin excepciones. El sistema puede evaluarlos para activacion automatica.',
+  REVISION_OFICIAL: 'Casos que requieren criterio humano antes de activar, usualmente por riesgo estandar o decision manual pendiente.',
+  OBSERVADOS_DOCUMENTOS: 'Expedientes con documentos observados/rechazados u observaciones abiertas. Estas excepciones bloquean la activacion.',
+  ALTO_RIESGO: 'Casos de riesgo alto. Nunca deben autoactivarse y requieren confirmacion manual del Oficial.',
+  PENDIENTES_INFORMACION: 'Expedientes incompletos: faltan documentos, perfiles, beneficiarios relevantes o datos requeridos.',
 };
 
 export default function Cumplimiento() {
@@ -117,13 +126,28 @@ export default function Cumplimiento() {
         {COLAS.map(([key, label]) => {
           const Icon = iconos[key];
           return (
-            <button key={key} onClick={() => { setCola(key); setPage(1); }} className="card" style={{ padding: 16, textAlign: 'left', borderColor: cola === key ? 'rgba(212,175,55,0.6)' : undefined }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              key={key}
+              role="button"
+              tabIndex={0}
+              onClick={() => { setCola(key); setPage(1); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setCola(key);
+                  setPage(1);
+                }
+              }}
+              className="card"
+              style={{ padding: 16, textAlign: 'left', borderColor: cola === key ? 'rgba(212,175,55,0.6)' : undefined, cursor: 'pointer' }}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, auto) 18px', alignItems: 'center', columnGap: 10 }}>
                 <Icon className="h-4 w-4 text-gold" />
-                <span className="info-item-label">{label}</span>
+                <span className="info-item-label" style={{ marginBottom: 0 }}>{label}</span>
+                <InfoHint label={`Que significa ${label}`} side="bottom">{colaInfo[key]}</InfoHint>
               </div>
               <div className="info-item-value" style={{ marginTop: 8 }}>{resumen[key] || 0}</div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -134,14 +158,20 @@ export default function Cumplimiento() {
           <input value={busqueda} onChange={e => { setBusqueda(e.target.value); setPage(1); }} placeholder="Cliente, identificacion, motivo..." className="input-field" style={{ width: '100%' }} />
         </div>
         <div style={{ width: 220 }}>
-          <label className="label-upper">Cola</label>
+          <label className="label-upper label-with-hint">
+            Cola
+            <InfoHint label="Que significa cola">Categoria operativa asignada por el sistema para ordenar el trabajo del Oficial.</InfoHint>
+          </label>
           <select value={cola} onChange={e => { setCola(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
             <option value="">Todas</option>
             {COLAS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
         </div>
         <div style={{ width: 220 }}>
-          <label className="label-upper">Estado</label>
+          <label className="label-upper label-with-hint">
+            Estado
+            <InfoHint label="Que significa estado">Estado general del expediente. No es lo mismo que estado documental, observaciones o BF.</InfoHint>
+          </label>
           <select value={estado} onChange={e => { setEstado(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
             <option value="">Todos</option>
             {ESTADOS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -163,10 +193,30 @@ export default function Cumplimiento() {
           <thead>
             <tr>
               <th>Cliente</th>
-              <th>Estado</th>
-              <th>Riesgo</th>
-              <th>Completitud</th>
-              <th>Motivo</th>
+              <th>
+                <span className="label-with-hint">
+                  Estado
+                  <InfoHint label="Estado del expediente" side="bottom">Fase general del expediente: pendiente, observado, en revision, activo, bloqueado o rechazado.</InfoHint>
+                </span>
+              </th>
+              <th>
+                <span className="label-with-hint">
+                  Riesgo
+                  <InfoHint label="Riesgo del cliente" side="bottom">Nivel calculado por el motor de riesgo usando los factores aplicados al cliente.</InfoHint>
+                </span>
+              </th>
+              <th>
+                <span className="label-with-hint">
+                  Completitud
+                  <InfoHint label="Completitud documental" side="bottom">Porcentaje de documentos obligatorios verificados frente al total requerido para el tipo de cliente.</InfoHint>
+                </span>
+              </th>
+              <th>
+                <span className="label-with-hint">
+                  Motivo
+                  <InfoHint label="Motivo de la cola" side="bottom">Razon principal por la que el sistema puso este expediente en la cola actual.</InfoHint>
+                </span>
+              </th>
               <th style={{ textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>

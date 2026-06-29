@@ -3,13 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, FileText, FileSpreadsheet, Shield, AlertTriangle,
-  ClipboardList, MessageSquare, UserCheck, LogOut, Settings, Sparkles, X
+  ClipboardList, MessageSquare, UserCheck, LogOut, Settings, Sparkles, X, Lock
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['empleado', 'oficial_cumplimiento'] },
   { label: 'Cumplimiento', icon: Shield, path: '/cumplimiento', roles: ['oficial_cumplimiento', 'auditor'] },
   { label: 'Activacion', icon: AlertTriangle, path: '/activacion', roles: ['oficial_cumplimiento'] },
+  { label: 'Post-activacion', icon: Lock, path: '/post-activacion', roles: ['oficial_cumplimiento'] },
   { label: 'Riesgo', icon: Shield, path: '/riesgo', roles: ['oficial_cumplimiento'] },
   { type: 'divider', roles: ['oficial_cumplimiento'] },
   { label: 'Documentos', icon: FileText, path: '/documentos', roles: ['empleado', 'oficial_cumplimiento'] },

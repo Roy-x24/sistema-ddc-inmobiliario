@@ -35,7 +35,7 @@ El sistema viene configurado con 5 usuarios de prueba creados automáticamente a
 | Correo | Rol | Contraseña | ¿Qué puede hacer? |
 |--------|-----|------------|-------------------|
 | `empleado@ddc.com` | Empleado | `empleado123` | Registrar clientes, adjuntar documentos, registrar perfiles, responder observaciones, registrar BF |
-| `oficial@ddc.com` | Oficial de Cumplimiento | `oficial123` | Verificar documentos, validar BF, ver riesgo, activar/rechazar/bloquear clientes, crear/cerrar observaciones, ver auditoría |
+| `oficial@ddc.com` | Oficial de Cumplimiento | `oficial123` | Verificar documentos, validar BF, ver riesgo, activar/rechazar, gestionar post-activación, crear/cerrar observaciones, ver auditoría |
 | `auditor@ddc.com` | Auditor | `auditor123` | Ver auditoría, exportar CSV de auditoría expediente |
 | `admin@ddc.com` | Administrador | `admin123` | **Acceso total a todos los paneles operativos y de administración.** Gestiona matriz de riesgo, gestiona usuarios (crear, cambiar rol, eliminar), exportar CSV auditoría administrativa |
 | `demo_empleado@ddc.com` | Empleado | `empleado123` | Usuario adicional para demos y pruebas E2E |
@@ -191,7 +191,7 @@ El empleado es quien inicia el expediente. Su trabajo es registrar la informaci�
 
 ### 5.2 Oficial de Cumplimiento
 
-El Oficial es quien valida la documentación, los beneficiarios finales, las observaciones y toma la decisión final de activar, bloquear o rechazar al cliente.
+El Oficial es quien valida la documentación, los beneficiarios finales, las observaciones y toma la decisión final de activar o rechazar el expediente. Las acciones sobre clientes ya activos se manejan en Post-activación.
 
 En el flujo automatizado, el Oficial trabaja principalmente desde la **Bandeja de cumplimiento**. Esta bandeja agrupa expedientes por excepciones: alto riesgo, documentos observados, revision manual, pendientes de informacion y casos listos para autoactivacion.
 
@@ -263,7 +263,7 @@ La bandeja muestra completitud documental, accion sugerida y motivo principal pa
 
 > **Regla crítica:** Si el riesgo es **ALTO**, el cliente **NO puede activarse automáticamente**. Debes confirmar manualmente que aceptas el riesgo antes de activar.
 
-#### 5.2.5 Activar, bloquear o rechazar un cliente
+#### 5.2.5 Activar o rechazar un cliente
 1. Ve al expediente del cliente → pestaña **Activación**
 2. Revisa que el cliente cumpla todas las precondiciones:
    - Estado del expediente: **EN_REVISION**
@@ -278,12 +278,12 @@ La bandeja muestra completitud documental, accion sugerida y motivo principal pa
    - Si el riesgo es ALTO, se mostrará una confirmación adicional
    - O haz clic en **Rechazar** → Ingresa un **motivo obligatorio** → Cliente pasa a **RECHAZADO**
 
-#### 5.2.6 Bloquear y desbloquear clientes activos
-1. Ve al expediente de un cliente **ACTIVO**
-2. Haz clic en **Bloquear**
-3. Ingresa un **motivo obligatorio**
-4. El cliente pasa a estado **BLOQUEADO**
-5. Para desbloquear, haz clic en **Desbloquear** (no requiere motivo)
+#### 5.2.6 Gestionar post-activación
+1. Ve a **Post-activación**
+2. Usa el segmento **Activos** para clientes aprobados o **Bloqueados** para clientes suspendidos
+3. Para bloquear un cliente activo, haz clic en **Bloquear** e ingresa un **motivo obligatorio**
+4. Para revertir una activación accidental, haz clic en **Revertir** e ingresa un **motivo obligatorio**; el expediente vuelve a `EN_REVISION`
+5. Para desbloquear, entra al segmento **Bloqueados** y haz clic en **Desbloquear**
 
 > **Nota:** Si intentas activar un cliente que aún no cumple los requisitos, el sistema mostrará un panel de errores detallado indicando exactamente qué falta.
 
@@ -503,8 +503,10 @@ Panel de gestión completa de usuarios, solo para Admin:
 | EN_REVISION | OBSERVADO | OC crea observación |
 | OBSERVADO | EN_REVISION | No quedan observaciones abiertas (automático) |
 | EN_REVISION | ACTIVO | Oficial confirma, todos los requisitos completos |
-| EN_REVISION | RECHAZADO | Oficial rechaza con motivo obligatorio |
+| PENDIENTE_BF | RECHAZADO | Oficial rechaza con motivo obligatorio |
 | PENDIENTE | RECHAZADO | Oficial rechaza con motivo obligatorio |
+| EN_REVISION | RECHAZADO | Oficial rechaza con motivo obligatorio |
+| OBSERVADO | RECHAZADO | Oficial rechaza con motivo obligatorio |
 | ACTIVO | BLOQUEADO | Oficial bloquea con motivo obligatorio |
 | BLOQUEADO | ACTIVO | Oficial desbloquea |
 | RECHAZADO | (ninguno) | Estado final. No se puede modificar. |

@@ -39,7 +39,7 @@ docker-compose up --build
 | Usuario | Rol | Contraseña | Acceso |
 |---------|-----|------------|--------|
 | empleado@ddc.com | empleado | empleado123 | Registrar clientes, documentos, perfiles, beneficiarios, responder observaciones |
-| oficial@ddc.com | oficial_cumplimiento | oficial123 | Verificar documentos, validar BF, ver riesgo, activar/rechazar/bloquear clientes, crear/cerrar observaciones, ver auditoría |
+| oficial@ddc.com | oficial_cumplimiento | oficial123 | Verificar documentos, validar BF, ver riesgo, activar/rechazar, gestionar post-activación, crear/cerrar observaciones, ver auditoría |
 | auditor@ddc.com | auditor | auditor123 | Ver riesgo, ver auditoría, consultar clientes, exportar CSV |
 | admin@ddc.com | admin | admin123 | **Acceso total a todos los paneles + gestión de usuarios + matriz de riesgo** |
 | demo_empleado@ddc.com | empleado | empleado123 | Usuario adicional para demos y pruebas E2E |
@@ -99,7 +99,7 @@ ddc-kyc-sistema/
 - **Gestión de usuarios (nuevo):** El Administrador puede crear usuarios, cambiar roles y eliminar usuarios desde el panel `/admin/usuarios` sin tocar la base de datos.
 - **Matriz de riesgo versionada:** El administrador puede configurar factores de riesgo, pesos y umbrales sin tocar código.
 - **Observaciones accionables:** El Oficial de Cumplimiento puede crear observaciones sobre expedientes; el Empleado las responde; sin observaciones abiertas no se puede activar.
-- **Bloqueo y desbloqueo de clientes:** Un cliente ACTIVO puede ser bloqueado por el Oficial con motivo obligatorio, y posteriormente desbloqueado.
+- **Post-activación separado:** Un cliente `ACTIVO` puede ser bloqueado, desbloqueado o devuelto a `EN_REVISION` por corrección operativa, siempre con trazabilidad.
 - **Beneficiarios Finales con validación OC:** Las personas jurídicas inician en estado `PENDIENTE_BF` hasta que todos sus beneficiarios finales relevantes sean aprobados por el Oficial.
 - **Sesión única y refresh automático:** El frontend renueva el token de acceso automáticamente vía interceptor Axios. Cierre por inactividad de 30 minutos.
 - **Auditoría administrativa separada:** Registra login/logout, cambios en la matriz, gestión de usuarios y exportaciones CSV.

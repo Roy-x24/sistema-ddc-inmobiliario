@@ -23,6 +23,7 @@ ROLES_PERMITIDOS = {
     "rechazar_cliente": ["oficial_cumplimiento", "admin"],
     "bloquear_cliente": ["oficial_cumplimiento", "admin"],
     "desbloquear_cliente": ["oficial_cumplimiento", "admin"],
+    "revertir_activacion": ["oficial_cumplimiento", "admin"],
     "crear_observacion": ["oficial_cumplimiento", "admin"],
     "responder_observacion": ["empleado", "admin"],
     "cerrar_observacion": ["oficial_cumplimiento", "admin"],

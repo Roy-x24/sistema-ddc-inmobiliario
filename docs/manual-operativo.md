@@ -14,7 +14,8 @@
 3. Revisar Revision oficial.
 4. Validar beneficiarios finales relevantes antes de activar personas juridicas.
 5. Usar Auditoria para entender reglas ejecutadas.
-6. Activar, rechazar, bloquear o crear observaciones solo cuando sea necesario.
+6. Activar o rechazar expedientes desde Activacion. El rechazo es una salida formal para expedientes pre-activacion en `PENDIENTE_BF`, `PENDIENTE`, `EN_REVISION` u `OBSERVADO`, siempre con motivo obligatorio.
+7. Gestionar bloqueos, desbloqueos y reversión de activación desde Post-activacion.
 
 ## Regla operativa de BF relevante
 

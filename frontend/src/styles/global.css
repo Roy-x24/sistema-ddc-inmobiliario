@@ -478,6 +478,75 @@ input[type="file"].input-field::file-selector-button {
   margin-bottom: 8px;
 }
 
+.label-with-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-hint {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  z-index: 5;
+}
+
+.info-hint-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: #A7B0C0;
+  transition: all 0.15s ease;
+  opacity: 0.78;
+}
+
+.info-hint-trigger:hover,
+.info-hint-trigger:focus-visible {
+  color: #0f766e;
+  background: rgba(20, 184, 166, 0.08);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.08);
+  opacity: 1;
+  outline: none;
+}
+
+.info-hint-popover {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: min(260px, 72vw);
+  transform: translateX(-50%);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+  white-space: normal;
+  z-index: 60;
+}
+
+.info-hint-bottom .info-hint-popover {
+  top: calc(100% + 10px);
+  bottom: auto;
+}
+
+.info-hint-right .info-hint-popover {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
 /* ─── Link button ─── */
 .link-gold {
   color: #B8962F;

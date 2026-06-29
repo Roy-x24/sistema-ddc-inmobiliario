@@ -99,3 +99,25 @@ def desbloquear_cliente(
     cambiar_estado_cliente(db, cliente, "ACTIVO", usuario.correo)
     registrar_auditoria(db, usuario.correo, "DESBLOQUEAR_CLIENTE", id, "BLOQUEADO", "ACTIVO")
     return {"mensaje": "Cliente desbloqueado"}
+
+
+@router.patch("/{id}/revertir-activacion")
+def revertir_activacion(
+    id: str,
+    motivo: str,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("revertir_activacion"))
+):
+    cliente = db.query(Cliente).filter(Cliente.id_cliente == id, Cliente.eliminado == False).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    if not motivo or not motivo.strip():
+        raise HTTPException(status_code=400, detail="El motivo de reversion es obligatorio")
+
+    if cliente.estado != "ACTIVO":
+        raise HTTPException(status_code=400, detail="Solo se puede revertir un cliente ACTIVO")
+
+    cambiar_estado_cliente(db, cliente, "EN_REVISION", usuario.correo)
+    registrar_auditoria(db, usuario.correo, "REVERTIR_ACTIVACION", id, "ACTIVO", f"EN_REVISION: {motivo}")
+    return {"mensaje": "Activacion revertida. El expediente volvio a EN_REVISION"}
