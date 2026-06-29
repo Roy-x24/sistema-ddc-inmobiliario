@@ -52,7 +52,11 @@ export default function OCRPrefillPanel({ result, currentValues = {}, onApplyFie
           const current = currentValues?.[key];
           const changed = String(current || '').trim() && String(current || '').trim() !== String(detected || '').trim();
           return (
-            <div key={key} className={`rounded-xl border p-3 ${changed ? 'border-amber-200 bg-amber-50/60' : 'border-slate-100 bg-slate-50'}`}>
+            <div
+              key={key}
+              data-testid={`ocr-field-${key}`}
+              className={`rounded-xl border p-3 ${changed ? 'border-amber-200 bg-amber-50/60' : 'border-slate-100 bg-slate-50'}`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-xs font-black uppercase tracking-widest text-slate-400">{formatKey(key)}</div>
