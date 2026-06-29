@@ -396,10 +396,12 @@ Pruebas E2E disponibles:
 | `npm run test:smoke` | Login y carga basica del dashboard. |
 | `npm run test:ai` | Admin IA, presets, prueba de proveedor y asistente con busqueda contextual. |
 | `npx playwright test ocr_prefill.spec.js` | Prellenado OCR del empleado, comparación registrado vs detectado y aplicación de campos. |
-| `npm run test:pn` | Pendiente de estabilizar: registro PN y carga documental múltiple. Revisar manualmente por ahora. |
-| `npm run test:pj` | Pendiente de estabilizar: registro PJ, BF y documentos obligatorios. Revisar manualmente por ahora. |
+| `npm run test:pn` | Aviso de QA manual pendiente: registro PN, redirección al expediente y carga documental. No ejecuta el E2E inestable por accidente. |
+| `npm run test:pj` | Aviso de QA manual pendiente: registro PJ, BF y documentos obligatorios. No ejecuta el E2E inestable por accidente. |
+| `npm run test:pn:raw` | Ejecuta el E2E PN inestable para diagnóstico puntual. |
+| `npm run test:pj:raw` | Ejecuta el E2E PJ inestable para diagnóstico puntual. |
 
-Nota de QA: `test:pn` y `test:pj` quedan como pendientes porque el flujo documental múltiple debe revisarse manualmente antes de cerrar automatización. No bloquear la demo por estos comandos; sí validar manualmente registro, redirección al expediente y subida de documentos.
+Nota de QA: `test:pn` y `test:pj` quedan como recordatorios seguros porque el flujo documental múltiple debe revisarse manualmente antes de cerrar automatización. No bloquear la demo por estos comandos; sí validar manualmente registro, redirección al expediente y subida de documentos. Los comandos `:raw` existen para depurar cuando se quiera retomar esa automatización.
 
 ## Estructura del proyecto
 

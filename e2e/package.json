@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "test:pn": "playwright test flujo_pn.spec.js",
-    "test:pj": "playwright test flujo_pj_bf.spec.js",
+    "test:pn": "node -e \"console.log('QA manual pendiente: revisar registro PN, redireccion al expediente y carga documental. Usa npm run test:pn:raw si quieres correr el E2E inestable.')\"",
+    "test:pj": "node -e \"console.log('QA manual pendiente: revisar registro PJ, BF y documentos obligatorios. Usa npm run test:pj:raw si quieres correr el E2E inestable.')\"",
+    "test:pn:raw": "playwright test flujo_pn.spec.js",
+    "test:pj:raw": "playwright test flujo_pj_bf.spec.js",
     "test:ai": "playwright test ai_admin_assistant.spec.js",
     "test:smoke": "playwright test smoke.spec.js",
     "report": "playwright show-report"
