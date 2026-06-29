@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.models.auditoria import Auditoria
 from app.models.beneficiario_final import BeneficiarioFinal
 from app.models.cliente import Cliente
@@ -102,6 +103,8 @@ def dashboard_oficial(db: Session):
     activaciones_auto = db.query(Auditoria).filter(Auditoria.accion == "ACTIVAR_CLIENTE_AUTOMATICO").count()
     pendientes_bf = db.query(BeneficiarioFinal).filter(BeneficiarioFinal.estado_validacion == "PENDIENTE").count()
     docs_observados = db.query(Documento).filter(Documento.estado.in_(["OBSERVADO", "RECHAZADO"])).count()
+    screening_alertas = db.execute(text("SELECT COUNT(*) FROM screening_results WHERE resultado IN ('COINCIDENCIA_FUERTE', 'POSIBLE_COINCIDENCIA')")).scalar() or 0
+    prioridades_criticas = db.execute(text("SELECT COUNT(*) FROM case_priorities WHERE nivel IN ('CRITICA', 'ALTA')")).scalar() or 0
     return {
         "resumen_cumplimiento": resumen,
         "alto_riesgo": resumen.get("ALTO_RIESGO", 0),
@@ -110,6 +113,8 @@ def dashboard_oficial(db: Session):
         "pendientes_bf": pendientes_bf,
         "documentos_observados": docs_observados,
         "activaciones_automaticas": activaciones_auto,
+        "screening_alertas": screening_alertas,
+        "prioridades_criticas": prioridades_criticas,
         "prioridad": bandeja[:20],
         "rechazos_recientes": [
             {

@@ -104,10 +104,63 @@ def asegurar_esquema_automatizacion():
             created_at TIMESTAMP DEFAULT NOW()
         )
         """,
+        """
+        CREATE TABLE IF NOT EXISTS ai_runtime_settings (
+            key VARCHAR PRIMARY KEY,
+            value JSONB NOT NULL,
+            descripcion TEXT,
+            actualizado_por VARCHAR,
+            actualizado_en TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS screening_watchlist (
+            id_watchlist UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            nombre VARCHAR NOT NULL,
+            documento VARCHAR,
+            tipo VARCHAR NOT NULL DEFAULT 'PEP',
+            pais VARCHAR,
+            fuente VARCHAR NOT NULL DEFAULT 'manual',
+            activo BOOLEAN NOT NULL DEFAULT TRUE,
+            metadata_json JSONB,
+            creado_por VARCHAR,
+            creado_en TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS screening_results (
+            id_resultado UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id_cliente UUID NOT NULL REFERENCES clientes(id_cliente) ON DELETE CASCADE,
+            id_watchlist UUID NULL REFERENCES screening_watchlist(id_watchlist) ON DELETE SET NULL,
+            sujeto VARCHAR NOT NULL,
+            documento VARCHAR,
+            tipo VARCHAR NOT NULL,
+            score NUMERIC NOT NULL DEFAULT 0,
+            resultado VARCHAR NOT NULL DEFAULT 'SIN_COINCIDENCIA',
+            evidencia JSONB,
+            provider VARCHAR NOT NULL DEFAULT 'local',
+            model VARCHAR NOT NULL DEFAULT 'local-watchlist-v1',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS case_priorities (
+            id_prioridad UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id_cliente UUID NOT NULL REFERENCES clientes(id_cliente) ON DELETE CASCADE,
+            score NUMERIC NOT NULL DEFAULT 0,
+            nivel VARCHAR NOT NULL DEFAULT 'NORMAL',
+            motivos JSONB NOT NULL DEFAULT '[]'::jsonb,
+            calculado_por VARCHAR NOT NULL DEFAULT 'sistema',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
         "CREATE INDEX IF NOT EXISTS idx_ai_model_runs_cliente ON ai_model_runs(id_cliente)",
         "CREATE INDEX IF NOT EXISTS idx_ai_model_runs_documento ON ai_model_runs(id_documento)",
         "CREATE INDEX IF NOT EXISTS idx_ai_extractions_documento ON ai_extractions(id_documento)",
         "CREATE INDEX IF NOT EXISTS idx_document_embeddings_cliente ON document_embeddings(id_cliente)",
+        "CREATE INDEX IF NOT EXISTS idx_screening_watchlist_nombre ON screening_watchlist(nombre)",
+        "CREATE INDEX IF NOT EXISTS idx_screening_results_cliente ON screening_results(id_cliente)",
+        "CREATE INDEX IF NOT EXISTS idx_case_priorities_cliente ON case_priorities(id_cliente)",
     ]
     with engine.begin() as conn:
         for sentencia in sentencias:

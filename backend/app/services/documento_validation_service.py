@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.models.beneficiario_final import BeneficiarioFinal
 from app.models.cliente import Cliente
@@ -10,6 +11,16 @@ from app.services.auditoria_service import registrar_auditoria
 from app.services.estado_service import obtener_tipos_obligatorios
 
 VERSION_REGLA_DOCUMENTAL = "documental-v1"
+
+
+def _auto_validacion_habilitada(db: Session) -> bool:
+    try:
+        row = db.execute(text("SELECT value FROM ai_runtime_settings WHERE key = 'active'")).mappings().first()
+        if row and row["value"] and row["value"].get("auto_validate_low_risk_documents") is False:
+            return False
+    except Exception:
+        pass
+    return True
 
 
 @dataclass
@@ -162,10 +173,15 @@ def evaluar_documento(db: Session, documento: Documento, ejecutado_por: str = "s
         accion = "DOCUMENTO_OBSERVADO_AUTOMATICO"
         resumen = "Documento observado por motor documental"
         severidad = "warning"
-    else:
+    elif _auto_validacion_habilitada(db):
         documento.estado = "VALIDADO_AUTOMATICO"
         accion = "DOCUMENTO_VALIDADO_AUTOMATICO"
         resumen = "Documento validado automaticamente"
+        severidad = "info"
+    else:
+        documento.estado = "PENDIENTE_VERIFICACION"
+        accion = "REGLA_DOCUMENTAL_EJECUTADA"
+        resumen = "Reglas documentales aprobadas; validacion automatica deshabilitada por Admin"
         severidad = "info"
 
     documento.confianza_validacion = "ALTA" if resultados == {"APROBADO"} else "MEDIA"
