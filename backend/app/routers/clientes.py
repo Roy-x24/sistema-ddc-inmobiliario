@@ -8,6 +8,7 @@ from app.models.persona_juridica import PersonaJuridica
 from app.models.representante_legal import RepresentanteLegal
 from app.models.beneficiario_final import BeneficiarioFinal
 from app.models.observacion import Observacion
+from app.models.documento import Documento
 from app.schemas.cliente import PersonaNaturalCreate, PersonaJuridicaCreate, ClienteListItem
 from app.core.rbac import obtener_usuario_actual, requiere_rol
 from app.models.usuario import Usuario
@@ -16,6 +17,31 @@ from app.services.estado_service import verificar_documentos_para_revision
 from sqlalchemy import or_, func
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
+
+
+def _cliente_list_item(db: Session, c: Cliente) -> ClienteListItem:
+    nombre = None
+    identificacion = None
+    if c.tipo_cliente == "NATURAL":
+        pn = db.query(PersonaNatural).filter(PersonaNatural.id == c.id_cliente).first()
+        if pn:
+            nombre = f"{pn.nombres} {pn.apellidos}"
+            identificacion = pn.numero_documento
+    else:
+        pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == c.id_cliente).first()
+        if pj:
+            nombre = pj.razon_social
+            identificacion = pj.ruc
+    return ClienteListItem(
+        id_cliente=str(c.id_cliente),
+        tipo_cliente=c.tipo_cliente,
+        estado=c.estado,
+        nivel_riesgo=c.nivel_riesgo,
+        fecha_registro=str(c.fecha_registro),
+        registrado_por=c.registrado_por,
+        nombre=nombre,
+        identificacion=identificacion
+    )
 
 
 @router.post("/natural")
@@ -197,6 +223,7 @@ def listar_clientes(
 @router.get("/con-observaciones", response_model=List[ClienteListItem])
 def listar_clientes_con_observaciones(
     tipo: str = "",
+    estado_observacion: str = "",
     db: Session = Depends(obtener_db),
     usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
 ):
@@ -208,33 +235,52 @@ def listar_clientes_con_observaciones(
     )
     if tipo:
         query = query.filter(Cliente.tipo_cliente == tipo.upper())
+    if estado_observacion:
+        query = query.filter(Observacion.estado == estado_observacion.upper())
 
     clientes = query.order_by(Cliente.fecha_registro.desc()).all()
-    resultados = []
-    for c in clientes:
-        nombre = None
-        identificacion = None
-        if c.tipo_cliente == "NATURAL":
-            pn = db.query(PersonaNatural).filter(PersonaNatural.id == c.id_cliente).first()
-            if pn:
-                nombre = f"{pn.nombres} {pn.apellidos}"
-                identificacion = pn.numero_documento
-        else:
-            pj = db.query(PersonaJuridica).filter(PersonaJuridica.id == c.id_cliente).first()
-            if pj:
-                nombre = pj.razon_social
-                identificacion = pj.ruc
-        resultados.append(ClienteListItem(
-            id_cliente=str(c.id_cliente),
-            tipo_cliente=c.tipo_cliente,
-            estado=c.estado,
-            nivel_riesgo=c.nivel_riesgo,
-            fecha_registro=str(c.fecha_registro),
-            registrado_por=c.registrado_por,
-            nombre=nombre,
-            identificacion=identificacion
-        ))
-    return resultados
+    return [_cliente_list_item(db, c) for c in clientes]
+
+
+@router.get("/con-beneficiarios", response_model=List[ClienteListItem])
+def listar_clientes_con_beneficiarios(
+    estado_validacion: str = "",
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
+    query = (
+        db.query(Cliente)
+        .join(BeneficiarioFinal, BeneficiarioFinal.id_cliente == Cliente.id_cliente)
+        .filter(Cliente.eliminado == False, Cliente.tipo_cliente == "JURIDICA")
+        .distinct()
+    )
+    if estado_validacion:
+        query = query.filter(BeneficiarioFinal.estado_validacion == estado_validacion.upper())
+
+    clientes = query.order_by(Cliente.fecha_registro.desc()).all()
+    return [_cliente_list_item(db, c) for c in clientes]
+
+
+@router.get("/con-documentos", response_model=List[ClienteListItem])
+def listar_clientes_con_documentos(
+    tipo: str = "",
+    estado_documento: str = "",
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
+    query = (
+        db.query(Cliente)
+        .join(Documento, Documento.id_cliente == Cliente.id_cliente)
+        .filter(Cliente.eliminado == False)
+        .distinct()
+    )
+    if tipo:
+        query = query.filter(Cliente.tipo_cliente == tipo.upper())
+    if estado_documento:
+        query = query.filter(Documento.estado == estado_documento.upper())
+
+    clientes = query.order_by(Cliente.fecha_registro.desc()).all()
+    return [_cliente_list_item(db, c) for c in clientes]
 
 
 @router.get("/{id}")

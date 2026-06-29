@@ -16,6 +16,7 @@ export default function BeneficiarioFinal() {
   const [estadoCliente, setEstadoCliente] = useState('');
   const [riesgoCliente, setRiesgoCliente] = useState('');
   const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [estadoBeneficiario, setEstadoBeneficiario] = useState('');
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -31,9 +32,26 @@ export default function BeneficiarioFinal() {
     es_pep: false
   });
 
+  const cargarClientes = async (estado = estadoBeneficiario) => {
+    if (estado) {
+      const res = await api.get(`/clientes/con-beneficiarios?estado_validacion=${estado}`);
+      setClientes(res.data || []);
+      return;
+    }
+    const res = await api.get('/clientes/?limit=9999');
+    setClientes(res.data || []);
+  };
+
   useEffect(() => {
-    api.get('/clientes/?limit=9999').then(res => setClientes(res.data || []));
+    cargarClientes();
   }, []);
+
+  useEffect(() => {
+    setClienteId('');
+    setBeneficiarios([]);
+    setPage(1);
+    cargarClientes(estadoBeneficiario);
+  }, [estadoBeneficiario]);
 
   useEffect(() => {
     if (!clienteId || clientes.length === 0) return;
@@ -101,15 +119,19 @@ export default function BeneficiarioFinal() {
 
   const clientesJuridicos = clientes.filter(c => c.tipo_cliente === 'JURIDICA');
   const clienteSeleccionado = clientesJuridicos.find(c => c.id_cliente === clienteId);
-  const beneficiariosPaginados = paginate(beneficiarios, page, pageSize);
+  const beneficiariosFiltrados = beneficiarios.filter((row) => {
+    if (estadoBeneficiario && row.estado_validacion !== estadoBeneficiario) return false;
+    return true;
+  });
+  const beneficiariosPaginados = paginate(beneficiariosFiltrados, page, pageSize);
   const pendientes = beneficiarios.filter(row => row.estado_validacion === 'PENDIENTE').length;
   const aprobados = beneficiarios.filter(row => row.estado_validacion === 'APROBADO').length;
   const rechazados = beneficiarios.filter(row => row.estado_validacion === 'RECHAZADO').length;
 
   useEffect(() => {
-    const totalPages = pageCountFor(beneficiarios, pageSize);
+    const totalPages = pageCountFor(beneficiariosFiltrados, pageSize);
     if (page > totalPages) setPage(totalPages);
-  }, [beneficiarios, page, pageSize]);
+  }, [beneficiariosFiltrados, page, pageSize]);
 
   return (
     <div className="animate-fade-in-up">
@@ -131,6 +153,19 @@ export default function BeneficiarioFinal() {
         </div>
       )}
 
+      <div className="card" style={{ padding: 16, marginTop: 22, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div>
+          <div className="label-upper">Filtro de trabajo</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Encuentra sociedades por estado de validacion de beneficiarios finales.</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => setEstadoBeneficiario('')} className={estadoBeneficiario === '' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Todos</button>
+          <button type="button" onClick={() => setEstadoBeneficiario('PENDIENTE')} className={estadoBeneficiario === 'PENDIENTE' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Pendientes</button>
+          <button type="button" onClick={() => setEstadoBeneficiario('APROBADO')} className={estadoBeneficiario === 'APROBADO' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Aprobados</button>
+          <button type="button" onClick={() => setEstadoBeneficiario('RECHAZADO')} className={estadoBeneficiario === 'RECHAZADO' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Rechazados</button>
+        </div>
+      </div>
+
       <ClienteSelector
         clientes={clientesJuridicos}
         value={clienteId}
@@ -151,21 +186,30 @@ export default function BeneficiarioFinal() {
 
       {clienteSeleccionado && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 16, marginBottom: 20 }}>
-          <div className="card" style={{ padding: 14 }}>
+          <button type="button" onClick={() => { setEstadoBeneficiario(''); setPage(1); }} className="card" style={{ padding: 14, textAlign: 'left', borderColor: estadoBeneficiario === '' ? 'rgba(20,184,166,0.45)' : undefined }}>
             <div className="info-item-label">Registrados</div>
             <div className="info-item-value">{beneficiarios.length}</div>
-          </div>
-          <div className="card" style={{ padding: 14 }}>
+          </button>
+          <button type="button" onClick={() => { setEstadoBeneficiario('PENDIENTE'); setPage(1); }} className="card" style={{ padding: 14, textAlign: 'left', borderColor: estadoBeneficiario === 'PENDIENTE' ? 'rgba(212,175,55,0.65)' : undefined }}>
             <div className="info-item-label">Pendientes</div>
             <div className="info-item-value">{pendientes}</div>
-          </div>
-          <div className="card" style={{ padding: 14 }}>
+          </button>
+          <button type="button" onClick={() => { setEstadoBeneficiario('APROBADO'); setPage(1); }} className="card" style={{ padding: 14, textAlign: 'left', borderColor: estadoBeneficiario === 'APROBADO' ? 'rgba(22,163,74,0.45)' : undefined }}>
             <div className="info-item-label">Aprobados</div>
             <div className="info-item-value">{aprobados}</div>
-          </div>
-          <div className="card" style={{ padding: 14 }}>
+          </button>
+          <button type="button" onClick={() => { setEstadoBeneficiario('RECHAZADO'); setPage(1); }} className="card" style={{ padding: 14, textAlign: 'left', borderColor: estadoBeneficiario === 'RECHAZADO' ? 'rgba(220,38,38,0.45)' : undefined }}>
             <div className="info-item-label">Rechazados</div>
             <div className="info-item-value">{rechazados}</div>
+          </button>
+          <div className="card" style={{ padding: 14 }}>
+            <label className="label-upper">Estado beneficiario</label>
+            <select value={estadoBeneficiario} onChange={e => { setEstadoBeneficiario(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%', marginTop: 6 }}>
+              <option value="">Todos</option>
+              <option value="PENDIENTE">Pendientes</option>
+              <option value="APROBADO">Aprobados</option>
+              <option value="RECHAZADO">Rechazados</option>
+            </select>
           </div>
         </div>
       )}
@@ -245,6 +289,17 @@ export default function BeneficiarioFinal() {
               </tr>
             </thead>
             <tbody>
+              {beneficiariosFiltrados.length === 0 && (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState
+                      icon={UserCheck}
+                      title="Sin beneficiarios para este filtro"
+                      message="Cambia entre pendientes, aprobados, rechazados o todos para revisar el expediente completo."
+                    />
+                  </td>
+                </tr>
+              )}
               {beneficiariosPaginados.map((row) => (
                 <tr key={row.id}>
                   <td>
@@ -287,7 +342,7 @@ export default function BeneficiarioFinal() {
           <PaginationControls
             page={page}
             pageSize={pageSize}
-            total={beneficiarios.length}
+            total={beneficiariosFiltrados.length}
             onPageChange={setPage}
             onPageSizeChange={(value) => {
               setPageSize(value);

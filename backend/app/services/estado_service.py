@@ -123,12 +123,14 @@ def evaluar_requisitos_activacion(
         errores.append("Hay observaciones abiertas pendientes")
 
     if cliente.tipo_cliente == "JURIDICA":
-        bf_aprobado = db.query(BeneficiarioFinal).filter(
+        bf_relevantes = db.query(BeneficiarioFinal).filter(
             BeneficiarioFinal.id_cliente == cliente_id,
-            BeneficiarioFinal.estado_validacion == "APROBADO"
-        ).first()
-        if not bf_aprobado:
+            BeneficiarioFinal.es_relevante == True
+        ).all()
+        if not bf_relevantes:
             errores.append("Faltan beneficiarios finales aprobados")
+        elif any(bf.estado_validacion != "APROBADO" for bf in bf_relevantes):
+            errores.append("Hay beneficiarios finales relevantes pendientes o rechazados")
 
     if not cliente.nivel_riesgo:
         errores.append("Falta clasificacion de riesgo calculada")
@@ -243,12 +245,12 @@ def verificar_bf_para_pendiente(db: Session, cliente_id: str, usuario_sistema: s
     if not cliente or cliente.estado != "PENDIENTE_BF":
         return
 
-    bf_aprobado = db.query(BeneficiarioFinal).filter(
+    bf_relevantes = db.query(BeneficiarioFinal).filter(
         BeneficiarioFinal.id_cliente == cliente_id,
-        BeneficiarioFinal.estado_validacion == "APROBADO"
-    ).first()
+        BeneficiarioFinal.es_relevante == True
+    ).all()
 
-    if bf_aprobado:
+    if bf_relevantes and all(bf.estado_validacion == "APROBADO" for bf in bf_relevantes):
         cambiar_estado_cliente(db, cliente, "PENDIENTE", usuario_sistema)
 
 

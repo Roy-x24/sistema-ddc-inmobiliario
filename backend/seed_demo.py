@@ -430,14 +430,18 @@ def seed_clientes_demo():
 
             conn.execute(text("DELETE FROM beneficiarios_finales WHERE id_cliente = :id"), c)
             for nombre, documento, nacionalidad, porcentaje, tipo_control, es_pep in c["beneficiarios"]:
+                estado_bf = "PENDIENTE" if c["estado"] == "PENDIENTE_BF" else "APROBADO"
                 conn.execute(text("""
                     INSERT INTO beneficiarios_finales (
                         id_cliente, nombre_completo, numero_documento, nacionalidad,
-                        porcentaje_participacion, tipo_control, es_pep, es_relevante
+                        porcentaje_participacion, tipo_control, es_pep, es_relevante,
+                        estado_validacion, validado_por, fecha_validacion
                     )
                     VALUES (
                         :id_cliente, :nombre, :documento, :nacionalidad,
-                        :porcentaje, :tipo_control, :es_pep, :es_relevante
+                        :porcentaje, :tipo_control, :es_pep, :es_relevante,
+                        :estado_validacion, :validado_por,
+                        CASE WHEN :estado_validacion = 'APROBADO' THEN NOW() ELSE NULL END
                     )
                 """), {
                     "id_cliente": c["id"],
@@ -448,6 +452,8 @@ def seed_clientes_demo():
                     "tipo_control": tipo_control,
                     "es_pep": es_pep,
                     "es_relevante": porcentaje >= 25,
+                    "estado_validacion": estado_bf,
+                    "validado_por": OFICIAL_USER if estado_bf == "APROBADO" else None,
                 })
             _insertar_perfiles(conn, c)
 

@@ -29,6 +29,7 @@ export default function Observaciones() {
   const cargarClientesConObservaciones = async (tipo = tipoCliente) => {
     const params = new URLSearchParams();
     if (tipo) params.append('tipo', tipo);
+    if (estadoObservacion) params.append('estado_observacion', estadoObservacion);
     const query = params.toString();
     const res = await api.get(`/clientes/con-observaciones${query ? `?${query}` : ''}`);
     setClientes(res.data || []);
@@ -37,6 +38,13 @@ export default function Observaciones() {
   useEffect(() => {
     cargarClientesConObservaciones();
   }, []);
+
+  useEffect(() => {
+    setClienteId('');
+    setObservaciones([]);
+    setPage(1);
+    cargarClientesConObservaciones();
+  }, [estadoObservacion]);
 
   useEffect(() => {
     if (clienteId) fetchObs(clienteId);
@@ -132,6 +140,18 @@ export default function Observaciones() {
           {error}
         </div>
       )}
+
+      <div className="card" style={{ padding: 16, marginTop: 22, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div>
+          <div className="label-upper">Filtro de trabajo</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Encuentra expedientes por estado de sus observaciones.</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => setEstadoObservacion('')} className={estadoObservacion === '' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Todas</button>
+          <button type="button" onClick={() => setEstadoObservacion('ABIERTA')} className={estadoObservacion === 'ABIERTA' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Abiertas</button>
+          <button type="button" onClick={() => setEstadoObservacion('CERRADA')} className={estadoObservacion === 'CERRADA' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Cerradas</button>
+        </div>
+      </div>
 
       <ClienteSelector
         clientes={clientes}

@@ -35,6 +35,7 @@ export default function Documentos() {
   const [tipoCliente, setTipoCliente] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('');
   const [riesgoFiltro, setRiesgoFiltro] = useState('');
+  const [estadoDocumentoTrabajo, setEstadoDocumentoTrabajo] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [docs, setDocs] = useState([]);
   const [archivo, setArchivo] = useState(null);
@@ -44,9 +45,29 @@ export default function Documentos() {
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
 
+  const cargarClientes = async (estadoDocumento = estadoDocumentoTrabajo, tipo = tipoCliente) => {
+    if (estadoDocumento) {
+      const params = new URLSearchParams();
+      params.append('estado_documento', estadoDocumento);
+      if (tipo) params.append('tipo', tipo);
+      const res = await api.get(`/clientes/con-documentos?${params.toString()}`);
+      setClientes(res.data || []);
+      return;
+    }
+    const res = await api.get('/clientes/?limit=9999');
+    setClientes(res.data || []);
+  };
+
   useEffect(() => {
-    api.get('/clientes/?limit=9999').then(res => setClientes(res.data || []));
+    cargarClientes();
   }, []);
+
+  useEffect(() => {
+    setClienteId('');
+    setDocs([]);
+    setPage(1);
+    cargarClientes(estadoDocumentoTrabajo, tipoCliente);
+  }, [estadoDocumentoTrabajo]);
 
   useEffect(() => {
     if (clienteId) cargarDocs(clienteId);
@@ -160,12 +181,26 @@ export default function Documentos() {
         </div>
       )}
 
+      <div className="card" style={{ padding: 16, marginTop: 22, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div>
+          <div className="label-upper">Filtro de trabajo</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Encuentra expedientes por estado de sus documentos.</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => setEstadoDocumentoTrabajo('')} className={estadoDocumentoTrabajo === '' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Todos</button>
+          <button type="button" onClick={() => setEstadoDocumentoTrabajo('PENDIENTE_VERIFICACION')} className={estadoDocumentoTrabajo === 'PENDIENTE_VERIFICACION' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Pendientes</button>
+          <button type="button" onClick={() => setEstadoDocumentoTrabajo('OBSERVADO')} className={estadoDocumentoTrabajo === 'OBSERVADO' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Observados</button>
+          <button type="button" onClick={() => setEstadoDocumentoTrabajo('RECHAZADO')} className={estadoDocumentoTrabajo === 'RECHAZADO' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Rechazados</button>
+          <button type="button" onClick={() => setEstadoDocumentoTrabajo('VALIDADO_AUTOMATICO')} className={estadoDocumentoTrabajo === 'VALIDADO_AUTOMATICO' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Validados</button>
+        </div>
+      </div>
+
       <ClienteSelector
         clientes={clientes}
         value={clienteId}
         onChange={(id) => { setClienteId(id); setDocs([]); setPage(1); }}
         tipo={tipoCliente}
-        onTipoChange={(value) => { setTipoCliente(value); setClienteId(''); setDocs([]); setPage(1); }}
+        onTipoChange={(value) => { setTipoCliente(value); setClienteId(''); setDocs([]); setPage(1); cargarClientes(estadoDocumentoTrabajo, value); }}
         estado={estadoFiltro}
         onEstadoChange={(value) => { setEstadoFiltro(value); setClienteId(''); setDocs([]); setPage(1); }}
         riesgo={riesgoFiltro}
