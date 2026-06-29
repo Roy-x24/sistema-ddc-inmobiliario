@@ -1,4 +1,4 @@
-    # Actores y responsabilidades
+# Actores y responsabilidades
 
 ## Empleado
 
