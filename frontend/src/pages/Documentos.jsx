@@ -180,7 +180,11 @@ export default function Documentos() {
         tone: 'success',
         actionLabel: 'Aprobar',
         confirmText: 'APROBAR',
-        details: baseDetails,
+        confirmHelp: 'Escribe APROBAR para dejar trazabilidad de la verificacion manual.',
+        details: [
+          ...baseDetails,
+          `Efecto esperado: el documento quedara VERIFICADO_MANUAL y podra desbloquear requisitos del expediente.`,
+        ],
       });
       return;
     }
@@ -195,7 +199,11 @@ export default function Documentos() {
       reasonLabel: 'Motivo de rechazo',
       reasonPlaceholder: 'Ej: ilegible, vencido, datos no coinciden, documento incorrecto...',
       confirmText: 'RECHAZAR',
-      details: baseDetails,
+      confirmHelp: 'Escribe RECHAZAR para confirmar una decision que bloquea el requisito documental.',
+      details: [
+        ...baseDetails,
+        `Efecto esperado: el documento quedara RECHAZADO y el expediente seguira bloqueado hasta correccion.`,
+      ],
     });
   };
 
@@ -385,7 +393,7 @@ export default function Documentos() {
                   )}
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                     <button onClick={() => extraerAI(d.id_documento)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                       <Bot className="h-3.5 w-3.5" /> OCR/IA
                     </button>

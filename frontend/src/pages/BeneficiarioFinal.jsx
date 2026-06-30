@@ -130,6 +130,9 @@ export default function BeneficiarioFinal() {
       actionLabel: esAprobacion ? 'Aprobar beneficiario' : 'Rechazar beneficiario',
       tone: esAprobacion ? 'success' : 'danger',
       confirmText: esAprobacion ? 'APROBAR' : 'RECHAZAR',
+      confirmHelp: esAprobacion
+        ? 'Escribe APROBAR para confirmar que el BF fue revisado por cumplimiento.'
+        : 'Escribe RECHAZAR para bloquear este BF y conservar el motivo en trazabilidad.',
       requireReason: !esAprobacion
     });
   };
@@ -357,7 +360,7 @@ export default function BeneficiarioFinal() {
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     {['oficial_cumplimiento', 'admin'].includes(usuario?.rol) && row.estado_validacion === 'PENDIENTE' ? (
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                         <button onClick={() => abrirDecision('aprobar', row)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
                         </button>
@@ -395,12 +398,20 @@ export default function BeneficiarioFinal() {
         reasonLabel="Motivo"
         reasonPlaceholder="Explica el criterio aplicado..."
         confirmText={decision?.confirmText}
-        confirmHelp="Esto deja trazabilidad de la decisión sobre el beneficiario final."
+        confirmHelp={decision?.confirmHelp}
         details={decision?.beneficiario ? [
           { label: 'Beneficiario', value: decision.beneficiario.nombre_completo },
           { label: 'Documento', value: decision.beneficiario.numero_documento },
           { label: 'Participacion', value: `${decision.beneficiario.porcentaje_participacion}%` },
-          { label: 'Estado actual', value: decision.beneficiario.estado_validacion }
+          { label: 'Relevante', value: decision.beneficiario.es_relevante ? 'Si' : 'No' },
+          { label: 'PEP', value: decision.beneficiario.es_pep ? 'Si' : 'No' },
+          { label: 'Estado actual', value: decision.beneficiario.estado_validacion },
+          {
+            label: 'Efecto esperado',
+            value: decision.accion === 'aprobar'
+              ? 'Si todos los BF relevantes quedan aprobados, la PJ puede avanzar.'
+              : 'El expediente queda bloqueado hasta corregir o justificar el BF.'
+          }
         ] : []}
         onClose={() => setDecision(null)}
         onConfirm={confirmarDecision}

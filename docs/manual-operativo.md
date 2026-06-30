@@ -17,6 +17,18 @@
 6. Activar o rechazar expedientes desde Activacion. El rechazo es una salida formal para expedientes pre-activacion en `PENDIENTE_BF`, `PENDIENTE`, `EN_REVISION` u `OBSERVADO`, siempre con motivo obligatorio.
 7. Gestionar bloqueos, desbloqueos y reversión de activación desde Post-activacion.
 
+## Acciones sensibles
+
+Las acciones sensibles no deben ejecutarse con botones directos silenciosos. Deben abrir un modal de confirmacion con contexto, efecto esperado y, cuando aplica, motivo obligatorio.
+
+Acciones cubiertas:
+
+- aprobar o rechazar documentos
+- aprobar o rechazar beneficiarios finales
+- activar, rechazar, bloquear, desbloquear o revertir activacion de clientes
+
+El modal debe mostrar informacion suficiente para que el usuario entienda que esta cambiando y por que queda auditado. Para acciones de mayor impacto se exige escribir una frase corta como `APROBAR`, `RECHAZAR` o la confirmacion definida por la pantalla.
+
 ## Regla operativa de BF relevante
 
 Un expediente juridico no debe activarse con BF relevantes pendientes o rechazados. En esta version, `es_relevante` se calcula por porcentaje de participacion mayor o igual a 25%.
