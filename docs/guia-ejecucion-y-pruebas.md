@@ -58,6 +58,21 @@ Ejecutar manualmente:
 docker-compose exec backend python seed_demo.py
 ```
 
+Validar coherencia del seed:
+
+```bash
+docker-compose exec backend python validate_seed_demo.py
+```
+
+El validador falla si encuentra casos demo incoherentes, por ejemplo:
+
+- clientes activos con documentos obligatorios pendientes/rechazados
+- clientes activos con observaciones abiertas
+- personas juridicas activas con BF relevantes no aprobados
+- expedientes `PENDIENTE_BF` sin BF relevante pendiente
+- expedientes `EN_REVISION` con bloqueos basicos
+- expedientes `OBSERVADO` sin excepcion visible
+
 ## Modo IA/OCR recomendado para demo
 
 Sin llaves externas:

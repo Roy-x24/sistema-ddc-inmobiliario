@@ -544,8 +544,18 @@ def _crear_archivo_demo(nombre_archivo, contenido):
     return ruta
 
 def _insertar_documentos(conn, c):
-    estados = ["VERIFICADO", "VERIFICADO", "PENDIENTE_VERIFICACION", "VERIFICADO", "RECHAZADO"]
-    for indice, tipo_documento in enumerate(_tipos_documento(c), start=1):
+    tipos = _tipos_documento(c)
+    estados_por_estado = {
+        "PENDIENTE": ["VERIFICADO", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION"],
+        "PENDIENTE_BF": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "PENDIENTE_VERIFICACION"],
+        "EN_REVISION": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "PENDIENTE_VERIFICACION"],
+        "OBSERVADO": ["VERIFICADO", "OBSERVADO", "VERIFICADO", "RECHAZADO", "PENDIENTE_VERIFICACION"],
+        "ACTIVO": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO"],
+        "BLOQUEADO": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO"],
+        "RECHAZADO": ["VERIFICADO", "RECHAZADO", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION"],
+    }
+    estados = estados_por_estado.get(c["estado"], estados_por_estado["PENDIENTE"])
+    for indice, tipo_documento in enumerate(tipos, start=1):
         formato = "PDF" if indice != 4 else "PNG"
         extension = formato.lower()
         nombre_base = c.get("numero_documento") or c.get("ruc")
@@ -556,6 +566,11 @@ def _insertar_documentos(conn, c):
         ).encode("utf-8")
         ruta = _crear_archivo_demo(f"demo_{nombre_archivo}", contenido)
         estado = estados[indice - 1]
+        motivo_rechazo = None
+        if estado == "RECHAZADO":
+            motivo_rechazo = "Documento ilegible o inconsistente, favor subir una version actualizada"
+        elif estado == "OBSERVADO":
+            motivo_rechazo = "Documento requiere aclaracion antes de continuar"
         conn.execute(text("""
             INSERT INTO documentos (
                 id_cliente, tipo_documento, nombre_archivo, ruta_archivo, hash_sha256,
@@ -578,25 +593,30 @@ def _insertar_documentos(conn, c):
             "formato": formato,
             "estado": estado,
             "usuario_verificador": OFICIAL_USER,
-            "motivo_rechazo": "Documento ilegible, favor subir una version actualizada" if estado == "RECHAZADO" else None,
+            "motivo_rechazo": motivo_rechazo,
         })
 
 def _insertar_observaciones(conn, c):
-    if c["estado"] not in ("OBSERVADO", "EN_REVISION", "ACTIVO"):
+    if c["estado"] not in ("OBSERVADO", "ACTIVO"):
         return
 
-    observaciones = [
-        {
-            "descripcion": "Validar consistencia entre ingresos declarados y monto estimado de la operacion.",
-            "respuesta": "Se adjunto soporte actualizado y referencia bancaria para sustentar la operacion.",
-            "estado": "CERRADA" if c["estado"] == "ACTIVO" else "ABIERTA",
-        }
-    ]
-    if c["nivel_riesgo"] == "ALTO":
+    observaciones = []
+    if c["estado"] == "OBSERVADO":
         observaciones.append({
-            "descripcion": "Revisar factores de riesgo alto antes de continuar con la aprobacion.",
+            "descripcion": "Validar consistencia entre ingresos declarados y monto estimado de la operacion.",
             "respuesta": None,
             "estado": "ABIERTA",
+        })
+        observaciones.append({
+            "descripcion": "Revisar excepciones documentales antes de devolver el expediente a revision.",
+            "respuesta": None,
+            "estado": "ABIERTA",
+        })
+    elif c["estado"] == "ACTIVO":
+        observaciones.append({
+            "descripcion": "Observacion historica cerrada antes de la activacion.",
+            "respuesta": "Soporte revisado y aceptado por cumplimiento.",
+            "estado": "CERRADA",
         })
 
     for obs in observaciones:
