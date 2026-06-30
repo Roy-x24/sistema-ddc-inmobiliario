@@ -41,13 +41,13 @@ function OperativeLayout({ children }) {
         onClose={() => setSidebarOpen(false)}
         desktopCollapsed={sidebarCollapsed}
       />
-      <div className={`flex-1 transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
+      <div className={`min-w-0 flex-1 overflow-x-hidden transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
         <Navbar
           onMenuClick={() => setSidebarOpen(true)}
           desktopCollapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
         />
-        <main className="mt-20 px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pt-8">
+        <main className="mt-20 min-w-0 px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pt-8">
           {children}
         </main>
       </div>

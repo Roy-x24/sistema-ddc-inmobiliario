@@ -5,6 +5,9 @@ uploads/
 node_modules/
 dist/
 *.log
+e2e/artifacts/
+e2e/playwright-report/
+e2e/test-results/
 
 # Python
 __pycache__/

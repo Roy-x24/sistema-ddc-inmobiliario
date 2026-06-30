@@ -364,6 +364,8 @@ input, select, textarea {
   border-radius: 12px;
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  min-width: 0;
 }
 .card:hover {
   box-shadow: 0 8px 30px rgba(6, 16, 36, 0.1);
@@ -376,10 +378,15 @@ input, select, textarea {
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 12px;
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 .table-container table {
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -648,7 +655,6 @@ input[type="file"].input-field::file-selector-button {
 
 .sidebar-shell {
   contain: paint;
-  transform: translateZ(0);
   backface-visibility: hidden;
   will-change: transform, width;
 }

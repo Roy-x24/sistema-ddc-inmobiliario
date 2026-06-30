@@ -115,6 +115,7 @@ cd e2e
 npm install
 npm run test:smoke
 npm run test:ai
+npm run audit:visual
 npx playwright test ocr_prefill.spec.js
 ```
 
@@ -122,11 +123,14 @@ npx playwright test ocr_prefill.spec.js
 |---------|-----|
 | `npm run test:smoke` | Login y carga del dashboard. |
 | `npm run test:ai` | Admin IA, presets, prueba de proveedor y asistente. |
+| `npm run audit:visual` | Captura pantallas clave en desktop y movil para empleado, oficial y admin. |
 | `npx playwright test ocr_prefill.spec.js` | Prellenado OCR y comparacion de datos detectados. |
 | `npm run test:pn` | Recordatorio de QA manual PN. |
 | `npm run test:pj` | Recordatorio de QA manual PJ. |
 | `npm run test:pn:raw` | E2E PN inestable para diagnostico. |
 | `npm run test:pj:raw` | E2E PJ inestable para diagnostico. |
+
+La auditoria visual guarda capturas en `e2e/artifacts/visual-audit/`. Ese directorio esta ignorado por Git porque son evidencias locales de revision, no codigo fuente.
 
 ## QA manual pendiente
 

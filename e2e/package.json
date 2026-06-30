@@ -10,6 +10,7 @@
     "test:pn:raw": "playwright test flujo_pn.spec.js",
     "test:pj:raw": "playwright test flujo_pj_bf.spec.js",
     "test:ai": "playwright test ai_admin_assistant.spec.js",
+    "audit:visual": "playwright test visual_audit.spec.js --workers=1",
     "test:smoke": "playwright test smoke.spec.js",
     "report": "playwright show-report"
   },
