@@ -95,7 +95,11 @@ export default function DetalleExpediente() {
         <AIAssistantPanel
           clienteId={id}
           tipoCliente={cliente.tipo_cliente}
-          actions={['resumen', 'observacion', 'beneficiarios', 'screening', 'prioridad', 'buscar']}
+          context="expediente"
+          metadata={{
+            estado: cliente.estado,
+            riesgo: cliente.nivel_riesgo,
+          }}
         />
       </div>
 

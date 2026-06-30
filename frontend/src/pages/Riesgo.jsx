@@ -148,7 +148,11 @@ export default function Riesgo() {
           <AIAssistantPanel
             clienteId={clienteId}
             tipoCliente={clienteSeleccionado.tipo_cliente}
-            actions={['resumen', 'screening', 'prioridad', 'observacion', 'buscar']}
+            context="riesgo"
+            metadata={{
+              estado: clienteSeleccionado.estado,
+              riesgo: riesgo?.nivel_riesgo || clienteSeleccionado.nivel_riesgo,
+            }}
             title="Asistente IA de riesgo"
           />
         </div>

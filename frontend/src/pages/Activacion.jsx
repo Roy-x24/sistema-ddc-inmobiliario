@@ -378,7 +378,11 @@ export default function Activacion() {
           <AIAssistantPanel
             clienteId={clienteAsistido.id_cliente}
             tipoCliente={clienteAsistido.tipo_cliente}
-            actions={['resumen', 'screening', 'prioridad', 'observacion', 'buscar']}
+            context="activacion"
+            metadata={{
+              estado: clienteAsistido.estado,
+              riesgo: clienteAsistido.nivel_riesgo,
+            }}
             title={`Asistente IA para activar: ${clienteAsistido.nombre || clienteAsistido.identificacion || 'expediente'}`}
           />
         </div>

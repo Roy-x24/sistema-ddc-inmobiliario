@@ -84,6 +84,30 @@ Flujo:
 
 Esto mantiene la UX operativa aunque un proveedor externo falle y evita que un error de IA bloquee la demo.
 
+## UX contextual de IA por pantalla
+
+El frontend no debe mostrar un panel generico con todos los botones IA en cada pantalla. `AIAssistantPanel` recibe un `context` y ajusta titulo, descripcion, accion principal, acciones secundarias y busqueda segun el flujo operativo.
+
+| Contexto | Pantalla | Acciones IA principales | Acciones evitadas |
+|----------|----------|-------------------------|-------------------|
+| `cumplimiento` | Bandeja del Oficial | resumen operativo, prioridad, screening, busqueda de contexto, observacion sugerida si aplica, BF si el cliente es juridico | botones sin relacion con la cola actual |
+| `documentos` | Documentos | resumen documental, observacion desde discrepancia, busqueda documental, BF solo si aplica por documento/cliente | prioridad como accion principal, screening generico |
+| `beneficiarios` | Beneficiarios Finales | detectar BF sugeridos, screening, explicar relevancia, buscar evidencia societaria | aprobar BF automaticamente, observacion generica |
+| `observaciones` | Observaciones | sugerir respuesta/cierre, resumir conversacion, buscar evidencia | screening y detectar BF como acciones principales |
+| `riesgo` | Riesgo | explicar riesgo, prioridad, screening si hay relacion PEP/sanciones, buscar evidencia | detectar BF salvo que el riesgo dependa de beneficiarios |
+| `activacion` | Activacion | resumen previo, checklist de bloqueos, alto riesgo/screening, resolver observaciones, validar BF segun estado | acciones IA que parezcan activar o rechazar por si solas |
+| `post_activacion` | Post-activacion | resumen historico, buscar eventos, sugerir motivo de bloqueo/reversion | ejecutar bloqueos o reversiones automaticamente |
+| `expediente` | Detalle expediente | resumen, busqueda, screening y sugerencias de soporte | decisiones operativas directas |
+
+Reglas de UX:
+
+- La IA sugiere, resume, compara, prioriza y busca evidencia.
+- Las acciones sensibles siguen usando modales humanos y auditoria funcional.
+- Si una sugerencia IA necesita un flujo que aun no existe, el CTA se muestra deshabilitado con nota `pendiente/TODO`; no se simula una accion falsa.
+- Los BF sugeridos deben convertirse en formulario editable, nunca aprobarse automaticamente.
+- Las observaciones sugeridas deben ser editables antes de enviarse o cerrarse.
+- Embeddings y busqueda de contexto no participan en activacion, rechazo, riesgo ni validacion final de BF.
+
 ## Diagramas
 
 ### Arquitectura general

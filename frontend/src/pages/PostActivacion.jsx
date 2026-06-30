@@ -220,7 +220,11 @@ export default function PostActivacion() {
           <AIAssistantPanel
             clienteId={clienteAsistido.id_cliente}
             tipoCliente={clienteAsistido.tipo_cliente}
-            actions={['resumen', 'screening', 'prioridad', 'observacion', 'buscar']}
+            context="post_activacion"
+            metadata={{
+              estado: clienteAsistido.estado,
+              riesgo: clienteAsistido.nivel_riesgo,
+            }}
             title={`Asistente IA post-activacion: ${clienteAsistido.nombre || clienteAsistido.identificacion}`}
           />
         </div>

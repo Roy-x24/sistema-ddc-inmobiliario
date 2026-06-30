@@ -195,7 +195,12 @@ export default function Cumplimiento() {
           <AIAssistantPanel
             clienteId={clienteAsistido.id_cliente}
             tipoCliente={clienteAsistido.tipo_cliente}
-            actions={['resumen', 'screening', 'prioridad', 'observacion', 'beneficiarios', 'buscar']}
+            context="cumplimiento"
+            metadata={{
+              cola: clienteAsistido.cola || cola,
+              estado: clienteAsistido.estado,
+              riesgo: clienteAsistido.nivel_riesgo,
+            }}
             title={`Asistente IA de cumplimiento: ${clienteAsistido.nombre || clienteAsistido.identificacion}`}
           />
         </div>

@@ -192,7 +192,11 @@ export default function Observaciones() {
           <AIAssistantPanel
             clienteId={clienteId}
             tipoCliente={clienteSeleccionado.tipo_cliente}
-            actions={['observacion', 'resumen', 'prioridad', 'buscar']}
+            context="observaciones"
+            metadata={{
+              estado: clienteSeleccionado.estado,
+              riesgo: clienteSeleccionado.nivel_riesgo,
+            }}
             title="Asistente IA de observaciones"
           />
         </div>

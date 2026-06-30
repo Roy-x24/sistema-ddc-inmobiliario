@@ -325,7 +325,11 @@ export default function Documentos() {
           <AIAssistantPanel
             clienteId={clienteId}
             tipoCliente={clienteSeleccionado.tipo_cliente}
-            actions={['resumen', 'observacion', 'screening', 'prioridad', 'buscar']}
+            context="documentos"
+            metadata={{
+              estado: clienteSeleccionado.estado,
+              riesgo: clienteSeleccionado.nivel_riesgo,
+            }}
             title="Asistente IA documental"
           />
         </div>

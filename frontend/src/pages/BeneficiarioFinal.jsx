@@ -215,7 +215,11 @@ export default function BeneficiarioFinal() {
           <AIAssistantPanel
             clienteId={clienteId}
             tipoCliente="JURIDICA"
-            actions={['beneficiarios', 'screening', 'prioridad', 'resumen', 'buscar']}
+            context="beneficiarios"
+            metadata={{
+              estado: clienteSeleccionado.estado,
+              riesgo: clienteSeleccionado.nivel_riesgo,
+            }}
             title="Asistente IA para beneficiarios finales"
           />
         </div>
