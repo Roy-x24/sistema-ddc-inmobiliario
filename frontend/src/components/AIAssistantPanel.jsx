@@ -2,6 +2,7 @@ import { useState } from 'react';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { Bot, CheckSquare, FileSearch, ListChecks, MessageSquarePlus, Search, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
+import InfoHint from './InfoHint';
 
 const ACTIONS = {
   resumen: { label: 'Resumen operativo', icon: Sparkles, endpoint: (id) => `/ai/clientes/${id}/resumen-operativo` },
@@ -19,6 +20,13 @@ const ACTION_HINTS = {
   screening: 'Compara cliente/BF contra la lista local PEP/sanciones.',
   prioridad: 'Calcula urgencia con reglas, bloqueos y alertas.',
   buscar: 'Busca evidencia relacionada en documentos indexados.',
+};
+
+const GUARDRAIL_HINTS = {
+  'JSON estricto': 'La salida se valida contra un formato esperado. Si el proveedor responde algo inesperado, se marca para revision.',
+  'Temperatura baja': 'Reduce creatividad para obtener respuestas mas consistentes y repetibles.',
+  'Revision humana': 'La IA no ejecuta decisiones finales: una persona autorizada confirma acciones sensibles.',
+  'Auditable': 'Cada corrida registra proveedor, modelo, confianza, errores y evidencia resumida.',
 };
 
 const CONTEXTS = {
@@ -150,11 +158,11 @@ const ACTION_COPY = {
 
 const ROLE_ACTIONS = {
   empleado: {
-    default: ['resumen', 'buscar'],
-    documentos: ['resumen', 'buscar'],
-    beneficiarios: ['beneficiarios', 'resumen', 'buscar'],
-    observaciones: ['observacion', 'resumen', 'buscar'],
-    expediente: ['resumen', 'buscar'],
+    default: [],
+    documentos: [],
+    beneficiarios: [],
+    observaciones: [],
+    expediente: [],
   },
   oficial_cumplimiento: {
     default: ['resumen', 'prioridad', 'screening', 'buscar', 'observacion', 'beneficiarios'],
@@ -230,6 +238,12 @@ function buildActionPlan({ context, config, explicitActions, tipoCliente, rol })
     .filter((key) => key !== 'beneficiarios' || tipoCliente === 'JURIDICA' || context === 'documentos');
 }
 
+function canShowPanelForRole(rol, context, visibleActions) {
+  if (rol === 'empleado') return false;
+  if (rol === 'auditor') return visibleActions.length > 0;
+  return visibleActions.length > 0 || context === 'cumplimiento';
+}
+
 export default function AIAssistantPanel({
   clienteId,
   tipoCliente,
@@ -248,6 +262,8 @@ export default function AIAssistantPanel({
   const rol = usuario?.rol || 'empleado';
   const visibleActions = buildActionPlan({ context, config, explicitActions: actions, tipoCliente, rol });
   const primaryAction = visibleActions.includes(config.primary) ? config.primary : visibleActions[0];
+
+  if (!canShowPanelForRole(rol, context, visibleActions)) return null;
 
   const run = async (key) => {
     if (!clienteId) return;
@@ -276,21 +292,30 @@ export default function AIAssistantPanel({
             <Bot className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-950">{title || config.title}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-950">{title || config.title}</h2>
+              <InfoHint label="Como usar este asistente IA" side="bottom">
+                La IA ayuda a resumir, buscar evidencia y preparar insumos. No activa, rechaza, valida BF ni cambia riesgo sin una accion humana autorizada.
+              </InfoHint>
+            </div>
             <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
               {description || config.description}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {['JSON estricto', 'Temperatura baja', 'Revision humana', 'Auditable'].map((item) => (
-                <span key={item} className="rounded-full border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-teal-700">
+                <span key={item} className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-teal-700">
                   {item}
+                  <InfoHint label={`Que significa ${item}`} side="bottom">{GUARDRAIL_HINTS[item]}</InfoHint>
                 </span>
               ))}
             </div>
           </div>
         </div>
-        <span className="rounded-lg border border-teal-200 bg-white px-2.5 py-1 text-xs font-black uppercase tracking-widest text-teal-700">
+        <span className="inline-flex items-center gap-1 rounded-lg border border-teal-200 bg-white px-2.5 py-1 text-xs font-black uppercase tracking-widest text-teal-700">
           Asistido
+          <InfoHint label="Que significa asistido" side="bottom">
+            Significa que el sistema puede generar apoyo operativo, pero la decision final queda en reglas y usuarios autorizados.
+          </InfoHint>
         </span>
       </div>
 
@@ -333,7 +358,12 @@ export default function AIAssistantPanel({
 
       {visibleActions.includes('buscar') && (
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white/80 p-3">
-          <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">{config.searchLabel || 'Buscar evidencia del expediente'}</label>
+          <label className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-slate-400">
+            {config.searchLabel || 'Buscar evidencia del expediente'}
+            <InfoHint label="Busqueda semantica" side="bottom">
+              Usa embeddings para encontrar contexto parecido en documentos, observaciones y auditoria. No participa en activaciones, rechazos ni riesgo.
+            </InfoHint>
+          </label>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             <input
               value={query}

@@ -61,6 +61,7 @@ export default function DetalleExpediente() {
     { label: 'Beneficiarios', icon: UserCheck, path: `/beneficiarios/${id}`, roles: ['empleado', 'oficial_cumplimiento'], tipos: ['JURIDICA'] },
     { label: 'Activación', icon: AlertTriangle, path: `/activacion/${id}`, roles: ['oficial_cumplimiento'] },
   ];
+  const puedeUsarIAExpediente = ['oficial_cumplimiento', 'admin', 'auditor'].includes(usuario?.rol);
 
   return (
     <div className="animate-fade-in-up">
@@ -85,23 +86,27 @@ export default function DetalleExpediente() {
             {a.label}
           </button>
         ))}
-        <button onClick={generarResumenAI} className="btn-primary" style={{ padding: '8px 14px', fontSize: 12 }}>
-          <Bot className="h-3.5 w-3.5" />
-          Resumen IA
-        </button>
+        {puedeUsarIAExpediente && (
+          <button onClick={generarResumenAI} className="btn-primary" style={{ padding: '8px 14px', fontSize: 12 }}>
+            <Bot className="h-3.5 w-3.5" />
+            Resumen IA
+          </button>
+        )}
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <AIAssistantPanel
-          clienteId={id}
-          tipoCliente={cliente.tipo_cliente}
-          context="expediente"
-          metadata={{
-            estado: cliente.estado,
-            riesgo: cliente.nivel_riesgo,
-          }}
-        />
-      </div>
+      {puedeUsarIAExpediente && (
+        <div style={{ marginBottom: 20 }}>
+          <AIAssistantPanel
+            clienteId={id}
+            tipoCliente={cliente.tipo_cliente}
+            context="expediente"
+            metadata={{
+              estado: cliente.estado,
+              riesgo: cliente.nivel_riesgo,
+            }}
+          />
+        </div>
+      )}
 
       {checklist && (
         <div className="card" style={{ padding: 22, marginBottom: 20 }}>

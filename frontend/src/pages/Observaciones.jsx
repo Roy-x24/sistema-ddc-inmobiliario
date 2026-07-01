@@ -8,6 +8,7 @@ import PaginationControls from '../components/PaginationControls';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import DecisionModal from '../components/DecisionModal';
 import ExpedienteChecklistPanel from '../components/ExpedienteChecklistPanel';
+import InfoHint from '../components/InfoHint';
 import { MessageSquare, Send, Lock, Unlock, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -207,7 +208,12 @@ export default function Observaciones() {
 
       <div className="card" style={{ padding: 16, marginTop: 22, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div>
-          <div className="label-upper">Filtro de trabajo</div>
+          <div className="label-upper" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Filtro de trabajo
+            <InfoHint label="Estados de observaciones" side="bottom">
+              Sin respuesta requiere accion del Empleado. Respondida requiere revision del Oficial. Cerrada queda como historial auditado.
+            </InfoHint>
+          </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Encuentra expedientes por estado de sus observaciones.</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -237,17 +243,41 @@ export default function Observaciones() {
       />
 
       {clienteSeleccionado && (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]" style={{ marginTop: 18 }}>
-          <AIAssistantPanel
-            clienteId={clienteId}
-            tipoCliente={clienteSeleccionado.tipo_cliente}
-            context="observaciones"
-            metadata={{
-              estado: clienteSeleccionado.estado,
-              riesgo: clienteSeleccionado.nivel_riesgo,
-            }}
-            title="Asistente IA de observaciones"
-          />
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(460px,0.58fr)]" style={{ marginTop: 18 }}>
+          {usuario?.rol === 'empleado' ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-black text-slate-950">Respuesta del Empleado</h2>
+                    <InfoHint label="Responsabilidad del Empleado" side="bottom">
+                      El Empleado responde observaciones y adjunta soportes. El Oficial decide si la respuesta cierra el bloqueo.
+                    </InfoHint>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+                    Revisa las observaciones abiertas, corrige datos o documentos y registra una respuesta clara. La IA de criterio de cumplimiento queda reservada para el Oficial.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-800">
+                Siguiente paso: responde las observaciones sin respuesta. Si el Oficial necesita mas evidencia, la observacion seguira abierta.
+              </div>
+            </div>
+          ) : (
+            <AIAssistantPanel
+              clienteId={clienteId}
+              tipoCliente={clienteSeleccionado.tipo_cliente}
+              context="observaciones"
+              metadata={{
+                estado: clienteSeleccionado.estado,
+                riesgo: clienteSeleccionado.nivel_riesgo,
+              }}
+              title="Asistente IA de observaciones"
+            />
+          )}
           <ExpedienteChecklistPanel
             clienteId={clienteId}
             title="Bloqueos por observaciones"

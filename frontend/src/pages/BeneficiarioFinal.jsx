@@ -225,7 +225,7 @@ export default function BeneficiarioFinal() {
         showTipoFilter={false}
       />
 
-      {clienteSeleccionado && (
+      {clienteSeleccionado && ['oficial_cumplimiento', 'admin', 'auditor'].includes(usuario?.rol) && (
         <div style={{ marginTop: 18 }}>
           <AIAssistantPanel
             clienteId={clienteId}
