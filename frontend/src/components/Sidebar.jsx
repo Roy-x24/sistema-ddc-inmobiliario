@@ -8,8 +8,9 @@ import {
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['empleado', 'oficial_cumplimiento'] },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/auditor/dashboard', roles: ['auditor'] },
   { label: 'Notificaciones', icon: Bell, path: '/notificaciones', roles: ['empleado', 'oficial_cumplimiento', 'auditor'] },
-  { label: 'Cumplimiento', icon: Shield, path: '/cumplimiento', roles: ['oficial_cumplimiento', 'auditor'] },
+  { label: 'Cumplimiento', icon: Shield, path: '/cumplimiento', roles: ['oficial_cumplimiento'] },
   { label: 'Activacion', icon: AlertTriangle, path: '/activacion', roles: ['oficial_cumplimiento'] },
   { label: 'Post-activacion', icon: Lock, path: '/post-activacion', roles: ['oficial_cumplimiento'] },
   { label: 'Riesgo', icon: Shield, path: '/riesgo', roles: ['oficial_cumplimiento'] },
@@ -46,12 +47,12 @@ const empleadoNavOrder = [
 
 const navItemGroups = {
   dashboard: navItems[0],
-  notificaciones: navItems[1],
-  documentos: navItems[7],
-  beneficiarios: navItems[8],
-  observaciones: navItems[9],
-  clientes: navItems[11],
-  perfiles: navItems[12],
+  notificaciones: navItems[2],
+  documentos: navItems[8],
+  beneficiarios: navItems[9],
+  observaciones: navItems[10],
+  clientes: navItems[12],
+  perfiles: navItems[13],
 };
 
 const getNavItemsForRole = (rol) => {
