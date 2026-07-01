@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.services.schema_service import asegurar_esquema_automatizacion
 from app.routers import (
     auth, clientes, documentos, perfiles, riesgo, activacion,
-    auditoria, beneficiarios, observaciones, admin, cumplimiento, ai, dashboard
+    auditoria, beneficiarios, observaciones, admin, cumplimiento, ai, dashboard,
+    notificaciones
 )
 
 app = FastAPI(
@@ -34,6 +35,7 @@ app.include_router(admin.router)
 app.include_router(cumplimiento.router)
 app.include_router(ai.router)
 app.include_router(dashboard.router)
+app.include_router(notificaciones.router)
 
 
 @app.on_event("startup")

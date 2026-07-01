@@ -3,11 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, FileText, FileSpreadsheet, Shield, AlertTriangle,
-  ClipboardList, MessageSquare, UserCheck, LogOut, Settings, Sparkles, X, Lock
+  ClipboardList, MessageSquare, UserCheck, LogOut, Settings, Sparkles, X, Lock, Bell
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['empleado', 'oficial_cumplimiento'] },
+  { label: 'Notificaciones', icon: Bell, path: '/notificaciones', roles: ['empleado', 'oficial_cumplimiento', 'auditor'] },
   { label: 'Cumplimiento', icon: Shield, path: '/cumplimiento', roles: ['oficial_cumplimiento', 'auditor'] },
   { label: 'Activacion', icon: AlertTriangle, path: '/activacion', roles: ['oficial_cumplimiento'] },
   { label: 'Post-activacion', icon: Lock, path: '/post-activacion', roles: ['oficial_cumplimiento'] },
@@ -24,6 +25,7 @@ const navItems = [
 
 const adminItems = [
   { label: 'Dashboard Admin', icon: LayoutDashboard, path: '/admin/dashboard' },
+  { label: 'Notificaciones', icon: Bell, path: '/notificaciones' },
   { label: 'Matriz de Riesgo', icon: Settings, path: '/admin/matriz' },
   { label: 'IA y Proveedores', icon: Sparkles, path: '/admin/ia' },
   { label: 'PEP / Sanciones', icon: Shield, path: '/admin/screening' },
@@ -33,6 +35,7 @@ const adminItems = [
 
 const empleadoNavOrder = [
   'dashboard',
+  'notificaciones',
   'clientes',
   'divider',
   'documentos',
@@ -43,11 +46,12 @@ const empleadoNavOrder = [
 
 const navItemGroups = {
   dashboard: navItems[0],
-  documentos: navItems[6],
-  beneficiarios: navItems[7],
-  observaciones: navItems[8],
-  clientes: navItems[10],
-  perfiles: navItems[11],
+  notificaciones: navItems[1],
+  documentos: navItems[7],
+  beneficiarios: navItems[8],
+  observaciones: navItems[9],
+  clientes: navItems[11],
+  perfiles: navItems[12],
 };
 
 const getNavItemsForRole = (rol) => {

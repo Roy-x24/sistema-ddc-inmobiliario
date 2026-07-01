@@ -11,6 +11,7 @@ Esta carpeta contiene la documentacion funcional, operativa y tecnica del sistem
 - `manual-operativo.md`: pasos diarios por Empleado, Oficial, Auditor y Administrador.
 - `actores-y-responsabilidades.md`: limites y responsabilidades de cada actor humano y del Sistema.
 - `bandeja-oficial.md`: colas y prioridad de trabajo del Oficial de Cumplimiento.
+- `notificaciones.md`: avisos operativos derivados por rol y ruta `/notificaciones`.
 
 ## Cumplimiento y reglas
 

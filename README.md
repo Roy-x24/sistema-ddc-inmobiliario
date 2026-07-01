@@ -168,6 +168,7 @@ Lee primero:
 - [docs/actores-y-responsabilidades.md](docs/actores-y-responsabilidades.md): responsabilidades de Empleado, Oficial, Auditor, Admin y Sistema.
 - [docs/flujo-cumplimiento.md](docs/flujo-cumplimiento.md): flujo general del expediente.
 - [docs/bandeja-oficial.md](docs/bandeja-oficial.md): logica de colas del Oficial.
+- [docs/notificaciones.md](docs/notificaciones.md): avisos operativos por rol.
 - [docs/beneficiarios-finales.md](docs/beneficiarios-finales.md): regla de BF relevante y bloqueo de activacion PJ.
 - [docs/observaciones.md](docs/observaciones.md): observaciones, bloqueos y cierre auditado.
 - [docs/motor-documental.md](docs/motor-documental.md): validacion documental y ruta OCR.

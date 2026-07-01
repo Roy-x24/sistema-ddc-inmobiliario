@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import SesionExpirada from './pages/SesionExpirada';
 import NoAutorizado from './pages/NoAutorizado';
 import Dashboard from './pages/Dashboard';
+import Notificaciones from './pages/Notificaciones';
 import ListadoClientes from './pages/ListadoClientes';
 import RegistroNatural from './pages/RegistroNatural';
 import RegistroJuridica from './pages/RegistroJuridica';
@@ -86,6 +87,7 @@ function AppRoutes() {
       <Route path="/admin/auditoria" element={<RutaProtegida rolesPermitidos={['admin']}><AdminShell><AdminAuditoria /></AdminShell></RutaProtegida>} />
 
       <Route path="/dashboard" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><Dashboard /></RutaProtegida>} />
+      <Route path="/notificaciones" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'auditor', 'admin']}><Notificaciones /></RutaProtegida>} />
       <Route path="/clientes" element={<RutaProtegida rolesPermitidos={['empleado', 'oficial_cumplimiento', 'admin']}><ListadoClientes /></RutaProtegida>} />
       <Route path="/clientes/nuevo" element={<RutaProtegida rolesPermitidos={['empleado', 'admin']}><RegistroNatural /></RutaProtegida>} />
       <Route path="/clientes/nuevo-juridica" element={<RutaProtegida rolesPermitidos={['empleado', 'admin']}><RegistroJuridica /></RutaProtegida>} />
