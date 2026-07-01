@@ -35,6 +35,40 @@ Para activar una persona juridica, ademas de documentos, perfiles, riesgo y obse
 - ningun BF relevante pendiente
 - ningun BF relevante rechazado
 
+## UX operativa actual
+
+La pantalla de Beneficiarios Finales debe operar como una bandeja de decisiones, no como una tabla aislada.
+
+Actualmente muestra:
+
+- expediente seleccionado
+- cobertura de beneficiarios registrados
+- cantidad de BF pendientes
+- cantidad de BF aprobados
+- cantidad de BF rechazados
+- si hay BF relevantes pendientes o rechazados
+- acciones contextuales para aprobar o rechazar
+
+Cada decision sensible abre un modal. El modal muestra la checklist global del expediente para que el Oficial vea si aprobar o rechazar un BF desbloquea activacion, revision documental u otro paso del flujo.
+
+Esto es especialmente importante porque BF no es una validacion decorativa: para persona juridica, puede bloquear el avance completo del expediente.
+
+## Relacion con checklist global
+
+La checklist global considera BF como item bloqueante cuando el cliente es persona juridica.
+
+Estados esperados:
+
+| Caso | Resultado checklist |
+|------|---------------------|
+| Persona natural | BF queda como `NO_APLICA` |
+| Persona juridica sin BF relevante | `BLOQUEADO` |
+| Persona juridica con BF relevante pendiente | `BLOQUEADO` |
+| Persona juridica con BF relevante rechazado | `BLOQUEADO` |
+| Persona juridica con todos los BF relevantes aprobados | `COMPLETO` |
+
+Despues de cada aprobacion o rechazo, el sistema debe reconsultar la checklist para reflejar el nuevo bloqueo o desbloqueo.
+
 ## Limitacion conocida
 
 El porcentaje no siempre captura control real. Un BF con menos de 25% puede ser relevante si ejerce control efectivo.

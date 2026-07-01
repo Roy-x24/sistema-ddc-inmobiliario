@@ -16,6 +16,7 @@ Esta carpeta contiene la documentacion funcional, operativa y tecnica del sistem
 
 - `flujo-cumplimiento.md`: flujo general del expediente y diagrama Mermaid.
 - `beneficiarios-finales.md`: estados, relevancia, bloqueo de activacion PJ y evolucion recomendada.
+- `observaciones.md`: flujo de observaciones, bloqueos, cierre auditado y uso de IA asistida.
 - `motor-documental.md`: validacion documental, estados, reglas y evolucion a OCR real.
 - `automatizaciones.md`: automatizaciones implementadas y futuras.
 - `decision-riesgo-cualitativo.md`: ADR de matriz de riesgo cualitativa.
