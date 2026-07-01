@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import DecisionModal from '../components/DecisionModal';
+import ExpedienteChecklistPanel from '../components/ExpedienteChecklistPanel';
 import { MessageSquare, Send, Lock, Unlock, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
@@ -96,9 +97,22 @@ export default function Observaciones() {
     }
   };
 
-  const abrirRespuesta = (observacion) => {
+  const cargarChecklistDecision = async () => {
+    if (!clienteId) return null;
+    try {
+      const res = await api.post(`/clientes/${clienteId}/checklist`);
+      return res.data;
+    } catch {
+      return null;
+    }
+  };
+
+  const abrirRespuesta = async (observacion) => {
+    const checklist = await cargarChecklistDecision();
     setDecision({
+      type: 'responder',
       observacion,
+      checklist,
       title: 'Responder observacion',
       description: 'Escribe la respuesta que quedara registrada para revision del Oficial.',
       actionLabel: 'Enviar respuesta',
@@ -108,7 +122,11 @@ export default function Observaciones() {
 
   const confirmarRespuesta = async ({ reason }) => {
     if (!decision) return;
-    await responder(decision.observacion.id, reason);
+    if (decision.type === 'cerrar') {
+      await cerrar(decision.observacion.id);
+    } else {
+      await responder(decision.observacion.id, reason);
+    }
     setDecision(null);
   };
 
@@ -121,6 +139,22 @@ export default function Observaciones() {
     } catch {
       showError('Error al cerrar observación');
     }
+  };
+
+  const abrirCierre = async (observacion) => {
+    const checklist = await cargarChecklistDecision();
+    setDecision({
+      type: 'cerrar',
+      observacion,
+      checklist,
+      title: 'Cerrar observacion',
+      description: 'Confirma que la respuesta atiende la observacion. Si no quedan bloqueos, el expediente puede volver al flujo de revision o activacion.',
+      actionLabel: 'Cerrar observacion',
+      tone: 'success',
+      confirmText: 'CERRAR',
+      confirmHelp: 'Escribe CERRAR para confirmar que revisaste la respuesta y cierras este bloqueo.',
+      requireReason: false,
+    });
   };
 
   const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
@@ -188,7 +222,7 @@ export default function Observaciones() {
       />
 
       {clienteSeleccionado && (
-        <div style={{ marginTop: 18 }}>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]" style={{ marginTop: 18 }}>
           <AIAssistantPanel
             clienteId={clienteId}
             tipoCliente={clienteSeleccionado.tipo_cliente}
@@ -198,6 +232,11 @@ export default function Observaciones() {
               riesgo: clienteSeleccionado.nivel_riesgo,
             }}
             title="Asistente IA de observaciones"
+          />
+          <ExpedienteChecklistPanel
+            clienteId={clienteId}
+            title="Bloqueos por observaciones"
+            compact
           />
         </div>
       )}
@@ -322,7 +361,7 @@ export default function Observaciones() {
                         </button>
                       )}
                       {usuario.rol === 'oficial_cumplimiento' && row.estado === 'ABIERTA' && row.respuesta && (
-                        <button onClick={() => cerrar(row.id)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        <button onClick={() => abrirCierre(row)} className="btn-success" style={{ padding: '6px 12px', fontSize: 12 }}>
                           <CheckCircle2 className="h-3 w-3" /> Cerrar
                         </button>
                       )}
@@ -350,12 +389,15 @@ export default function Observaciones() {
         description={decision?.description}
         actionLabel={decision?.actionLabel}
         tone={decision?.tone}
-        requireReason
-        reasonLabel="Respuesta"
-        reasonPlaceholder="Indica como se atendio la observacion..."
-        confirmHelp="La respuesta quedara disponible para que el Oficial pueda cerrar o mantener abierta la observacion."
+        requireReason={decision?.requireReason ?? true}
+        reasonLabel={decision?.type === 'cerrar' ? 'Motivo' : 'Respuesta'}
+        reasonPlaceholder={decision?.type === 'cerrar' ? 'Motivo opcional de cierre...' : 'Indica como se atendio la observacion...'}
+        confirmText={decision?.confirmText}
+        confirmHelp={decision?.confirmHelp || 'La respuesta quedara disponible para que el Oficial pueda cerrar o mantener abierta la observacion.'}
+        checklist={decision?.checklist}
         details={decision?.observacion ? [
           { label: 'Observacion', value: decision.observacion.descripcion },
+          { label: 'Respuesta', value: decision.observacion.respuesta || 'Pendiente' },
           { label: 'Estado actual', value: decision.observacion.estado },
           { label: 'Creada por', value: decision.observacion.creada_por }
         ] : []}
