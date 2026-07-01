@@ -44,10 +44,14 @@ Si el Oficial detecta control efectivo con menos de 25%, debe tratarlo como exce
 
 ## Para el auditor
 
-1. Revisar Auditoria.
-2. Filtrar por expediente.
-3. Confirmar eventos con origen `sistema`.
-4. Exportar CSV para evidencia.
+1. Abrir Dashboard Auditor.
+2. Revisar eventos recientes, actividad IA/OCR y notificaciones.
+3. Entrar a Auditoria para filtrar por expediente.
+4. Confirmar eventos con origen `sistema`, humano o IA/OCR.
+5. Usar paginacion para revisar auditoria funcional y auditoria tecnica IA sin perder contexto.
+6. Exportar CSV para evidencia.
+
+El Auditor no opera Cumplimiento. Su vista es de consulta, trazabilidad y evidencia.
 
 ## Para el administrador
 
@@ -55,3 +59,4 @@ Si el Oficial detecta control efectivo con menos de 25%, debe tratarlo como exce
 2. Mantener matriz de riesgo.
 3. Revisar auditoria administrativa.
 4. Coordinar cambios de reglas documentales.
+5. Mantener listas PEP/sanciones con filtros y paginacion.

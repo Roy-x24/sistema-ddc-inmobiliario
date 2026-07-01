@@ -168,6 +168,17 @@ Ejecutar despues de levantar el stack y cargar el seed demo:
 4. Confirmar que cada icono explica el significado operativo y no solo repite el nombre del campo.
 5. Verificar que las pantallas sin resultados muestren empty state con accion o explicacion clara.
 
+## QA manual de modales, auditoria y paginacion
+
+1. Como Empleado, abrir el modal de respuesta de Observaciones y confirmar que aparece centrado, con scroll interno y sin necesidad de subir la pagina.
+2. Como Oficial, abrir modales de aprobar/rechazar documento y cerrar observacion. Deben mantener header/footer visibles y contenido scrolleable.
+3. En Documentos, abrir vista previa de imagen/PDF y navegar con anterior/siguiente. El header, cerrar y descargar deben seguir accesibles.
+4. Como Auditor, iniciar sesion y confirmar redireccion a `/auditor/dashboard`.
+5. Confirmar que el Auditor no puede abrir `/cumplimiento` y que su sidebar muestra Dashboard, Notificaciones y Auditoria.
+6. En Auditoria, probar paginacion de auditoria funcional y auditoria tecnica IA por separado.
+7. En Notificaciones, Admin Auditoria, Admin Screening y Admin Usuarios, probar busqueda/filtros y paginacion.
+8. En Admin Screening, validar contraste del hero y legibilidad de `Listas locales`.
+
 ## Reinicio limpio
 
 Para borrar datos locales y reconstruir:

@@ -34,7 +34,15 @@ En el modelo automatizado, el Oficial deja de revisar todos los documentos de to
 
 ## Auditor
 
-Consulta trazabilidad. Revisa acciones humanas, eventos automaticos, reglas ejecutadas, resultados del motor y exportaciones CSV. No opera expedientes.
+Consulta trazabilidad. Revisa acciones humanas, eventos automaticos, reglas ejecutadas, resultados del motor, corridas IA/OCR y exportaciones CSV. No opera expedientes.
+
+El Auditor tiene dashboard propio en `/auditor/dashboard`. Su navegacion debe mantenerse limitada a:
+
+- Dashboard Auditor
+- Notificaciones
+- Auditoria
+
+No debe acceder a Cumplimiento, Activacion, Riesgo, Documentos, Beneficiarios u Observaciones como operador. Si necesita investigar un expediente, debe hacerlo desde auditoria y evidencia fuente.
 
 ## Administrador
 
