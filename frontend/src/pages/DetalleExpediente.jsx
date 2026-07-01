@@ -7,7 +7,7 @@ import RiesgoIndicador from '../components/RiesgoIndicador';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import {
   FileText, FileSpreadsheet, Shield, AlertTriangle, MessageSquare,
-  UserCheck, ArrowLeft, User, Mail, Phone, MapPin, Building2, Briefcase, Bot, CheckCircle2, XCircle
+  UserCheck, ArrowLeft, User, Mail, Phone, MapPin, Building2, Briefcase, Bot, CheckCircle2, XCircle, Clock3, LockKeyhole, ArrowRight
 } from 'lucide-react';
 
 export default function DetalleExpediente() {
@@ -104,32 +104,25 @@ export default function DetalleExpediente() {
       </div>
 
       {checklist && (
-        <div className="card" style={{ padding: 18, marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div className="card" style={{ padding: 22, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
             <div>
-              <div className="info-item-label">Checklist operativo</div>
+              <div className="info-item-label">Checklist global del expediente</div>
               <h2 style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>
                 {checklist.ready_for_officer ? 'Expediente listo para revisión' : `${checklist.blocking_count} bloqueo(s) por resolver`}
               </h2>
+              <p style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.55 }}>
+                Esta checklist centraliza lo que debe estar completo antes de activar: datos, perfiles, documentos, BF, observaciones, riesgo y controles.
+              </p>
             </div>
             <span className="badge" style={{ backgroundColor: checklist.ready_for_officer ? 'rgba(22,163,74,0.1)' : 'rgba(212,175,55,0.12)', color: checklist.ready_for_officer ? '#16A34A' : '#B7791F', border: '1px solid rgba(148,163,184,0.2)' }}>
               {checklist.ready_for_officer ? 'Listo' : 'En progreso'}
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
-            {checklist.items.map((item) => {
-              const ok = item.status === 'COMPLETO' || item.status === 'NO_APLICA';
-              return (
-                <div key={item.key} className="card" style={{ padding: 14, borderColor: item.blocking ? 'rgba(220,38,38,0.22)' : undefined }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {ok ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-amber-600" />}
-                    <div className="info-item-label" style={{ marginBottom: 0 }}>{item.label}</div>
-                  </div>
-                  <div style={{ marginTop: 8, color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.45 }}>{item.message}</div>
-                  {item.action && <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: 'var(--accent-gold)' }}>{item.action}</div>}
-                </div>
-              );
-            })}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+            {checklist.items.map((item) => (
+              <ChecklistItemCard key={item.key} item={item} onNavigate={(route) => navigate(route)} />
+            ))}
           </div>
         </div>
       )}
@@ -237,6 +230,57 @@ export default function DetalleExpediente() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function ChecklistItemCard({ item, onNavigate }) {
+  const ok = item.status === 'COMPLETO' || item.status === 'NO_APLICA';
+  const pending = item.status === 'PENDIENTE';
+  const Icon = ok ? CheckCircle2 : item.blocking ? LockKeyhole : pending ? Clock3 : XCircle;
+  const tone = ok
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : item.blocking
+      ? 'border-rose-200 bg-rose-50 text-rose-700'
+      : 'border-amber-200 bg-amber-50 text-amber-700';
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${tone}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-black uppercase tracking-widest text-slate-400">{item.owner || 'sistema'}</div>
+            <h3 className="mt-1 text-sm font-black text-slate-950">{item.label}</h3>
+          </div>
+        </div>
+        <span className={`rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-widest ${tone}`}>
+          {item.status}
+        </span>
+      </div>
+      <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">{item.message}</p>
+      {item.details?.faltantes?.length > 0 && (
+        <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-xs font-bold text-amber-700">
+          Faltan: {item.details.faltantes.join(', ')}
+        </div>
+      )}
+      {item.details?.pendientes?.length > 0 && (
+        <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs font-bold text-blue-700">
+          Pendientes: {item.details.pendientes.join(', ')}
+        </div>
+      )}
+      {item.action && item.action_route && (
+        <button
+          type="button"
+          onClick={() => onNavigate(item.action_route)}
+          className="btn-secondary mt-4"
+          style={{ padding: '7px 10px', fontSize: 12 }}
+        >
+          {item.action} <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }

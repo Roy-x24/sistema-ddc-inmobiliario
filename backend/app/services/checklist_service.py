@@ -6,6 +6,7 @@ from app.models.observacion import Observacion
 from app.models.perfil_financiero import PerfilFinanciero
 from app.models.perfil_transaccional import PerfilTransaccional
 from app.services.estado_service import ESTADOS_DOCUMENTO_VALIDOS, obtener_tipos_obligatorios
+from sqlalchemy import text
 
 
 def checklist_expediente(db: Session, cliente_id: str):
@@ -33,6 +34,8 @@ def checklist_expediente(db: Session, cliente_id: str):
         "blocking": False,
         "message": "No aplica para persona natural",
         "action": None,
+        "action_route": None,
+        "owner": "sistema",
     }
     if cliente.tipo_cliente == "JURIDICA":
         relevantes = db.query(BeneficiarioFinal).filter(
@@ -47,12 +50,23 @@ def checklist_expediente(db: Session, cliente_id: str):
             "blocking": bool(pendientes or not relevantes),
             "message": "BF relevantes aprobados" if relevantes and not pendientes else "Faltan BF relevantes aprobados",
             "action": "Validar BF",
+            "action_route": f"/beneficiarios/{cliente.id_cliente}",
+            "owner": "empleado/oficial",
         }
 
     observaciones_abiertas = db.query(Observacion).filter(
         Observacion.id_cliente == cliente.id_cliente,
         Observacion.estado == "ABIERTA"
     ).count()
+
+    screening_count = 0
+    try:
+        screening_count = db.execute(
+            text("SELECT COUNT(*) FROM screening_results WHERE id_cliente = :id"),
+            {"id": str(cliente.id_cliente)}
+        ).scalar() or 0
+    except Exception:
+        screening_count = 0
 
     items = [
         {
@@ -62,6 +76,8 @@ def checklist_expediente(db: Session, cliente_id: str):
             "blocking": False,
             "message": "Datos base registrados",
             "action": None,
+            "action_route": None,
+            "owner": "empleado",
         },
         {
             "key": "perfiles",
@@ -70,6 +86,8 @@ def checklist_expediente(db: Session, cliente_id: str):
             "blocking": not (perfil_financiero and perfil_transaccional),
             "message": f"{int(perfil_financiero) + int(perfil_transaccional)}/2 perfiles registrados",
             "action": "Completar perfiles",
+            "action_route": f"/perfiles/{cliente.id_cliente}",
+            "owner": "empleado",
         },
         {
             "key": "documentos_obligatorios",
@@ -78,6 +96,8 @@ def checklist_expediente(db: Session, cliente_id: str):
             "blocking": not docs_ok,
             "message": "Todos los documentos obligatorios estan verificados" if docs_ok else f"Faltantes: {len(documentos_faltantes)}; pendientes: {len(documentos_pendientes)}",
             "action": "Revisar documentos",
+            "action_route": f"/documentos/{cliente.id_cliente}",
+            "owner": "empleado",
             "details": {"faltantes": documentos_faltantes, "pendientes": documentos_pendientes},
         },
         bf_item,
@@ -88,6 +108,28 @@ def checklist_expediente(db: Session, cliente_id: str):
             "blocking": observaciones_abiertas > 0,
             "message": "Sin observaciones abiertas" if observaciones_abiertas == 0 else f"{observaciones_abiertas} observacion(es) abierta(s)",
             "action": "Responder/cerrar observaciones",
+            "action_route": f"/observaciones/{cliente.id_cliente}",
+            "owner": "empleado/oficial",
+        },
+        {
+            "key": "riesgo",
+            "label": "Riesgo vigente",
+            "status": "COMPLETO" if cliente.nivel_riesgo else "PENDIENTE",
+            "blocking": not bool(cliente.nivel_riesgo),
+            "message": f"Riesgo calculado: {cliente.nivel_riesgo}" if cliente.nivel_riesgo else "Falta calcular o registrar el nivel de riesgo",
+            "action": "Calcular riesgo",
+            "action_route": f"/riesgo/{cliente.id_cliente}",
+            "owner": "oficial",
+        },
+        {
+            "key": "screening",
+            "label": "PEP/sanciones",
+            "status": "COMPLETO" if screening_count > 0 else "PENDIENTE",
+            "blocking": False,
+            "message": f"{screening_count} resultado(s) de screening registrados" if screening_count > 0 else "Sin screening registrado; no bloquea demo, pero debe revisarse antes de produccion",
+            "action": "Ejecutar screening",
+            "action_route": f"/expediente/{cliente.id_cliente}",
+            "owner": "oficial/sistema",
         },
     ]
 
@@ -100,6 +142,18 @@ def checklist_expediente(db: Session, cliente_id: str):
         "blocking": False,
         "message": "Expediente listo para evaluacion de cumplimiento" if listo else "Aun hay requisitos o bloqueos por resolver",
         "action": "Ir a cumplimiento" if listo else None,
+        "action_route": "/cumplimiento" if listo else None,
+        "owner": "sistema",
+    })
+    items.append({
+        "key": "activacion",
+        "label": "Activacion",
+        "status": "COMPLETO" if cliente.estado == "ACTIVO" else ("BLOQUEADO" if bloqueos else "PENDIENTE"),
+        "blocking": False,
+        "message": "Cliente activo" if cliente.estado == "ACTIVO" else ("Bloqueada por requisitos pendientes" if bloqueos else "Puede pasar a decision de activacion"),
+        "action": "Ir a activacion" if not bloqueos else None,
+        "action_route": f"/activacion/{cliente.id_cliente}" if not bloqueos else None,
+        "owner": "oficial/sistema",
     })
 
     return {
