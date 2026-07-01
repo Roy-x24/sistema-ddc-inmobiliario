@@ -18,14 +18,19 @@ export default function AdminDashboard() {
 
   return (
     <div className="animate-fade-in-up space-y-6">
-      <section className="rounded-2xl bg-slate-950 p-7 text-white shadow-2xl">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-teal-100">
-          <ShieldCheck className="h-4 w-4" /> Gobierno del sistema
+      <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-2xl">
+        <div className="relative p-7">
+          <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_70%_20%,rgba(20,184,166,0.35),transparent_34%),radial-gradient(circle_at_85%_70%,rgba(245,158,11,0.22),transparent_32%)]" />
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-teal-100">
+              <ShieldCheck className="h-4 w-4" /> Gobierno del sistema
+            </div>
+            <h1 className="mt-5 text-4xl font-black tracking-tight text-white">Dashboard Admin</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+              Salud de configuracion, proveedores IA y cambios sensibles recientes.
+            </p>
+          </div>
         </div>
-        <h1 className="mt-5 text-4xl font-black tracking-tight">Dashboard Admin</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-          Salud de configuracion, proveedores IA y cambios sensibles recientes.
-        </p>
       </section>
 
       <div className="grid gap-4 md:grid-cols-4">
