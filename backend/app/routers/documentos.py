@@ -35,6 +35,53 @@ def _media_type_documento(doc: Documento) -> str:
     return "application/octet-stream"
 
 
+def _leer_archivo_documento(archivo: UploadFile):
+    extension = archivo.filename.split(".")[-1].upper()
+    if extension not in ["PDF", "JPG", "JPEG", "PNG"]:
+        raise HTTPException(status_code=400, detail="Formato no permitido. Usar PDF, JPG o PNG.")
+    if extension == "JPEG":
+        extension = "JPG"
+
+    contenido = archivo.file.read()
+    tamano = len(contenido)
+    if tamano > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El archivo excede 10 MB")
+
+    hash_sha256 = hashlib.sha256(contenido).hexdigest()
+    nombre_unico = f"{uuid_lib.uuid4()}.{extension.lower()}"
+    ruta = os.path.join(UPLOAD_DIR, nombre_unico)
+    with open(ruta, "wb") as f:
+        f.write(contenido)
+    return extension, tamano, hash_sha256, ruta
+
+
+def _crear_documento(db: Session, id_cliente: str, tipo_documento: str, archivo: UploadFile) -> Documento:
+    extension, tamano, hash_sha256, ruta = _leer_archivo_documento(archivo)
+    doc = Documento(
+        id_cliente=id_cliente,
+        tipo_documento=tipo_documento,
+        nombre_archivo=archivo.filename,
+        ruta_archivo=ruta,
+        hash_sha256=hash_sha256,
+        tamano_bytes=tamano,
+        formato=extension
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+
+def _evaluar_y_sincronizar_documento(db: Session, doc: Documento, usuario_sistema: str = "sistema"):
+    evaluar_documento(db, doc, usuario_sistema)
+    db.refresh(doc)
+    extraer_documento(db, str(doc.id_documento), usuario_sistema)
+    db.refresh(doc)
+    verificar_documentos_para_revision(db, str(doc.id_cliente), usuario_sistema)
+    decision = intentar_activacion_automatica(db, str(doc.id_cliente), usuario_sistema)
+    return decision
+
+
 @router.post("/{id}/documentos")
 def adjuntar_documento(
     id: str,
@@ -60,44 +107,63 @@ def adjuntar_documento(
                 detail="Este requisito documental ya esta cubierto. Usa un flujo de reemplazo auditado para cambiarlo."
             )
 
-    extension = archivo.filename.split(".")[-1].upper()
-    if extension not in ["PDF", "JPG", "JPEG", "PNG"]:
-        raise HTTPException(status_code=400, detail="Formato no permitido. Usar PDF, JPG o PNG.")
-    if extension == "JPEG":
-        extension = "JPG"
-
-    contenido = archivo.file.read()
-    tamano = len(contenido)
-    if tamano > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="El archivo excede 10 MB")
-
-    hash_sha256 = hashlib.sha256(contenido).hexdigest()
-    nombre_unico = f"{uuid_lib.uuid4()}.{extension.lower()}"
-    ruta = os.path.join(UPLOAD_DIR, nombre_unico)
-    with open(ruta, "wb") as f:
-        f.write(contenido)
-
-    doc = Documento(
-        id_cliente=id,
-        tipo_documento=tipo_documento,
-        nombre_archivo=archivo.filename,
-        ruta_archivo=ruta,
-        hash_sha256=hash_sha256,
-        tamano_bytes=tamano,
-        formato=extension
-    )
-    db.add(doc)
-    db.commit()
-    db.refresh(doc)
+    doc = _crear_documento(db, id, tipo_documento, archivo)
 
     registrar_auditoria(db, usuario.correo, "ADJUNTAR_DOCUMENTO", id, None, doc.tipo_documento)
-    evaluar_documento(db, doc, "sistema")
-    db.refresh(doc)
-    extraer_documento(db, str(doc.id_documento), "sistema")
-    db.refresh(doc)
-    verificar_documentos_para_revision(db, id, "sistema")
-    decision = intentar_activacion_automatica(db, id, "sistema")
+    decision = _evaluar_y_sincronizar_documento(db, doc, "sistema")
     return {"id_documento": str(doc.id_documento), "estado": doc.estado, "decision_automatica": decision}
+
+
+@router.post("/documentos/{doc_id}/reemplazar")
+def reemplazar_documento(
+    doc_id: str,
+    motivo: str = Form(...),
+    archivo: UploadFile = File(...),
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("adjuntar_documentos"))
+):
+    doc_anterior = db.query(Documento).filter(Documento.id_documento == doc_id).first()
+    if not doc_anterior:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+    if doc_anterior.tipo_documento not in DOCUMENTOS_NO_REPETIBLES:
+        raise HTTPException(status_code=400, detail="Solo los requisitos no repetibles usan reemplazo auditado")
+    if not motivo or not motivo.strip():
+        raise HTTPException(status_code=400, detail="El motivo de reemplazo es obligatorio")
+
+    cliente = db.query(Cliente).filter(Cliente.id_cliente == doc_anterior.id_cliente, Cliente.eliminado == False).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    estado_anterior = doc_anterior.estado
+    doc_anterior.estado = "REEMPLAZADO"
+    doc_anterior.motivo_rechazo = f"Reemplazado: {motivo.strip()}"
+    doc_anterior.usuario_verificador = usuario.correo
+    doc_anterior.fecha_verificacion = func.now()
+    db.commit()
+
+    doc_nuevo = _crear_documento(db, str(doc_anterior.id_cliente), doc_anterior.tipo_documento, archivo)
+    registrar_auditoria(
+        db,
+        usuario.correo,
+        "REEMPLAZAR_DOCUMENTO",
+        str(doc_anterior.id_cliente),
+        f"{doc_anterior.tipo_documento}:{estado_anterior}",
+        f"{doc_nuevo.tipo_documento}:PENDIENTE_VERIFICACION",
+        detalle={
+            "documento_anterior": str(doc_anterior.id_documento),
+            "documento_nuevo": str(doc_nuevo.id_documento),
+            "motivo": motivo.strip(),
+        },
+        origen="usuario",
+        severidad="warning",
+    )
+    decision = _evaluar_y_sincronizar_documento(db, doc_nuevo, "sistema")
+    return {
+        "id_documento": str(doc_nuevo.id_documento),
+        "documento_reemplazado": str(doc_anterior.id_documento),
+        "estado": doc_nuevo.estado,
+        "decision_automatica": decision,
+    }
 
 
 @router.get("/{id}/documentos", response_model=List[DocumentoResponse])

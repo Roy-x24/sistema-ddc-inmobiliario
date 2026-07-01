@@ -37,6 +37,7 @@ export default function Documentos() {
   const [subiendo, setSubiendo] = useState(false);
   const [preview, setPreview] = useState({ open: false, index: 0, url: '', type: '', loading: false, error: '' });
   const [uploadPreview, setUploadPreview] = useState({ url: '', type: '', name: '' });
+  const [reemplazo, setReemplazo] = useState(null);
 
   const cargarClientes = async (estadoDocumento = estadoDocumentoTrabajo, tipo = tipoCliente) => {
     if (estadoDocumento) {
@@ -137,19 +138,29 @@ export default function Documentos() {
     if (subiendo) return;
     if (!clienteId || !archivoSeleccionado) return showError('Seleccione cliente y archivo');
     const formData = new FormData();
-    formData.append('tipo_documento', tipo);
     formData.append('archivo', archivoSeleccionado);
+    if (reemplazo?.doc) {
+      if (!reemplazo.motivo?.trim()) return showError('Indique el motivo del reemplazo');
+      formData.append('motivo', reemplazo.motivo.trim());
+    } else {
+      formData.append('tipo_documento', tipo);
+    }
     try {
       setSubiendo(true);
-      await api.post(`/clientes/${clienteId}/documentos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      if (reemplazo?.doc) {
+        await api.post(`/clientes/documentos/${reemplazo.doc.id_documento}/reemplazar`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else {
+        await api.post(`/clientes/${clienteId}/documentos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
       await cargarDocs(clienteId);
       setArchivo(null);
+      setReemplazo(null);
       setUploadPreview(prev => {
         if (prev.url) URL.revokeObjectURL(prev.url);
         return { url: '', type: '', name: '' };
       });
       if (archivoInputRef.current) archivoInputRef.current.value = '';
-      showMensaje('Documento subido correctamente');
+      showMensaje(reemplazo?.doc ? 'Documento reemplazado con trazabilidad' : 'Documento subido correctamente');
     } catch (err) {
       showError(err.response?.data?.detail || 'Error al subir documento');
     } finally {
@@ -285,6 +296,7 @@ export default function Documentos() {
   const puedeSubir = ['empleado', 'admin'].includes(usuario?.rol);
   const tipoSeleccionadoConfig = requisitosDocumento.find((requisito) => requisito.value === tipo);
   const tipoNoRepetibleCubierto = tipoSeleccionadoConfig && !tipoSeleccionadoConfig.repeatable && tipoSeleccionadoConfig.state.complete;
+  const opcionesCarga = reemplazo?.requisito ? [reemplazo.requisito] : opcionesDocumento;
 
   const seleccionarArchivo = (file) => {
     setArchivo(file || null);
@@ -296,7 +308,17 @@ export default function Documentos() {
   };
 
   const seleccionarRequisito = (value) => {
+    setReemplazo(null);
     setTipo(value);
+    document.getElementById('document-upload-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const iniciarReemplazo = (requisito) => {
+    if (!requisito?.state?.latest) return;
+    setTipo(requisito.value);
+    setReemplazo({ requisito, doc: requisito.state.latest, motivo: '' });
+    seleccionarArchivo(null);
+    if (archivoInputRef.current) archivoInputRef.current.value = '';
     document.getElementById('document-upload-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
@@ -377,6 +399,7 @@ export default function Documentos() {
                 active={tipo === requisito.value}
                 puedeSubir={puedeSubir}
                 onSelect={() => seleccionarRequisito(requisito.value)}
+                onReplace={() => iniciarReemplazo(requisito)}
                 onView={() => {
                   const index = docs.findIndex((doc) => doc.id_documento === requisito.state.latest?.id_documento);
                   if (index >= 0) cargarPreview(index);
@@ -391,10 +414,14 @@ export default function Documentos() {
         <div id="document-upload-panel" className="card" style={{ padding: 24, marginTop: 24, marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
             <div>
-              <div className="label-upper">Subida guiada</div>
-              <h2 style={{ marginTop: 4, fontSize: 19, fontWeight: 900, color: 'var(--text-primary)' }}>Confirma requisito y archivo antes de cargar</h2>
+              <div className="label-upper">{reemplazo ? 'Reemplazo auditado' : 'Subida guiada'}</div>
+              <h2 style={{ marginTop: 4, fontSize: 19, fontWeight: 900, color: 'var(--text-primary)' }}>
+                {reemplazo ? 'Reemplaza el soporte sin perder trazabilidad' : 'Confirma requisito y archivo antes de cargar'}
+              </h2>
               <p style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 13 }}>
-                El OCR/IA comparara el tipo declarado contra el contenido. Nada queda aprobado solo por subirlo.
+                {reemplazo
+                  ? 'El documento anterior quedara marcado como REEMPLAZADO y el nuevo entrara a validacion.'
+                  : 'El OCR/IA comparara el tipo declarado contra el contenido. Nada queda aprobado solo por subirlo.'}
               </p>
             </div>
             {tipoSeleccionadoConfig && (
@@ -408,8 +435,8 @@ export default function Documentos() {
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) minmax(260px, 1fr)', gap: 16 }}>
             <div>
               <label className="label-upper">Requisito documental</label>
-              <select name="tipo_documento" value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
-                {opcionesDocumento.map((opcion) => (
+              <select name="tipo_documento" value={tipo} onChange={e => setTipo(e.target.value)} disabled={!!reemplazo} className="select-field" style={{ width: '100%', opacity: reemplazo ? 0.75 : 1 }}>
+                {opcionesCarga.map((opcion) => (
                   <option key={opcion.value} value={opcion.value}>
                     {opcion.label} · {opcion.requirement.toLowerCase()}{opcion.repeatable ? ' · repetible' : ''}
                   </option>
@@ -423,6 +450,24 @@ export default function Documentos() {
               {tipoNoRepetibleCubierto && (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">
                   Este requisito ya esta cubierto. Para cambiarlo debe registrarse como reemplazo auditado.
+                </div>
+              )}
+              {reemplazo && (
+                <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-3">
+                  <div className="text-xs font-black uppercase tracking-widest text-blue-500">Documento actual</div>
+                  <div className="mt-1 text-sm font-black text-blue-900">{reemplazo.doc.nombre_archivo}</div>
+                  <label className="mt-3 block">
+                    <span className="text-xs font-black uppercase tracking-widest text-blue-500">Motivo obligatorio</span>
+                    <textarea
+                      value={reemplazo.motivo}
+                      onChange={(event) => setReemplazo(prev => ({ ...prev, motivo: event.target.value }))}
+                      className="mt-2 min-h-24 w-full rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                      placeholder="Ej: se subio el archivo equivocado, documento vencido, se recibio version actualizada..."
+                    />
+                  </label>
+                  <button type="button" onClick={() => setReemplazo(null)} className="btn-secondary mt-3" style={{ padding: '7px 10px', fontSize: 12 }}>
+                    Cancelar reemplazo
+                  </button>
                 </div>
               )}
             </div>
@@ -448,8 +493,13 @@ export default function Documentos() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
-            <button onClick={subir} disabled={subiendo || !archivo || tipoNoRepetibleCubierto} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14, opacity: (subiendo || !archivo || tipoNoRepetibleCubierto) ? 0.65 : 1 }}>
-              <Upload className="h-4 w-4" /> {subiendo ? 'Subiendo...' : 'Confirmar y subir'}
+            <button
+              onClick={subir}
+              disabled={subiendo || !archivo || (!reemplazo && tipoNoRepetibleCubierto) || (reemplazo && !reemplazo.motivo?.trim())}
+              className="btn-primary"
+              style={{ padding: '12px 20px', fontSize: 14, opacity: (subiendo || !archivo || (!reemplazo && tipoNoRepetibleCubierto) || (reemplazo && !reemplazo.motivo?.trim())) ? 0.65 : 1 }}
+            >
+              <Upload className="h-4 w-4" /> {subiendo ? 'Procesando...' : reemplazo ? 'Confirmar reemplazo' : 'Confirmar y subir'}
             </button>
           </div>
         </div>
@@ -607,7 +657,7 @@ export default function Documentos() {
   );
 }
 
-function DocumentRequirementCard({ requisito, active, puedeSubir, onSelect, onView }) {
+function DocumentRequirementCard({ requisito, active, puedeSubir, onSelect, onReplace, onView }) {
   const tone = {
     CUBIERTO: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     FALTANTE: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -617,6 +667,7 @@ function DocumentRequirementCard({ requisito, active, puedeSubir, onSelect, onVi
     DISPONIBLE: 'border-slate-200 bg-slate-50 text-slate-500',
   }[requisito.state.status] || 'border-slate-200 bg-slate-50 text-slate-500';
   const canUpload = puedeSubir && (requisito.repeatable || !requisito.state.complete);
+  const canReplace = puedeSubir && !requisito.repeatable && requisito.state.complete && requisito.state.latest;
 
   return (
     <div className={`rounded-2xl border p-4 shadow-sm transition ${active ? 'border-teal-300 bg-teal-50/60 ring-2 ring-teal-100' : 'border-slate-200 bg-white'}`}>
@@ -653,6 +704,11 @@ function DocumentRequirementCard({ requisito, active, puedeSubir, onSelect, onVi
           {canUpload && (
             <button type="button" onClick={onSelect} className={active ? 'btn-primary' : 'btn-secondary'} style={{ padding: '6px 10px', fontSize: 12 }}>
               {requisito.state.latest ? 'Agregar' : 'Subir'}
+            </button>
+          )}
+          {canReplace && (
+            <button type="button" onClick={onReplace} className="btn-secondary" style={{ padding: '6px 10px', fontSize: 12 }}>
+              Reemplazar
             </button>
           )}
         </div>
