@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { Download, CheckCircle2, AlertCircle, Bot, ClipboardList } from 'lucide-react';
+import PaginationControls from '../components/PaginationControls';
+import { pageCountFor, paginate } from '../utils/pagination';
 
 export default function Auditoria() {
   const { usuario } = useAuth();
@@ -10,6 +12,10 @@ export default function Auditoria() {
   const [clienteId, setClienteId] = useState('');
   const [exportando, setExportando] = useState(false);
   const [exportandoAdmin, setExportandoAdmin] = useState(false);
+  const [pageAuditoria, setPageAuditoria] = useState(1);
+  const [pageSizeAuditoria, setPageSizeAuditoria] = useState(10);
+  const [pageIA, setPageIA] = useState(1);
+  const [pageSizeIA, setPageSizeIA] = useState(10);
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
 
@@ -24,6 +30,8 @@ export default function Auditoria() {
       ]);
       setRegistros(res.data || []);
       setModelRuns(runs.data || []);
+      setPageAuditoria(1);
+      setPageIA(1);
     } catch {
       setRegistros([]);
       setModelRuns([]);
@@ -39,6 +47,8 @@ export default function Auditoria() {
       ]);
       setRegistros(res.data || []);
       setModelRuns(runs.data || []);
+      setPageAuditoria(1);
+      setPageIA(1);
     } catch {
       setRegistros([]);
       setModelRuns([]);
@@ -90,6 +100,19 @@ export default function Auditoria() {
   };
 
   useEffect(() => { cargar(); }, []);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(registros, pageSizeAuditoria);
+    if (pageAuditoria > totalPages) setPageAuditoria(totalPages);
+  }, [registros, pageAuditoria, pageSizeAuditoria]);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(modelRuns, pageSizeIA);
+    if (pageIA > totalPages) setPageIA(totalPages);
+  }, [modelRuns, pageIA, pageSizeIA]);
+
+  const registrosPaginados = paginate(registros, pageAuditoria, pageSizeAuditoria);
+  const modelRunsPaginados = paginate(modelRuns, pageIA, pageSizeIA);
 
   return (
     <div className="animate-fade-in-up">
@@ -150,7 +173,7 @@ export default function Auditoria() {
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10 }}>
-          {modelRuns.slice(0, 6).map((run) => (
+          {modelRunsPaginados.map((run) => (
             <div key={run.id_run} className="card" style={{ padding: 14, background: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <ClipboardList className="h-4 w-4 text-gold" />
@@ -165,6 +188,16 @@ export default function Auditoria() {
           ))}
           {modelRuns.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sin corridas IA registradas para este filtro.</div>}
         </div>
+        <PaginationControls
+          page={pageIA}
+          pageSize={pageSizeIA}
+          total={modelRuns.length}
+          onPageChange={setPageIA}
+          onPageSizeChange={(value) => {
+            setPageSizeIA(value);
+            setPageIA(1);
+          }}
+        />
       </div>
 
       <div className="table-container">
@@ -181,7 +214,7 @@ export default function Auditoria() {
             </tr>
           </thead>
           <tbody>
-            {registros.map(r => (
+            {registrosPaginados.map(r => (
               <tr key={r.id_auditoria}>
                 <td style={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: 12, color: 'var(--text-muted)' }}>{new Date(r.fecha).toLocaleString()}</td>
                 <td>
@@ -233,6 +266,16 @@ export default function Auditoria() {
             {registros.length === 0 && <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Sin registros.</td></tr>}
           </tbody>
         </table>
+        <PaginationControls
+          page={pageAuditoria}
+          pageSize={pageSizeAuditoria}
+          total={registros.length}
+          onPageChange={setPageAuditoria}
+          onPageSizeChange={(value) => {
+            setPageSizeAuditoria(value);
+            setPageAuditoria(1);
+          }}
+        />
       </div>
     </div>
   );
