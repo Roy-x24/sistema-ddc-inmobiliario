@@ -118,11 +118,23 @@ export default function BeneficiarioFinal() {
     }
   };
 
-  const abrirDecision = (accion, beneficiario) => {
+  const cargarChecklistDecision = async () => {
+    if (!clienteId) return null;
+    try {
+      const res = await api.post(`/clientes/${clienteId}/checklist`);
+      return res.data;
+    } catch {
+      return null;
+    }
+  };
+
+  const abrirDecision = async (accion, beneficiario) => {
     const esAprobacion = accion === 'aprobar';
+    const checklist = await cargarChecklistDecision();
     setDecision({
       accion,
       beneficiario,
+      checklist,
       title: esAprobacion ? 'Aprobar beneficiario final' : 'Rechazar beneficiario final',
       description: esAprobacion
         ? 'Confirma que el beneficiario fue revisado y puede quedar aprobado para el expediente.'
@@ -153,6 +165,9 @@ export default function BeneficiarioFinal() {
   const pendientes = beneficiarios.filter(row => row.estado_validacion === 'PENDIENTE').length;
   const aprobados = beneficiarios.filter(row => row.estado_validacion === 'APROBADO').length;
   const rechazados = beneficiarios.filter(row => row.estado_validacion === 'RECHAZADO').length;
+  const relevantes = beneficiarios.filter(row => row.es_relevante);
+  const relevantesPendientes = relevantes.filter(row => row.estado_validacion !== 'APROBADO').length;
+  const coberturaParticipacion = beneficiarios.reduce((total, row) => total + Number(row.porcentaje_participacion || 0), 0);
 
   useEffect(() => {
     const totalPages = pageCountFor(beneficiariosFiltrados, pageSize);
@@ -251,6 +266,30 @@ export default function BeneficiarioFinal() {
               <option value="APROBADO">Aprobados</option>
               <option value="RECHAZADO">Rechazados</option>
             </select>
+          </div>
+        </div>
+      )}
+
+      {clienteSeleccionado && (
+        <div className="card" style={{ padding: 18, marginBottom: 20, borderColor: relevantesPendientes ? 'rgba(245,158,11,0.28)' : 'rgba(22,163,74,0.22)', background: relevantesPendientes ? 'rgba(245,158,11,0.05)' : 'rgba(22,163,74,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div className="label-upper">Control de beneficiarios finales</div>
+              <h2 style={{ marginTop: 4, fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>
+                {relevantesPendientes ? `${relevantesPendientes} BF relevante(s) pendiente(s)` : 'BF relevantes sin bloqueo'}
+              </h2>
+              <p style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.55 }}>
+                Un BF es relevante cuando tiene 25% o mas de participacion. Una juridica no debe avanzar a activacion si algun BF relevante esta pendiente o rechazado.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <span className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700">
+                Cobertura declarada: {Math.round(coberturaParticipacion)}%
+              </span>
+              <span className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700">
+                Relevantes: {relevantes.length}
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -403,6 +442,7 @@ export default function BeneficiarioFinal() {
         reasonPlaceholder="Explica el criterio aplicado..."
         confirmText={decision?.confirmText}
         confirmHelp={decision?.confirmHelp}
+        checklist={decision?.checklist}
         details={decision?.beneficiario ? [
           { label: 'Beneficiario', value: decision.beneficiario.nombre_completo },
           { label: 'Documento', value: decision.beneficiario.numero_documento },
