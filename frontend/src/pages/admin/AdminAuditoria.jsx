@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import api from '../../api/axiosConfig';
+import PaginationControls from '../../components/PaginationControls';
+import { pageCountFor, paginate } from '../../utils/pagination';
 import { Activity, Download, ShieldCheck } from 'lucide-react';
 
 export default function AdminAuditoria() {
   const [registros, setRegistros] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const cargar = async () => {
     setLoading(true);
@@ -21,6 +25,13 @@ export default function AdminAuditoria() {
   useEffect(() => {
     cargar();
   }, []);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(registros, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [registros, page, pageSize]);
+
+  const registrosPaginados = paginate(registros, page, pageSize);
 
   const exportarCsv = async () => {
     const res = await api.get('/auditoria-admin/exportar-csv', { responseType: 'blob' });
@@ -82,7 +93,7 @@ export default function AdminAuditoria() {
             <tbody>
               {loading && <tr><td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">Cargando auditoria...</td></tr>}
               {!loading && registros.length === 0 && <tr><td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">Sin registros.</td></tr>}
-              {registros.map((r) => (
+              {registrosPaginados.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100 transition hover:bg-slate-50">
                   <td className="whitespace-nowrap px-5 py-4 font-mono text-xs font-semibold text-slate-500">{new Date(r.fecha).toLocaleString()}</td>
                   <td className="px-5 py-4 font-bold text-slate-950">{r.usuario}</td>
@@ -92,6 +103,16 @@ export default function AdminAuditoria() {
               ))}
             </tbody>
           </table>
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            total={registros.length}
+            onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value);
+              setPage(1);
+            }}
+          />
         </div>
       </section>
     </div>

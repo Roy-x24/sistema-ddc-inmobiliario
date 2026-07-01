@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import api from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 import DecisionModal from '../../components/DecisionModal';
+import PaginationControls from '../../components/PaginationControls';
+import { pageCountFor, paginate } from '../../utils/pagination';
 import {
   Users,
   Plus,
@@ -44,6 +46,8 @@ export default function AdminUsuarios() {
   const [editandoId, setEditandoId] = useState('');
   const [editForm, setEditForm] = useState({ nombre: '', correo: '', password: '', activo: true });
   const [decision, setDecision] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -60,6 +64,11 @@ export default function AdminUsuarios() {
   useEffect(() => {
     fetchUsuarios();
   }, []);
+
+  useEffect(() => {
+    const totalPages = pageCountFor(usuarios, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [usuarios, page, pageSize]);
 
   const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
   const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
@@ -186,6 +195,7 @@ export default function AdminUsuarios() {
   const bloqueados = usuarios.filter((u) => !u.activo).length;
   const admins = usuarios.filter((u) => u.rol === 'admin').length;
   const oficiales = usuarios.filter((u) => u.rol === 'oficial_cumplimiento').length;
+  const usuariosPaginados = paginate(usuarios, page, pageSize);
 
   return (
     <div className="animate-fade-in-up space-y-6">
@@ -279,7 +289,7 @@ export default function AdminUsuarios() {
               <tbody>
                 {loading && <tr><td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">Cargando usuarios...</td></tr>}
                 {!loading && usuarios.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">Sin usuarios registrados.</td></tr>}
-                {usuarios.map((u) => (
+                {usuariosPaginados.map((u) => (
                   <tr key={u.id} className="border-t border-slate-100 transition hover:bg-slate-50">
                     <td className="px-3 py-4 sm:px-5">
                       <div className="flex items-center gap-3">
@@ -360,6 +370,16 @@ export default function AdminUsuarios() {
                 ))}
               </tbody>
             </table>
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              total={usuarios.length}
+              onPageChange={setPage}
+              onPageSizeChange={(value) => {
+                setPageSize(value);
+                setPage(1);
+              }}
+            />
           </div>
         </div>
 

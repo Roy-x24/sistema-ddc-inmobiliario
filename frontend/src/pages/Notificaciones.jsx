@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import EmptyState from '../components/EmptyState';
+import PaginationControls from '../components/PaginationControls';
+import { pageCountFor, paginate } from '../utils/pagination';
 import { AlertTriangle, Bell, CheckCircle2, ClipboardList, FileText, Search, ShieldAlert, UserCheck } from 'lucide-react';
 
 const PRIORIDAD_STYLE = {
@@ -27,6 +29,8 @@ export default function Notificaciones() {
   const [filtro, setFiltro] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     let activo = true;
@@ -54,6 +58,13 @@ export default function Notificaciones() {
     });
   }, [items, filtro, busqueda]);
 
+  useEffect(() => {
+    const totalPages = pageCountFor(filtradas, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [filtradas, page, pageSize]);
+
+  const filtradasPaginadas = paginate(filtradas, page, pageSize);
+
   return (
     <div className="animate-fade-in-up space-y-6">
       <header>
@@ -75,7 +86,7 @@ export default function Notificaciones() {
             <label className="label-upper">Busqueda</label>
             <input
               value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
+              onChange={(event) => { setBusqueda(event.target.value); setPage(1); }}
               className="input-field"
               placeholder="Buscar por cliente, motivo o tipo..."
               style={{ width: '100%' }}
@@ -83,7 +94,7 @@ export default function Notificaciones() {
           </div>
           <div>
             <label className="label-upper">Prioridad</label>
-            <select value={filtro} onChange={(event) => setFiltro(event.target.value)} className="select-field" style={{ width: '100%' }}>
+            <select value={filtro} onChange={(event) => { setFiltro(event.target.value); setPage(1); }} className="select-field" style={{ width: '100%' }}>
               <option value="">Todas</option>
               <option value="ALTA">Alta</option>
               <option value="MEDIA">Media</option>
@@ -104,9 +115,23 @@ export default function Notificaciones() {
             message="Cuando existan observaciones, documentos faltantes, BF pendientes o colas críticas aparecerán aquí."
           />
         )}
-        {!loading && filtradas.map((item) => (
+        {!loading && filtradasPaginadas.map((item) => (
           <NotificationRow key={item.id} item={item} onOpen={() => navigate(item.destino || '/dashboard')} />
         ))}
+        {!loading && filtradas.length > 0 && (
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              total={filtradas.length}
+              onPageChange={setPage}
+              onPageSizeChange={(value) => {
+                setPageSize(value);
+                setPage(1);
+              }}
+            />
+          </div>
+        )}
       </section>
     </div>
   );
