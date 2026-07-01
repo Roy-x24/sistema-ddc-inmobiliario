@@ -87,6 +87,7 @@ export default function Dashboard() {
 
   const workload = stats.total ? Math.round(((stats.pendiente + stats.pendiente_bf + stats.en_revision + stats.observado) / stats.total) * 100) : 0;
   const activeRate = stats.total ? Math.round((stats.activo / stats.total) * 100) : 0;
+  const DASHBOARD_PREVIEW_LIMIT = 5;
 
   const actionIcon = (accion = '') => {
     if (accion.includes('ACTIVAR')) return <CheckCircle className="h-4 w-4 text-emerald-600" />;
@@ -134,6 +135,7 @@ export default function Dashboard() {
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-teal-700">Trabajo del empleado</p>
               <h2 className="mt-1 text-xl font-black text-slate-950">Próximos expedientes a completar</h2>
+              <p className="mt-1 text-sm font-semibold text-slate-500">Vista corta para el dashboard; usa las pantallas completas para trabajar listas largas.</p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {[
@@ -160,7 +162,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {(operativo.items || []).slice(0, 8).map((item) => (
+                {(operativo.items || []).slice(0, DASHBOARD_PREVIEW_LIMIT).map((item) => (
                   <tr key={item.id_cliente}>
                     <td className="px-4 py-3">
                       <div className="font-black text-slate-950">{item.nombre}</div>
@@ -183,6 +185,16 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
+          <DashboardListFooter
+            total={(operativo.items || []).length}
+            limit={DASHBOARD_PREVIEW_LIMIT}
+            primaryLabel="Ver clientes"
+            onPrimary={() => navigate('/clientes')}
+            secondary={[
+              ['Documentos', () => navigate('/documentos')],
+              ['Observaciones', () => navigate('/observaciones')],
+            ]}
+          />
         </section>
       )}
 
@@ -193,6 +205,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-teal-700">Bandeja del Oficial</p>
                 <h2 className="mt-1 text-xl font-black text-slate-950">Prioridades operativas</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Muestra una muestra corta; la bandeja completa vive en Cumplimiento.</p>
               </div>
               <button onClick={() => navigate('/cumplimiento')} className="btn-secondary" style={{ padding: '8px 12px', fontSize: 12 }}>
                 Ver cumplimiento
@@ -225,7 +238,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(operativo.prioridad || []).slice(0, 8).map((item) => (
+                  {(operativo.prioridad || []).slice(0, DASHBOARD_PREVIEW_LIMIT).map((item) => (
                     <tr key={item.id_cliente}>
                       <td className="px-4 py-3">
                         <div className="font-black text-slate-950">{item.nombre}</div>
@@ -243,14 +256,27 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
+            <DashboardListFooter
+              total={(operativo.prioridad || []).length}
+              limit={DASHBOARD_PREVIEW_LIMIT}
+              primaryLabel="Ver bandeja completa"
+              onPrimary={() => navigate('/cumplimiento')}
+              secondary={[
+                ['Activación', () => navigate('/activacion')],
+                ['Riesgo', () => navigate('/riesgo')],
+              ]}
+            />
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-gold" />
-              <h2 className="text-lg font-black text-slate-950">Auditoría IA reciente</h2>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-gold" />
+                <h2 className="text-lg font-black text-slate-950">Auditoría IA reciente</h2>
+              </div>
+              <button onClick={() => navigate('/auditoria')} className="btn-secondary" style={{ padding: '7px 10px', fontSize: 12 }}>Ver auditoría</button>
             </div>
             <div className="mt-4 space-y-3">
-              {(operativo.auditoria_ia || []).map((item) => (
+              {(operativo.auditoria_ia || []).slice(0, DASHBOARD_PREVIEW_LIMIT).map((item) => (
                 <div key={item.id_auditoria} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                   <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
                     <ClipboardList className="h-3.5 w-3.5" />
@@ -263,6 +289,13 @@ export default function Dashboard() {
                 <p className="py-8 text-center text-sm font-semibold text-slate-500">Aún no hay eventos IA.</p>
               )}
             </div>
+            <DashboardListFooter
+              total={(operativo.auditoria_ia || []).length}
+              limit={DASHBOARD_PREVIEW_LIMIT}
+              primaryLabel="Abrir auditoría"
+              onPrimary={() => navigate('/auditoria')}
+              compact
+            />
           </div>
         </section>
       )}
@@ -307,7 +340,7 @@ export default function Dashboard() {
             <p className="py-10 text-center text-sm text-slate-500">Sin registros recientes.</p>
           ) : (
             <div className="space-y-2">
-              {reciente.map((r) => (
+              {reciente.slice(0, DASHBOARD_PREVIEW_LIMIT).map((r) => (
                 <div
                   key={r.id_auditoria}
                   className="flex items-center justify-between rounded-xl border border-transparent px-4 py-3 transition hover:border-slate-200 hover:bg-slate-50"
@@ -326,6 +359,12 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          <DashboardListFooter
+            total={reciente.length}
+            limit={DASHBOARD_PREVIEW_LIMIT}
+            primaryLabel="Ver auditoría completa"
+            onPrimary={() => navigate('/auditoria')}
+          />
         </div>}
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -350,6 +389,30 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function DashboardListFooter({ total = 0, limit = 5, primaryLabel, onPrimary, secondary = [], compact = false }) {
+  const hidden = Math.max(0, total - limit);
+  if (!total && !primaryLabel) return null;
+  return (
+    <div className={`mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 ${compact ? 'px-3 py-2' : 'px-4 py-3'}`}>
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+        Mostrando {Math.min(total, limit)} de {total}{hidden > 0 ? ` · ${hidden} más en la vista completa` : ''}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {secondary.map(([label, handler]) => (
+          <button key={label} onClick={handler} className="btn-secondary" style={{ padding: '7px 10px', fontSize: 12 }}>
+            {label}
+          </button>
+        ))}
+        {primaryLabel && (
+          <button onClick={onPrimary} className="btn-primary" style={{ padding: '7px 12px', fontSize: 12 }}>
+            {primaryLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
