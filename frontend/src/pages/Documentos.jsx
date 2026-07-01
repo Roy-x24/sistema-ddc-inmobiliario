@@ -8,7 +8,7 @@ import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import DecisionModal from '../components/DecisionModal';
-import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText, Bot } from 'lucide-react';
+import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText, Bot, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 
 const DOCUMENTOS_NATURAL = [
@@ -50,6 +50,7 @@ export default function Documentos() {
   const [error, setError] = useState('');
   const [decision, setDecision] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [preview, setPreview] = useState({ open: false, index: 0, url: '', type: '', loading: false, error: '' });
 
   const cargarClientes = async (estadoDocumento = estadoDocumentoTrabajo, tipo = tipoCliente) => {
     if (estadoDocumento) {
@@ -97,6 +98,10 @@ export default function Documentos() {
     const totalPages = pageCountFor(docs, pageSize);
     if (page > totalPages) setPage(totalPages);
   }, [docs, page, pageSize]);
+
+  useEffect(() => () => {
+    if (preview.url) URL.revokeObjectURL(preview.url);
+  }, [preview.url]);
 
   const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
   const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
@@ -229,6 +234,35 @@ export default function Documentos() {
     }
   };
 
+  const cargarPreview = async (index) => {
+    const doc = docs[index];
+    if (!doc) return;
+    setPreview(prev => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      return { open: true, index, url: '', type: '', loading: true, error: '' };
+    });
+    try {
+      const res = await api.get(`/clientes/documentos/${doc.id_documento}/ver`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      setPreview({ open: true, index, url, type: res.data.type || '', loading: false, error: '' });
+    } catch {
+      setPreview({ open: true, index, url: '', type: '', loading: false, error: 'No se pudo cargar la vista previa del documento.' });
+    }
+  };
+
+  const cerrarPreview = () => {
+    setPreview(prev => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      return { open: false, index: 0, url: '', type: '', loading: false, error: '' };
+    });
+  };
+
+  const moverPreview = (delta) => {
+    if (!docs.length) return;
+    const nextIndex = (preview.index + delta + docs.length) % docs.length;
+    cargarPreview(nextIndex);
+  };
+
   const extraerAI = async (docId) => {
     try {
       const res = await api.post(`/ai/documentos/${docId}/extraer`);
@@ -320,7 +354,7 @@ export default function Documentos() {
         </div>
       )}
 
-      {clienteSeleccionado && (
+      {clienteSeleccionado && puedeVerificar && (
         <div style={{ marginTop: 18 }}>
           <AIAssistantPanel
             clienteId={clienteId}
@@ -398,6 +432,9 @@ export default function Documentos() {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <button onClick={() => cargarPreview(docs.findIndex(doc => doc.id_documento === d.id_documento))} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
+                      <Eye className="h-3.5 w-3.5" /> Ver
+                    </button>
                     <button onClick={() => extraerAI(d.id_documento)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                       <Bot className="h-3.5 w-3.5" /> OCR/IA
                     </button>
@@ -457,6 +494,76 @@ export default function Documentos() {
         onClose={() => setDecision(null)}
         onConfirm={confirmarDecision}
       />
+      <DocumentPreviewModal
+        preview={preview}
+        docs={docs}
+        onClose={cerrarPreview}
+        onPrev={() => moverPreview(-1)}
+        onNext={() => moverPreview(1)}
+        onDownload={descargar}
+      />
+    </div>
+  );
+}
+
+function DocumentPreviewModal({ preview, docs, onClose, onPrev, onNext, onDownload }) {
+  if (!preview.open) return null;
+  const doc = docs[preview.index];
+  const isImage = preview.type.startsWith('image/');
+  const isPdf = preview.type === 'application/pdf' || doc?.formato === 'PDF';
+  const total = docs.length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm">
+      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Vista previa de documento</p>
+            <h2 className="mt-1 truncate text-lg font-black text-slate-950">{doc?.nombre_archivo || 'Documento'}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              {doc?.tipo_documento || '-'} · {preview.index + 1} de {total}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {doc && (
+              <button
+                type="button"
+                onClick={() => onDownload(doc.id_documento, doc.nombre_archivo)}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 shadow-sm hover:bg-slate-50"
+              >
+                <Download className="h-4 w-4" /> Descargar
+              </button>
+            )}
+            <button type="button" onClick={onClose} className="rounded-xl bg-slate-950 p-2 text-white hover:bg-slate-800" aria-label="Cerrar vista previa">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid min-h-0 flex-1 grid-cols-[44px_minmax(0,1fr)_44px] bg-slate-100">
+          <button type="button" onClick={onPrev} disabled={total <= 1} className="flex items-center justify-center text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Documento anterior">
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <div className="flex min-h-[62vh] items-center justify-center overflow-auto p-4">
+            {preview.loading && <div className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-600 shadow-sm">Cargando vista previa...</div>}
+            {preview.error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{preview.error}</div>}
+            {!preview.loading && !preview.error && preview.url && isImage && (
+              <img src={preview.url} alt={doc?.nombre_archivo || 'Documento'} className="max-h-[70vh] max-w-full rounded-xl bg-white object-contain shadow-lg" />
+            )}
+            {!preview.loading && !preview.error && preview.url && isPdf && (
+              <iframe title={doc?.nombre_archivo || 'PDF'} src={preview.url} className="h-[70vh] w-full rounded-xl border border-slate-200 bg-white shadow-lg" />
+            )}
+            {!preview.loading && !preview.error && preview.url && !isImage && !isPdf && (
+              <div className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-600 shadow-sm">
+                Este formato no tiene vista previa integrada. Puedes descargarlo para revisarlo.
+              </div>
+            )}
+          </div>
+          <button type="button" onClick={onNext} disabled={total <= 1} className="flex items-center justify-center text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Documento siguiente">
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

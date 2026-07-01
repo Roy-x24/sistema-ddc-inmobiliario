@@ -24,6 +24,17 @@ UPLOAD_DIR = "/app/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+def _media_type_documento(doc: Documento) -> str:
+    formato = (doc.formato or "").upper()
+    if formato == "PDF":
+        return "application/pdf"
+    if formato in ["JPG", "JPEG"]:
+        return "image/jpeg"
+    if formato == "PNG":
+        return "image/png"
+    return "application/octet-stream"
+
+
 @router.post("/{id}/documentos")
 def adjuntar_documento(
     id: str,
@@ -98,6 +109,26 @@ def descargar_documento(
 
     registrar_auditoria(db, usuario.correo, "DESCARGAR_DOCUMENTO", str(doc.id_cliente))
     return FileResponse(path=doc.ruta_archivo, filename=doc.nombre_archivo, media_type="application/octet-stream")
+
+
+@router.get("/documentos/{doc_id}/ver")
+def ver_documento(
+    doc_id: str,
+    db: Session = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_rol("consultar_clientes"))
+):
+    doc = db.query(Documento).filter(Documento.id_documento == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+    if not os.path.exists(doc.ruta_archivo):
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+
+    registrar_auditoria(db, usuario.correo, "VISUALIZAR_DOCUMENTO", str(doc.id_cliente))
+    return FileResponse(
+        path=doc.ruta_archivo,
+        media_type=_media_type_documento(doc),
+        headers={"Content-Disposition": f'inline; filename="{doc.nombre_archivo}"'}
+    )
 
 
 @router.get("/documentos/{doc_id}/validaciones", response_model=List[DocumentoValidacionResponse])
