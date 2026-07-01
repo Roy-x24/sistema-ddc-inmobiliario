@@ -86,7 +86,7 @@ Esto mantiene la UX operativa aunque un proveedor externo falle y evita que un e
 
 ## UX contextual de IA por pantalla
 
-El frontend no debe mostrar un panel generico con todos los botones IA en cada pantalla. `AIAssistantPanel` recibe un `context` y ajusta titulo, descripcion, accion principal, acciones secundarias y busqueda segun el flujo operativo.
+El frontend no debe mostrar un panel generico con todos los botones IA en cada pantalla. `AIAssistantPanel` recibe un `context` y ajusta titulo, descripcion, accion principal, acciones secundarias y busqueda segun el flujo operativo. Tambien filtra acciones por rol para que el Empleado no vea herramientas que corresponden al Oficial.
 
 | Contexto | Pantalla | Acciones IA principales | Acciones evitadas |
 |----------|----------|-------------------------|-------------------|
@@ -98,6 +98,15 @@ El frontend no debe mostrar un panel generico con todos los botones IA en cada p
 | `activacion` | Activacion | resumen previo, checklist de bloqueos, alto riesgo/screening, resolver observaciones, validar BF segun estado | acciones IA que parezcan activar o rechazar por si solas |
 | `post_activacion` | Post-activacion | resumen historico, buscar eventos, sugerir motivo de bloqueo/reversion | ejecutar bloqueos o reversiones automaticamente |
 | `expediente` | Detalle expediente | resumen, busqueda, screening y sugerencias de soporte | decisiones operativas directas |
+
+## UX contextual de IA por rol
+
+| Rol | Acciones IA visibles | Acciones ocultas o restringidas |
+|-----|----------------------|---------------------------------|
+| Empleado | resumen, busqueda de soporte, prellenado asistido, sugerir respuesta a observaciones, detectar BF para registrar | screening PEP/sanciones, prioridad de cola, observaciones oficiales, decisiones de activacion/rechazo |
+| Oficial de Cumplimiento | resumen, prioridad, screening, busqueda, observaciones sugeridas, BF sugeridos, soporte para activacion | acciones automaticas que aprueben, rechacen o cierren sin modal humano |
+| Auditor | resumen auditable y busqueda de evidencia fuente | acciones operativas, observaciones, screening ejecutable, cambios de estado |
+| Administrador | configuracion y pruebas de IA, ademas de acciones operativas para soporte | guardar secretos en base de datos o saltarse reglas deterministicas |
 
 Reglas de UX:
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import { Bot, CheckSquare, FileSearch, ListChecks, MessageSquarePlus, Search, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
 
 const ACTIONS = {
@@ -147,6 +148,50 @@ const ACTION_COPY = {
   },
 };
 
+const ROLE_ACTIONS = {
+  empleado: {
+    default: ['resumen', 'buscar'],
+    documentos: ['resumen', 'buscar'],
+    beneficiarios: ['beneficiarios', 'resumen', 'buscar'],
+    observaciones: ['observacion', 'resumen', 'buscar'],
+    expediente: ['resumen', 'buscar'],
+  },
+  oficial_cumplimiento: {
+    default: ['resumen', 'prioridad', 'screening', 'buscar', 'observacion', 'beneficiarios'],
+  },
+  admin: {
+    default: ['resumen', 'prioridad', 'screening', 'buscar', 'observacion', 'beneficiarios'],
+  },
+  auditor: {
+    default: ['resumen', 'buscar'],
+  },
+};
+
+const ROLE_COPY = {
+  empleado: {
+    observaciones: {
+      observacion: 'Sugerir respuesta',
+      resumen: 'Resumir observacion',
+    },
+    beneficiarios: {
+      beneficiarios: 'Detectar BF para registrar',
+      resumen: 'Resumen societario',
+    },
+    documentos: {
+      resumen: 'Resumen documental',
+      buscar: 'Buscar soporte',
+    },
+    expediente: {
+      resumen: 'Resumen del expediente',
+      buscar: 'Buscar soporte',
+    },
+  },
+  auditor: {
+    buscar: 'Buscar evidencia',
+    resumen: 'Resumen auditable',
+  },
+};
+
 function normalize(value) {
   return String(value || '').toLowerCase();
 }
@@ -164,17 +209,24 @@ function buildContextConfig(context, metadata = {}) {
   return { ...config, primary };
 }
 
-function getActionLabel(context, key) {
-  return ACTION_COPY[context]?.[key] || ACTIONS[key]?.label || key;
+function getActionLabel(context, key, rol) {
+  return ROLE_COPY[rol]?.[context]?.[key] || ROLE_COPY[rol]?.[key] || ACTION_COPY[context]?.[key] || ACTIONS[key]?.label || key;
 }
 
-function buildActionPlan({ context, config, explicitActions, tipoCliente }) {
+function allowedActionsForRole(rol, context) {
+  const policy = ROLE_ACTIONS[rol] || ROLE_ACTIONS.empleado;
+  return new Set(policy[context] || policy.default || []);
+}
+
+function buildActionPlan({ context, config, explicitActions, tipoCliente, rol }) {
   const configured = explicitActions || [config.primary, ...(config.secondary || [])];
   const hidden = new Set(config.hidden || []);
   const ordered = [config.primary, ...configured].filter(Boolean);
+  const allowed = allowedActionsForRole(rol, context);
   return [...new Set(ordered)]
     .filter((key) => ACTIONS[key])
     .filter((key) => !hidden.has(key))
+    .filter((key) => allowed.has(key))
     .filter((key) => key !== 'beneficiarios' || tipoCliente === 'JURIDICA' || context === 'documentos');
 }
 
@@ -187,12 +239,14 @@ export default function AIAssistantPanel({
   metadata = {},
   description,
 }) {
+  const { usuario } = useAuth();
   const [loading, setLoading] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const config = buildContextConfig(context, metadata);
-  const visibleActions = buildActionPlan({ context, config, explicitActions: actions, tipoCliente });
+  const rol = usuario?.rol || 'empleado';
+  const visibleActions = buildActionPlan({ context, config, explicitActions: actions, tipoCliente, rol });
   const primaryAction = visibleActions.includes(config.primary) ? config.primary : visibleActions[0];
 
   const run = async (key) => {
@@ -240,13 +294,14 @@ export default function AIAssistantPanel({
         </span>
       </div>
 
-      <ContextNudge context={context} metadata={metadata} tipoCliente={tipoCliente} />
+      <ContextNudge context={context} metadata={metadata} tipoCliente={tipoCliente} rol={rol} />
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1fr)]">
         {primaryAction && primaryAction !== 'buscar' && (
           <ActionButton
             actionKey={primaryAction}
             context={context}
+            rol={rol}
             loading={loading}
             disabled={!clienteId || !!loading}
             onClick={() => run(primaryAction)}
@@ -269,7 +324,7 @@ export default function AIAssistantPanel({
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Icon className="h-4 w-4" />
-              {loading === key ? 'Calculando...' : getActionLabel(context, key)}
+              {loading === key ? 'Calculando...' : getActionLabel(context, key, rol)}
             </button>
           );
         })}
@@ -332,7 +387,7 @@ export default function AIAssistantPanel({
   );
 }
 
-function ActionButton({ actionKey, context, loading, disabled, onClick, primary = false }) {
+function ActionButton({ actionKey, context, rol, loading, disabled, onClick, primary = false }) {
   const item = ACTIONS[actionKey];
   const Icon = item?.icon || FileSearch;
   if (!item) return null;
@@ -349,12 +404,12 @@ function ActionButton({ actionKey, context, loading, disabled, onClick, primary 
       }`}
     >
       <Icon className="h-4 w-4" />
-      {loading === actionKey ? 'Calculando...' : getActionLabel(context, actionKey)}
+      {loading === actionKey ? 'Calculando...' : getActionLabel(context, actionKey, rol)}
     </button>
   );
 }
 
-function ContextNudge({ context, metadata = {}, tipoCliente }) {
+function ContextNudge({ context, metadata = {}, tipoCliente, rol }) {
   const estado = String(metadata.estado || metadata.estado_cliente || '').toUpperCase();
   const riesgo = String(metadata.riesgo || metadata.nivel_riesgo || '').toUpperCase();
   const cola = normalize(metadata.cola || metadata.queue);
@@ -375,6 +430,8 @@ function ContextNudge({ context, metadata = {}, tipoCliente }) {
   if (context === 'observaciones') notes.push('Las sugerencias de respuesta o cierre deben editarse antes de enviarse.');
   if (context === 'post_activacion') notes.push('Bloqueos y reversiones siempre requieren motivo humano.');
   if (context === 'riesgo' && tipoCliente === 'JURIDICA') notes.push('Si el riesgo depende de BF, revisa evidencia societaria antes de decidir.');
+  if (rol === 'empleado') notes.push('Modo Empleado: la IA ayuda a preparar datos, soportes y respuestas; no muestra acciones de decision oficial.');
+  if (rol === 'auditor') notes.push('Modo Auditor: la IA solo resume y busca evidencia fuente.');
 
   if (!notes.length) return null;
   return (
