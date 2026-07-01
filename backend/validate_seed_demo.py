@@ -98,6 +98,19 @@ CHECKS = [
         """,
     ),
     (
+        "juridicas_en_revision_con_bf_relevante_no_aprobado",
+        """
+        SELECT c.id_cliente, c.estado, bf.nombre_completo, bf.estado_validacion
+        FROM clientes c
+        JOIN beneficiarios_finales bf ON bf.id_cliente = c.id_cliente
+        WHERE c.eliminado = false
+          AND c.tipo_cliente = 'JURIDICA'
+          AND c.estado = 'EN_REVISION'
+          AND bf.es_relevante = true
+          AND bf.estado_validacion <> 'APROBADO'
+        """,
+    ),
+    (
         "observados_sin_excepcion_visible",
         """
         SELECT c.id_cliente, c.estado

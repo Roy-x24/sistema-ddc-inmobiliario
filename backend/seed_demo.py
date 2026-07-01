@@ -546,13 +546,13 @@ def _crear_archivo_demo(nombre_archivo, contenido):
 def _insertar_documentos(conn, c):
     tipos = _tipos_documento(c)
     estados_por_estado = {
-        "PENDIENTE": ["VERIFICADO", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION"],
-        "PENDIENTE_BF": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "PENDIENTE_VERIFICACION"],
-        "EN_REVISION": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "PENDIENTE_VERIFICACION"],
-        "OBSERVADO": ["VERIFICADO", "OBSERVADO", "VERIFICADO", "RECHAZADO", "PENDIENTE_VERIFICACION"],
-        "ACTIVO": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO"],
-        "BLOQUEADO": ["VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO", "VERIFICADO"],
-        "RECHAZADO": ["VERIFICADO", "RECHAZADO", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION"],
+        "PENDIENTE": ["VALIDADO_AUTOMATICO", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION"],
+        "PENDIENTE_BF": ["VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "PENDIENTE_VERIFICACION"],
+        "EN_REVISION": ["VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "PENDIENTE_VERIFICACION"],
+        "OBSERVADO": ["VALIDADO_AUTOMATICO", "OBSERVADO", "VALIDADO_AUTOMATICO", "RECHAZADO", "PENDIENTE_VERIFICACION"],
+        "ACTIVO": ["VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO"],
+        "BLOQUEADO": ["VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO", "VALIDADO_AUTOMATICO"],
+        "RECHAZADO": ["VALIDADO_AUTOMATICO", "RECHAZADO", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION", "PENDIENTE_VERIFICACION"],
     }
     estados = estados_por_estado.get(c["estado"], estados_por_estado["PENDIENTE"])
     for indice, tipo_documento in enumerate(tipos, start=1):
@@ -571,6 +571,7 @@ def _insertar_documentos(conn, c):
             motivo_rechazo = "Documento ilegible o inconsistente, favor subir una version actualizada"
         elif estado == "OBSERVADO":
             motivo_rechazo = "Documento requiere aclaracion antes de continuar"
+        usuario_verificador = "sistema" if estado == "VALIDADO_AUTOMATICO" else OFICIAL_USER
         conn.execute(text("""
             INSERT INTO documentos (
                 id_cliente, tipo_documento, nombre_archivo, ruta_archivo, hash_sha256,
@@ -579,8 +580,8 @@ def _insertar_documentos(conn, c):
             VALUES (
                 :id_cliente, :tipo_documento, :nombre_archivo, :ruta_archivo, :hash_sha256,
                 :tamano_bytes, :formato, :estado,
-                CASE WHEN :estado IN ('VERIFICADO', 'RECHAZADO') THEN NOW() ELSE NULL END,
-                CASE WHEN :estado IN ('VERIFICADO', 'RECHAZADO') THEN :usuario_verificador ELSE NULL END,
+                CASE WHEN :estado IN ('VERIFICADO', 'VALIDADO_AUTOMATICO', 'VERIFICADO_MANUAL', 'RECHAZADO') THEN NOW() ELSE NULL END,
+                CASE WHEN :estado IN ('VERIFICADO', 'VALIDADO_AUTOMATICO', 'VERIFICADO_MANUAL', 'RECHAZADO') THEN :usuario_verificador ELSE NULL END,
                 :motivo_rechazo
             )
         """), {
@@ -592,7 +593,7 @@ def _insertar_documentos(conn, c):
             "tamano_bytes": len(contenido),
             "formato": formato,
             "estado": estado,
-            "usuario_verificador": OFICIAL_USER,
+            "usuario_verificador": usuario_verificador,
             "motivo_rechazo": motivo_rechazo,
         })
 
