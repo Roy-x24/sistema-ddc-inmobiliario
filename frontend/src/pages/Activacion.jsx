@@ -8,6 +8,7 @@ import PaginationControls from '../components/PaginationControls';
 import InfoHint from '../components/InfoHint';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import DecisionModal from '../components/DecisionModal';
+import ExpedienteChecklistPanel from '../components/ExpedienteChecklistPanel';
 import { AlertTriangle, CheckCircle2, Search, XCircle, ShieldCheck, Workflow } from 'lucide-react';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
 import { pageCountFor, paginate } from '../utils/pagination';
@@ -374,7 +375,7 @@ export default function Activacion() {
       </div>
 
       {clienteAsistido && (
-        <div style={{ marginTop: 18 }}>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]" style={{ marginTop: 18 }}>
           <AIAssistantPanel
             clienteId={clienteAsistido.id_cliente}
             tipoCliente={clienteAsistido.tipo_cliente}
@@ -384,6 +385,12 @@ export default function Activacion() {
               riesgo: clienteAsistido.nivel_riesgo,
             }}
             title={`Asistente IA para activar: ${clienteAsistido.nombre || clienteAsistido.identificacion || 'expediente'}`}
+          />
+          <ExpedienteChecklistPanel
+            clienteId={clienteAsistido.id_cliente}
+            title="Bloqueos antes de activar"
+            compact
+            onClose={() => setClienteAsistido(null)}
           />
         </div>
       )}

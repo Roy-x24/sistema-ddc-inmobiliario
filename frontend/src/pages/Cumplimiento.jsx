@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import InfoHint from '../components/InfoHint';
 import AIAssistantPanel from '../components/AIAssistantPanel';
+import ExpedienteChecklistPanel from '../components/ExpedienteChecklistPanel';
 import { AlertTriangle, Bot, RefreshCw, FileWarning, Search, ShieldCheck, UserCheck } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
 import { tipoClienteBadgeClass, tipoClienteLabel } from '../utils/clientesUi';
@@ -191,7 +192,7 @@ export default function Cumplimiento() {
       </div>
 
       {clienteAsistido && (
-        <div style={{ marginTop: 18 }}>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]" style={{ marginTop: 18 }}>
           <AIAssistantPanel
             clienteId={clienteAsistido.id_cliente}
             tipoCliente={clienteAsistido.tipo_cliente}
@@ -202,6 +203,12 @@ export default function Cumplimiento() {
               riesgo: clienteAsistido.nivel_riesgo,
             }}
             title={`Asistente IA de cumplimiento: ${clienteAsistido.nombre || clienteAsistido.identificacion}`}
+          />
+          <ExpedienteChecklistPanel
+            clienteId={clienteAsistido.id_cliente}
+            title="Checklist de cumplimiento"
+            compact
+            onClose={() => setClienteAsistido(null)}
           />
         </div>
       )}
