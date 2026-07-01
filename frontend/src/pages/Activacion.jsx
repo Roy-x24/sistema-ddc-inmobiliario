@@ -94,14 +94,25 @@ export default function Activacion() {
     }
   };
 
-  const activar = (cliente) => {
+  const cargarChecklistDecision = async (cliente) => {
+    try {
+      const res = await api.post(`/clientes/${cliente.id_cliente}/checklist`);
+      return res.data;
+    } catch {
+      return null;
+    }
+  };
+
+  const activar = async (cliente) => {
     if (cliente?.estado !== 'EN_REVISION') {
       mostrarErrores(['El expediente debe estar en EN_REVISION para poder activarse.']);
       return;
     }
+    const checklist = await cargarChecklistDecision(cliente);
     setDecision({
       type: 'activar',
       cliente,
+      checklist,
       title: cliente.nivel_riesgo === 'ALTO' ? 'Aprobar activacion de alto riesgo' : 'Aprobar activacion',
       description: cliente.nivel_riesgo === 'ALTO'
         ? 'Esta activacion requiere criterio humano reforzado. Confirma que revisaste documentos, riesgo, BF y observaciones antes de aprobar.'
@@ -156,10 +167,12 @@ export default function Activacion() {
     }
   };
 
-  const rechazar = (cliente) => {
+  const rechazar = async (cliente) => {
+    const checklist = await cargarChecklistDecision(cliente);
     setDecision({
       type: 'rechazar',
       cliente,
+      checklist,
       title: 'Rechazar expediente',
       description: 'El rechazo cierra el expediente para decision de cumplimiento y debe quedar sustentado con un motivo claro.',
       tone: 'danger',
@@ -479,6 +492,7 @@ export default function Activacion() {
         reasonPlaceholder={decision?.reasonPlaceholder}
         confirmText={decision?.confirmText}
         details={decision?.details || []}
+        checklist={decision?.checklist}
         onClose={() => setDecision(null)}
         onConfirm={confirmarDecision}
       />
