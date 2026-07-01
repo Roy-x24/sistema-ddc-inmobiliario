@@ -14,6 +14,14 @@ Estados operativos recomendados:
 - `RESPONDIDA`: el Empleado respondio y espera revision.
 - `CERRADA`: el Oficial acepto la respuesta o resolvio el punto.
 
+En la base de datos actual, `RESPONDIDA` no es un estado persistido. Es un estado operativo derivado:
+
+| Estado real | Respuesta | Estado operativo UI |
+|-------------|-----------|---------------------|
+| `ABIERTA` | vacia | `SIN_RESPUESTA` |
+| `ABIERTA` | registrada | `RESPONDIDA` |
+| `CERRADA` | cualquiera | `CERRADA` |
+
 La activacion debe bloquearse mientras exista al menos una observacion abierta o respondida pendiente de cierre oficial.
 
 ## Flujo
@@ -30,7 +38,7 @@ La activacion debe bloquearse mientras exista al menos una observacion abierta o
 La pantalla de Observaciones debe funcionar igual que las otras bandejas operativas:
 
 - selector de expediente retractil
-- filtros externos por abiertas, respondidas y cerradas
+- filtros externos por todas, abiertas, sin respuesta, respondidas y cerradas
 - busqueda por cliente, identificacion, motivo o area
 - estado claro de la observacion
 - accion primaria contextual

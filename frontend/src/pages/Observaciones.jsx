@@ -36,7 +36,14 @@ export default function Observaciones() {
     if (estadoObservacion) params.append('estado_observacion', estadoObservacion);
     const query = params.toString();
     const res = await api.get(`/clientes/con-observaciones${query ? `?${query}` : ''}`);
-    setClientes(res.data || []);
+    const siguientes = res.data || [];
+    setClientes((actuales) => {
+      const seleccionadoActual = actuales.find((cliente) => cliente.id_cliente === clienteId);
+      if (seleccionadoActual && !siguientes.some((cliente) => cliente.id_cliente === clienteId)) {
+        return [seleccionadoActual, ...siguientes];
+      }
+      return siguientes;
+    });
   };
 
   useEffect(() => {
@@ -44,8 +51,6 @@ export default function Observaciones() {
   }, []);
 
   useEffect(() => {
-    setClienteId('');
-    setObservaciones([]);
     setPage(1);
     cargarClientesConObservaciones();
   }, [estadoObservacion]);
@@ -158,14 +163,22 @@ export default function Observaciones() {
   };
 
   const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
+  const estadoOperativoObservacion = (row) => {
+    if (row.estado === 'CERRADA') return 'CERRADA';
+    if (row.estado === 'ABIERTA' && row.respuesta) return 'RESPONDIDA';
+    return 'SIN_RESPUESTA';
+  };
   const observacionesFiltradas = observaciones.filter((row) => {
-    if (estadoObservacion && row.estado !== estadoObservacion) return false;
+    if (estadoObservacion === 'RESPONDIDA' && estadoOperativoObservacion(row) !== 'RESPONDIDA') return false;
+    if (estadoObservacion === 'SIN_RESPUESTA' && estadoOperativoObservacion(row) !== 'SIN_RESPUESTA') return false;
+    if (estadoObservacion && !['RESPONDIDA', 'SIN_RESPUESTA'].includes(estadoObservacion) && row.estado !== estadoObservacion) return false;
     return true;
   });
   const observacionesPaginadas = paginate(observacionesFiltradas, page, pageSize);
   const abiertas = observaciones.filter(row => row.estado === 'ABIERTA').length;
   const cerradas = observaciones.filter(row => row.estado === 'CERRADA').length;
   const pendientesRespuesta = observaciones.filter(row => row.estado === 'ABIERTA' && !row.respuesta).length;
+  const respondidas = observaciones.filter(row => row.estado === 'ABIERTA' && row.respuesta).length;
 
   useEffect(() => {
     const totalPages = pageCountFor(observacionesFiltradas, pageSize);
@@ -200,6 +213,8 @@ export default function Observaciones() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" onClick={() => setEstadoObservacion('')} className={estadoObservacion === '' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Todas</button>
           <button type="button" onClick={() => setEstadoObservacion('ABIERTA')} className={estadoObservacion === 'ABIERTA' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Abiertas</button>
+          <button type="button" onClick={() => setEstadoObservacion('SIN_RESPUESTA')} className={estadoObservacion === 'SIN_RESPUESTA' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Sin respuesta</button>
+          <button type="button" onClick={() => setEstadoObservacion('RESPONDIDA')} className={estadoObservacion === 'RESPONDIDA' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Respondidas</button>
           <button type="button" onClick={() => setEstadoObservacion('CERRADA')} className={estadoObservacion === 'CERRADA' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '9px 14px', fontSize: 12 }}>Cerradas</button>
         </div>
       </div>
@@ -251,19 +266,25 @@ export default function Observaciones() {
             <div className="info-item-label">Abiertas</div>
             <div className="info-item-value">{abiertas}</div>
           </button>
+          <button type="button" onClick={() => { setEstadoObservacion('SIN_RESPUESTA'); setPage(1); }} className="card" style={{ padding: 14, textAlign: 'left', borderColor: estadoObservacion === 'SIN_RESPUESTA' ? 'rgba(245,158,11,0.65)' : undefined }}>
+            <div className="info-item-label">Sin respuesta</div>
+            <div className="info-item-value">{pendientesRespuesta}</div>
+          </button>
+          <button type="button" onClick={() => { setEstadoObservacion('RESPONDIDA'); setPage(1); }} className="card" style={{ padding: 14, textAlign: 'left', borderColor: estadoObservacion === 'RESPONDIDA' ? 'rgba(59,130,246,0.45)' : undefined }}>
+            <div className="info-item-label">Respondidas</div>
+            <div className="info-item-value">{respondidas}</div>
+          </button>
           <button type="button" onClick={() => { setEstadoObservacion('CERRADA'); setPage(1); }} className="card" style={{ padding: 14, textAlign: 'left', borderColor: estadoObservacion === 'CERRADA' ? 'rgba(22,163,74,0.45)' : undefined }}>
             <div className="info-item-label">Cerradas</div>
             <div className="info-item-value">{cerradas}</div>
           </button>
           <div className="card" style={{ padding: 14 }}>
-            <div className="info-item-label">Sin respuesta</div>
-            <div className="info-item-value">{pendientesRespuesta}</div>
-          </div>
-          <div className="card" style={{ padding: 14 }}>
             <label className="label-upper">Estado observacion</label>
             <select value={estadoObservacion} onChange={e => { setEstadoObservacion(e.target.value); setPage(1); }} className="select-field" style={{ width: '100%', marginTop: 6 }}>
               <option value="">Todas</option>
               <option value="ABIERTA">Abiertas</option>
+              <option value="SIN_RESPUESTA">Sin respuesta</option>
+              <option value="RESPONDIDA">Respondidas</option>
               <option value="CERRADA">Cerradas</option>
             </select>
           </div>
@@ -324,12 +345,22 @@ export default function Observaciones() {
                     <EmptyState
                       icon={MessageSquare}
                       title="Sin observaciones para este filtro"
-                      message="Cambia entre abiertas, cerradas o todas para revisar el historial completo del expediente."
+                      message="Cambia entre sin respuesta, respondidas, abiertas, cerradas o todas para revisar el historial completo del expediente."
                     />
                   </td>
                 </tr>
               )}
               {observacionesPaginadas.map((row) => (
+                (() => {
+                  const estadoOperativo = estadoOperativoObservacion(row);
+                  const estadoLabel = estadoOperativo === 'SIN_RESPUESTA' ? 'ABIERTA' : estadoOperativo;
+                  const estadoTone = estadoOperativo === 'CERRADA'
+                    ? { bg: 'rgba(22,163,74,0.1)', color: '#16A34A', border: 'rgba(22,163,74,0.2)', icon: Lock }
+                    : estadoOperativo === 'RESPONDIDA'
+                      ? { bg: 'rgba(59,130,246,0.1)', color: '#2563EB', border: 'rgba(59,130,246,0.22)', icon: CheckCircle2 }
+                      : { bg: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: 'rgba(212,175,55,0.2)', icon: Unlock };
+                  const EstadoIcon = estadoTone.icon;
+                  return (
                 <tr key={row.id}>
                   <td style={{ maxWidth: 300, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.descripcion}</td>
                   <td style={{ maxWidth: 300, whiteSpace: 'normal', wordBreak: 'break-word', color: row.respuesta ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
@@ -337,12 +368,12 @@ export default function Observaciones() {
                   </td>
                   <td>
                     <span className="badge" style={{
-                      backgroundColor: row.estado === 'ABIERTA' ? 'rgba(212,175,55,0.1)' : 'rgba(22,163,74,0.1)',
-                      color: row.estado === 'ABIERTA' ? '#D4AF37' : '#16A34A',
-                      border: `1px solid ${row.estado === 'ABIERTA' ? 'rgba(212,175,55,0.2)' : 'rgba(22,163,74,0.2)'}`
+                      backgroundColor: estadoTone.bg,
+                      color: estadoTone.color,
+                      border: `1px solid ${estadoTone.border}`
                     }}>
-                      {row.estado === 'ABIERTA' ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                      {row.estado}
+                      <EstadoIcon className="h-3 w-3" />
+                      {estadoLabel}
                     </span>
                   </td>
                   <td>
@@ -368,6 +399,8 @@ export default function Observaciones() {
                     </div>
                   </td>
                 </tr>
+                  );
+                })()
               ))}
             </tbody>
           </table>

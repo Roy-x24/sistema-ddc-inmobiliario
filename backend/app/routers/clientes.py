@@ -237,7 +237,13 @@ def listar_clientes_con_observaciones(
     if tipo:
         query = query.filter(Cliente.tipo_cliente == tipo.upper())
     if estado_observacion:
-        query = query.filter(Observacion.estado == estado_observacion.upper())
+        estado = estado_observacion.upper()
+        if estado == "RESPONDIDA":
+            query = query.filter(Observacion.estado == "ABIERTA", Observacion.respuesta.isnot(None))
+        elif estado == "SIN_RESPUESTA":
+            query = query.filter(Observacion.estado == "ABIERTA", Observacion.respuesta.is_(None))
+        else:
+            query = query.filter(Observacion.estado == estado)
 
     clientes = query.order_by(Cliente.fecha_registro.desc()).all()
     return [_cliente_list_item(db, c) for c in clientes]
