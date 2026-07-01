@@ -5,8 +5,8 @@ import api from '../api/axiosConfig';
 import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 import Boton from '../components/ui/Boton';
-import OCRPrefillPanel from '../components/OCRPrefillPanel';
-import { Bot, FileSearch, AlertCircle, CheckCircle2 } from 'lucide-react';
+import AssistedDocumentAnalyzer from '../components/AssistedDocumentAnalyzer';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const apiErrorMessage = (error, fallback) => {
   const detail = error.response?.data?.detail;
@@ -29,6 +29,7 @@ export default function RegistroJuridica() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [archivoAI, setArchivoAI] = useState(null);
+  const [tipoDocumentoAI, setTipoDocumentoAI] = useState('CERTIFICADO_EXISTENCIA');
   const [prefill, setPrefill] = useState(null);
   const [analizando, setAnalizando] = useState(false);
   const [mensaje, setMensaje] = useState('');
@@ -41,6 +42,7 @@ export default function RegistroJuridica() {
     setAnalizando(true);
     const formData = new FormData();
     formData.append('archivo', archivoAI);
+    formData.append('tipo_documento_declarado', tipoDocumentoAI);
     try {
       const res = await api.post('/ai/prellenar/juridica', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setPrefill(res.data);
@@ -105,27 +107,21 @@ export default function RegistroJuridica() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="card" style={{ padding: 28 }}>
-        <div className="card" style={{ padding: 16, marginBottom: 20, borderColor: 'rgba(20,184,166,0.22)', background: 'linear-gradient(135deg, rgba(20,184,166,0.07), rgba(255,255,255,0.96))' }}>
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-              <Bot className="h-5 w-5" />
-            </div>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ fontWeight: 900, color: 'var(--text-primary)' }}>Prellenado asistido</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sube certificado, aviso de operación o soporte legal. El empleado confirma antes de guardar.</div>
-            </div>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setArchivoAI(e.target.files?.[0] || null)} className="input-field" style={{ maxWidth: 280, padding: 9 }} />
-            <button type="button" onClick={analizarDocumento} disabled={!archivoAI || analizando} className="btn-secondary" style={{ padding: '10px 14px', fontSize: 12 }}>
-              <FileSearch className="h-4 w-4" /> {analizando ? 'Analizando...' : 'Analizar'}
-            </button>
-          </div>
-          <OCRPrefillPanel
-            result={prefill}
-            currentValues={valoresActuales}
-            onApplyField={usarDetectado}
-            onApplyAll={usarDetectados}
-          />
-        </div>
+        <AssistedDocumentAnalyzer
+          tipoCliente="JURIDICA"
+          title="Prellenado asistido de persona jurídica"
+          description="Selecciona certificado, aviso, representante o BF. Revisa la vista previa para confirmar que el soporte legal corresponde antes de aplicar datos."
+          archivo={archivoAI}
+          onArchivoChange={setArchivoAI}
+          tipoDocumento={tipoDocumentoAI}
+          onTipoDocumentoChange={setTipoDocumentoAI}
+          analizando={analizando}
+          onAnalyze={analizarDocumento}
+          result={prefill}
+          currentValues={valoresActuales}
+          onApplyField={usarDetectado}
+          onApplyAll={usarDetectados}
+        />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 22 }}>
           {steps.map((label, index) => (

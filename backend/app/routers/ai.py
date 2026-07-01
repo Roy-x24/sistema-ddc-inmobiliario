@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import os
@@ -122,6 +122,7 @@ def _prefill_payload(tipo: str, text: str, errors: list[str]):
 async def prellenar_desde_documento(
     tipo: str,
     archivo: UploadFile = File(...),
+    tipo_documento_declarado: str = Form(""),
     usuario: Usuario = Depends(requiere_rol("registrar_cliente"))
 ):
     if tipo not in {"natural", "juridica"}:
@@ -132,7 +133,9 @@ async def prellenar_desde_documento(
         temp_path = tmp.name
     try:
         text, errors = _extract_text_from_upload(temp_path, archivo.filename or "documento")
-        return _prefill_payload(tipo, text, errors)
+        payload = _prefill_payload(tipo, text, errors)
+        payload["tipo_documento_declarado"] = tipo_documento_declarado
+        return payload
     finally:
         try:
             os.remove(temp_path)
