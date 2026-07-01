@@ -103,7 +103,7 @@ El frontend no debe mostrar un panel generico con todos los botones IA en cada p
 
 | Rol | Acciones IA visibles | Acciones ocultas o restringidas |
 |-----|----------------------|---------------------------------|
-| Empleado | resumen, busqueda de soporte, prellenado asistido, sugerir respuesta a observaciones, detectar BF para registrar | screening PEP/sanciones, prioridad de cola, observaciones oficiales, decisiones de activacion/rechazo |
+| Empleado | OCR/prellenado, comparacion registrado vs detectado, checklist operativo y respuesta manual a observaciones | panel IA conversacional, screening PEP/sanciones, prioridad de cola, observaciones oficiales, BF sugeridos, riesgo, activacion/rechazo |
 | Oficial de Cumplimiento | resumen, prioridad, screening, busqueda, observaciones sugeridas, BF sugeridos, soporte para activacion | acciones automaticas que aprueben, rechacen o cierren sin modal humano |
 | Auditor | resumen auditable y busqueda de evidencia fuente | acciones operativas, observaciones, screening ejecutable, cambios de estado |
 | Administrador | configuracion y pruebas de IA, ademas de acciones operativas para soporte | guardar secretos en base de datos o saltarse reglas deterministicas |
@@ -111,11 +111,26 @@ El frontend no debe mostrar un panel generico con todos los botones IA en cada p
 Reglas de UX:
 
 - La IA sugiere, resume, compara, prioriza y busca evidencia.
+- El Empleado prepara expedientes; no ve IA que parezca criterio de cumplimiento.
 - Las acciones sensibles siguen usando modales humanos y auditoria funcional.
 - Si una sugerencia IA necesita un flujo que aun no existe, el CTA se muestra deshabilitado con nota `pendiente/TODO`; no se simula una accion falsa.
 - Los BF sugeridos deben convertirse en formulario editable, nunca aprobarse automaticamente.
 - Las observaciones sugeridas deben ser editables antes de enviarse o cerrarse.
 - Embeddings y busqueda de contexto no participan en activacion, rechazo, riesgo ni validacion final de BF.
+
+## Iconos de informacion en IA y bandejas
+
+Los iconos `i` se usan para reducir ambiguedad operativa en pantallas densas:
+
+- `Asistido`: indica que la IA apoya, pero no decide.
+- `JSON estricto`: explica que la salida debe cumplir un schema.
+- `Temperatura baja`: explica que se busca consistencia, no creatividad.
+- `Revision humana`: recuerda que decisiones sensibles requieren usuario autorizado.
+- `Auditable`: indica que proveedor, modelo, confianza y errores quedan registrados.
+- `Busqueda semantica`: aclara que embeddings solo recuperan contexto.
+- `Checklist`: explica que los controles y acciones cambian por rol.
+
+Si un icono aparece en una tarjeta o filtro, debe responder la pregunta: "que significa esto y que puedo hacer con ello".
 
 ## Diagramas
 

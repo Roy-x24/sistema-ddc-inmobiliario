@@ -13,7 +13,7 @@ Sistema web para gestionar Debida Diligencia de Clientes (DDC/KYC) en promotoras
 - Auditoria funcional, auditoria administrativa y corridas tecnicas IA.
 - IA/OCR configurable para extraer datos, comparar evidencia, resumir expedientes, sugerir observaciones, ejecutar screening local y priorizar casos.
 
-La IA asiste, pero no decide cumplimiento. Activacion, rechazo, riesgo y validacion final siguen dependiendo de reglas deterministicas y usuarios autorizados.
+La IA asiste, pero no decide cumplimiento. Activacion, rechazo, riesgo y validacion final siguen dependiendo de reglas deterministicas y usuarios autorizados. El Empleado usa automatizacion para preparar expedientes; el Oficial usa IA como apoyo de revision.
 
 ## Stack
 
@@ -165,7 +165,7 @@ docker-compose.yml    Stack local
 Lee primero:
 
 - [docs/manual-operativo.md](docs/manual-operativo.md): guia por rol para usar el sistema.
-- [docs/actores-y-responsabilidades.md](docs/actores-y-responsabilidades.md): responsabilidades de Empleado, Oficial, Auditor, Admin y Sistema.
+- [docs/actores-y-responsabilidades.md](docs/actores-y-responsabilidades.md): responsabilidades y permisos IA por rol.
 - [docs/flujo-cumplimiento.md](docs/flujo-cumplimiento.md): flujo general del expediente.
 - [docs/bandeja-oficial.md](docs/bandeja-oficial.md): logica de colas del Oficial.
 - [docs/notificaciones.md](docs/notificaciones.md): avisos operativos por rol.

@@ -3,9 +3,13 @@
 ## Para el empleado
 
 1. Registrar cliente.
-2. Adjuntar documentos correctos.
-3. Revisar si algun documento queda observado.
-4. Corregir documentos u observaciones.
+2. Adjuntar documentos correctos y usar OCR/prellenado cuando aplique.
+3. Revisar comparaciones entre datos registrados y datos detectados.
+4. Completar perfiles, documentos obligatorios y BF de personas juridicas.
+5. Revisar si algun documento u observacion queda pendiente.
+6. Responder observaciones manualmente y adjuntar soportes corregidos.
+
+El Empleado no usa IA de criterio de cumplimiento. No debe ver acciones de screening, prioridad, riesgo, cierre de observaciones, validacion BF, activacion o rechazo.
 
 ## Para el Oficial de Cumplimiento
 
@@ -13,9 +17,12 @@
 2. Revisar primero Alto riesgo y Observados.
 3. Revisar Revision oficial.
 4. Validar beneficiarios finales relevantes antes de activar personas juridicas.
-5. Usar Auditoria para entender reglas ejecutadas.
-6. Activar o rechazar expedientes desde Activacion. El rechazo es una salida formal para expedientes pre-activacion en `PENDIENTE_BF`, `PENDIENTE`, `EN_REVISION` u `OBSERVADO`, siempre con motivo obligatorio.
-7. Gestionar bloqueos, desbloqueos y reversión de activación desde Post-activacion.
+5. Usar IA asistida para resumir, buscar evidencia, preparar observaciones, revisar BF sugeridos, screening y prioridad.
+6. Usar Auditoria para entender reglas ejecutadas.
+7. Activar o rechazar expedientes desde Activacion. El rechazo es una salida formal para expedientes pre-activacion en `PENDIENTE_BF`, `PENDIENTE`, `EN_REVISION` u `OBSERVADO`, siempre con motivo obligatorio.
+8. Gestionar bloqueos, desbloqueos y reversión de activación desde Post-activacion.
+
+El Oficial puede usar IA como apoyo de lectura y priorizacion, pero no debe delegar decisiones finales a la IA.
 
 ## Acciones sensibles
 

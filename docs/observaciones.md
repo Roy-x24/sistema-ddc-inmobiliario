@@ -28,7 +28,7 @@ La activacion debe bloquearse mientras exista al menos una observacion abierta o
 
 1. El Oficial crea una observacion indicando motivo, area afectada y accion esperada.
 2. El sistema marca el expediente como `OBSERVADO` si estaba `PENDIENTE` o `EN_REVISION`.
-3. El Empleado ve la observacion en su bandeja y responde con texto o documentos.
+3. El Empleado ve la observacion en su bandeja y responde con texto o documentos. En esta version la respuesta es manual; la IA de criterio queda reservada para el Oficial.
 4. El Oficial revisa la respuesta.
 5. El Oficial cierra la observacion mediante modal con confirmacion `CERRAR`.
 6. El sistema reevalua checklist, documentos, BF, riesgo y posibilidad de avance.
@@ -43,6 +43,7 @@ La pantalla de Observaciones debe funcionar igual que las otras bandejas operati
 - estado claro de la observacion
 - accion primaria contextual
 - acceso directo a documentos o checklist si la observacion bloquea algo
+- iconos de informacion para explicar estados, filtros, checklist e IA asistida
 
 No debe quedar como pantalla vacia ni como lista generica. El usuario debe entender:
 
@@ -68,19 +69,29 @@ Esto debe consultarse en Documentos, Activacion, Cumplimiento, Beneficiarios Fin
 
 La IA puede asistir, pero no cerrar observaciones automaticamente.
 
-Usos permitidos:
+Usos permitidos para el Oficial:
 
 - resumir observaciones largas
-- sugerir respuesta para el Empleado
-- sugerir al Oficial si la respuesta parece suficiente
+- preparar un borrador de observacion o cierre editable
+- sugerir si la respuesta parece suficiente, sin cerrar automaticamente
 - detectar discrepancias entre documento cargado y observacion original
 - crear borrador de una nueva observacion desde una discrepancia documental
+- buscar evidencia relacionada mediante embeddings
 
 Usos no permitidos:
 
+- mostrar al Empleado herramientas de cierre o criterio de cumplimiento
 - cerrar observaciones sin Oficial
 - activar expedientes solamente por recomendacion IA
 - eliminar una observacion sin auditoria
+
+## Separacion por rol
+
+| Rol | Puede hacer | No debe ver |
+|-----|-------------|-------------|
+| Empleado | Leer observaciones abiertas, corregir soportes y responder. | Panel IA de cierre, screening, prioridad, riesgo o validacion oficial. |
+| Oficial | Crear observaciones, revisar respuestas, usar IA como apoyo y cerrar con modal auditado. | Acciones automaticas que cierren sin confirmacion humana. |
+| Auditor | Consultar historial y evidencia. | Botones de crear, responder o cerrar. |
 
 ## Auditoria
 

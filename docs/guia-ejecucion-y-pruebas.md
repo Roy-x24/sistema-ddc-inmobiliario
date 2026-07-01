@@ -144,6 +144,30 @@ Antes de cerrar los flujos PN/PJ como automatizados otra vez, revisar manualment
 6. Beneficiarios finales relevantes en PJ.
 7. Paso a revision del Oficial.
 
+## QA manual de separacion por rol
+
+Ejecutar despues de levantar el stack y cargar el seed demo:
+
+1. Iniciar sesion como `empleado@ddc.com`.
+2. Abrir Observaciones y seleccionar un expediente.
+3. Confirmar que no aparece panel IA de cierre, screening, prioridad, riesgo ni validacion BF.
+4. Confirmar que el Empleado puede responder observaciones abiertas, pero no cerrarlas.
+5. Abrir Beneficiarios Finales y confirmar que puede registrar BF, pero no validar/rechazar BF ni ejecutar screening.
+6. Abrir Detalle de Expediente y confirmar que no aparece boton `Resumen IA` ni panel IA conversacional para el Empleado.
+7. Iniciar sesion como `oficial@ddc.com`.
+8. Abrir Observaciones y confirmar que el Oficial si ve el asistente IA de observaciones, puede cerrar respuestas y no ve acciones de respuesta del Empleado.
+9. Abrir Beneficiarios Finales y confirmar que el Oficial puede validar/rechazar BF y usar IA asistida.
+10. Revisar checklist en Observaciones, Cumplimiento y Activacion: los botones deben cambiar segun rol o mostrar `Lo completa Empleado`, `Lo revisa Oficial`, `Solo lectura` o `Control completo`.
+11. Iniciar sesion como `auditor@ddc.com` y confirmar que solo puede consultar/resumir evidencia sin operar expedientes.
+
+## QA manual de UI e informacion contextual
+
+1. En Observaciones, validar que las tarjetas del checklist no se solapan en desktop ni movil.
+2. Confirmar que el panel compacto usa una o dos columnas como maximo y que los botones no se cortan.
+3. Revisar los iconos de informacion en filtros, IA, checklist y busqueda semantica.
+4. Confirmar que cada icono explica el significado operativo y no solo repite el nombre del campo.
+5. Verificar que las pantallas sin resultados muestren empty state con accion o explicacion clara.
+
 ## Reinicio limpio
 
 Para borrar datos locales y reconstruir:
