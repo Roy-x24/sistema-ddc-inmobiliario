@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
@@ -8,24 +8,9 @@ import EmptyState from '../components/EmptyState';
 import PaginationControls from '../components/PaginationControls';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import DecisionModal from '../components/DecisionModal';
-import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText, Bot, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Upload, Download, CheckCircle2, XCircle, AlertCircle, Paperclip, FileText, Bot, Eye, ChevronLeft, ChevronRight, X, ListChecks, Lock, RotateCcw } from 'lucide-react';
 import { pageCountFor, paginate } from '../utils/pagination';
-
-const DOCUMENTOS_NATURAL = [
-  ['DOCUMENTO_IDENTIDAD', 'Documento de identidad'],
-  ['COMPROBANTE_INGRESOS', 'Comprobante de ingresos'],
-  ['COMPROBANTE_RESIDENCIA', 'Comprobante de residencia'],
-  ['CARTA_REFERENCIA_BANCARIA', 'Carta referencia bancaria'],
-  ['DECLARACION_ORIGEN_FONDOS', 'Declaracion origen de fondos']
-];
-
-const DOCUMENTOS_JURIDICA = [
-  ['AVISO_OPERACION', 'Aviso de operacion'],
-  ['CERTIFICADO_EXISTENCIA', 'Certificado de existencia'],
-  ['IDENTIFICACION_REPRESENTANTE', 'Identificacion representante'],
-  ['IDENTIFICACION_BENEFICIARIOS', 'Identificacion beneficiarios'],
-  ['DECLARACION_ORIGEN_FONDOS', 'Declaracion origen de fondos']
-];
+import { documentosParaTipoCliente, estadoRequisitoDocumento, etiquetaDocumento } from '../utils/documentosCatalog';
 
 export default function Documentos() {
   const params = useParams();
@@ -51,6 +36,7 @@ export default function Documentos() {
   const [decision, setDecision] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
   const [preview, setPreview] = useState({ open: false, index: 0, url: '', type: '', loading: false, error: '' });
+  const [uploadPreview, setUploadPreview] = useState({ url: '', type: '', name: '' });
 
   const cargarClientes = async (estadoDocumento = estadoDocumentoTrabajo, tipo = tipoCliente) => {
     if (estadoDocumento) {
@@ -85,12 +71,26 @@ export default function Documentos() {
   }, [urlId]);
 
   const clienteSeleccionado = clientes.find(c => c.id_cliente === clienteId);
-  const opcionesDocumento = clienteSeleccionado?.tipo_cliente === 'JURIDICA' ? DOCUMENTOS_JURIDICA : DOCUMENTOS_NATURAL;
+  const requisitosDocumento = useMemo(
+    () => documentosParaTipoCliente(clienteSeleccionado?.tipo_cliente || 'NATURAL')
+      .map((requisito) => ({ ...requisito, state: estadoRequisitoDocumento(requisito, docs) })),
+    [clienteSeleccionado?.tipo_cliente, docs]
+  );
+  const opcionesDocumento = useMemo(
+    () => requisitosDocumento.filter((requisito) => requisito.repeatable || !requisito.state.complete),
+    [requisitosDocumento]
+  );
+  const obligatorios = useMemo(
+    () => requisitosDocumento.filter((requisito) => requisito.requirement === 'OBLIGATORIO'),
+    [requisitosDocumento]
+  );
+  const obligatoriosCubiertos = obligatorios.filter((requisito) => requisito.state.complete).length;
+  const bloqueosDocumentales = requisitosDocumento.filter((requisito) => requisito.state.blocking).length;
   const docsPaginados = paginate(docs, page, pageSize);
 
   useEffect(() => {
-    if (!opcionesDocumento.some(([value]) => value === tipo)) {
-      setTipo(opcionesDocumento[0][0]);
+    if (opcionesDocumento.length && !opcionesDocumento.some(({ value }) => value === tipo)) {
+      setTipo(opcionesDocumento[0].value);
     }
   }, [clienteSeleccionado?.tipo_cliente, opcionesDocumento, tipo]);
 
@@ -102,6 +102,10 @@ export default function Documentos() {
   useEffect(() => () => {
     if (preview.url) URL.revokeObjectURL(preview.url);
   }, [preview.url]);
+
+  useEffect(() => () => {
+    if (uploadPreview.url) URL.revokeObjectURL(uploadPreview.url);
+  }, [uploadPreview.url]);
 
   const showMensaje = (text) => { setMensaje(text); setTimeout(() => setMensaje(''), 4000); };
   const showError = (text) => { setError(text); setTimeout(() => setError(''), 6000); };
@@ -140,6 +144,10 @@ export default function Documentos() {
       await api.post(`/clientes/${clienteId}/documentos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       await cargarDocs(clienteId);
       setArchivo(null);
+      setUploadPreview(prev => {
+        if (prev.url) URL.revokeObjectURL(prev.url);
+        return { url: '', type: '', name: '' };
+      });
       if (archivoInputRef.current) archivoInputRef.current.value = '';
       showMensaje('Documento subido correctamente');
     } catch (err) {
@@ -275,6 +283,22 @@ export default function Documentos() {
 
   const puedeVerificar = ['oficial_cumplimiento', 'admin'].includes(usuario?.rol);
   const puedeSubir = ['empleado', 'admin'].includes(usuario?.rol);
+  const tipoSeleccionadoConfig = requisitosDocumento.find((requisito) => requisito.value === tipo);
+  const tipoNoRepetibleCubierto = tipoSeleccionadoConfig && !tipoSeleccionadoConfig.repeatable && tipoSeleccionadoConfig.state.complete;
+
+  const seleccionarArchivo = (file) => {
+    setArchivo(file || null);
+    setUploadPreview(prev => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      if (!file) return { url: '', type: '', name: '' };
+      return { url: URL.createObjectURL(file), type: file.type || '', name: file.name };
+    });
+  };
+
+  const seleccionarRequisito = (value) => {
+    setTipo(value);
+    document.getElementById('document-upload-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   return (
     <div className="animate-fade-in-up">
@@ -326,30 +350,107 @@ export default function Documentos() {
         description={puedeSubir ? 'Busca el cliente y sube documentos para iniciar validacion automatica.' : 'Busca casos por estado o riesgo para revisar documentos observados o pendientes.'}
       />
 
+      {clienteSeleccionado && (
+        <section className="card" style={{ padding: 22, marginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div className="label-upper" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ListChecks className="h-4 w-4 text-gold" /> Checklist documental
+              </div>
+              <h2 style={{ marginTop: 6, fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>
+                {obligatoriosCubiertos}/{obligatorios.length} obligatorios cubiertos
+              </h2>
+              <p style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 13 }}>
+                Primero completa los obligatorios. Los no repetibles desaparecen de la subida normal cuando ya estan cubiertos; si hace falta cambiarlos, usa reemplazo auditado.
+              </p>
+            </div>
+            <div className={`rounded-xl border px-4 py-3 text-sm font-black ${bloqueosDocumentales ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+              {bloqueosDocumentales ? `${bloqueosDocumentales} bloqueo(s) documental(es)` : 'Documentacion base completa'}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {requisitosDocumento.map((requisito) => (
+              <DocumentRequirementCard
+                key={requisito.value}
+                requisito={requisito}
+                active={tipo === requisito.value}
+                puedeSubir={puedeSubir}
+                onSelect={() => seleccionarRequisito(requisito.value)}
+                onView={() => {
+                  const index = docs.findIndex((doc) => doc.id_documento === requisito.state.latest?.id_documento);
+                  if (index >= 0) cargarPreview(index);
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {clienteSeleccionado && puedeSubir && (
-        <div className="card" style={{ padding: 24, marginTop: 24, marginBottom: 24 }}>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label className="label-upper">Tipo de documento</label>
-            <select name="tipo_documento" value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
-              <option value="DOCUMENTO_IDENTIDAD">Documento de identidad</option>
-              <option value="COMPROBANTE_INGRESOS">Comprobante de ingresos</option>
-              <option value="COMPROBANTE_RESIDENCIA">Comprobante de residencia</option>
-              <option value="CARTA_REFERENCIA_BANCARIA">Carta referencia bancaria</option>
-              <option value="DECLARACION_ORIGEN_FONDOS">Declaración origen de fondos</option>
-              <option value="AVISO_OPERACION">Aviso de operación</option>
-              <option value="CERTIFICADO_EXISTENCIA">Certificado de existencia</option>
-              <option value="IDENTIFICACION_REPRESENTANTE">Identificación representante</option>
-              <option value="IDENTIFICACION_BENEFICIARIOS">Identificación beneficiarios</option>
-            </select>
+        <div id="document-upload-panel" className="card" style={{ padding: 24, marginTop: 24, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
+            <div>
+              <div className="label-upper">Subida guiada</div>
+              <h2 style={{ marginTop: 4, fontSize: 19, fontWeight: 900, color: 'var(--text-primary)' }}>Confirma requisito y archivo antes de cargar</h2>
+              <p style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 13 }}>
+                El OCR/IA comparara el tipo declarado contra el contenido. Nada queda aprobado solo por subirlo.
+              </p>
+            </div>
+            {tipoSeleccionadoConfig && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" style={{ maxWidth: 420 }}>
+                <div className="text-xs font-black uppercase tracking-widest text-slate-400">{tipoSeleccionadoConfig.requirement}</div>
+                <div className="mt-1 font-black text-slate-950">{tipoSeleccionadoConfig.label}</div>
+                <div className="mt-1 text-sm font-semibold text-slate-500">{tipoSeleccionadoConfig.description}</div>
+              </div>
+            )}
           </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label className="label-upper">Archivo (PDF/JPG/PNG, máx 10MB)</label>
-            <input ref={archivoInputRef} name="archivo_upload" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setArchivo(e.target.files?.[0] || null)} className="input-field" style={{ padding: 10 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) minmax(260px, 1fr)', gap: 16 }}>
+            <div>
+              <label className="label-upper">Requisito documental</label>
+              <select name="tipo_documento" value={tipo} onChange={e => setTipo(e.target.value)} className="select-field" style={{ width: '100%' }}>
+                {opcionesDocumento.map((opcion) => (
+                  <option key={opcion.value} value={opcion.value}>
+                    {opcion.label} · {opcion.requirement.toLowerCase()}{opcion.repeatable ? ' · repetible' : ''}
+                  </option>
+                ))}
+              </select>
+              {tipoSeleccionadoConfig?.fills?.length > 0 && (
+                <div style={{ marginTop: 10, color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.5 }}>
+                  Puede ayudar a prellenar: {tipoSeleccionadoConfig.fills.join(', ')}.
+                </div>
+              )}
+              {tipoNoRepetibleCubierto && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">
+                  Este requisito ya esta cubierto. Para cambiarlo debe registrarse como reemplazo auditado.
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="label-upper">Archivo (PDF/JPG/PNG, max 10MB)</label>
+              <input ref={archivoInputRef} name="archivo_upload" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => seleccionarArchivo(e.target.files?.[0] || null)} className="input-field" style={{ padding: 10 }} />
+              <p style={{ marginTop: 8, color: 'var(--text-muted)', fontSize: 12 }}>
+                Revisa la vista previa para evitar cargar una cedula donde iba un soporte de ingresos, o viceversa.
+              </p>
+            </div>
           </div>
-          <button onClick={subir} disabled={subiendo} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14, opacity: subiendo ? 0.65 : 1 }}>
-            <Upload className="h-4 w-4" /> {subiendo ? 'Subiendo...' : 'Subir documento'}
-          </button>
+
+          {archivo && (
+            <UploadPreviewCard
+              file={archivo}
+              preview={uploadPreview}
+              requisito={tipoSeleccionadoConfig}
+              onClear={() => {
+                seleccionarArchivo(null);
+                if (archivoInputRef.current) archivoInputRef.current.value = '';
+              }}
+            />
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+            <button onClick={subir} disabled={subiendo || !archivo || tipoNoRepetibleCubierto} className="btn-primary" style={{ padding: '12px 20px', fontSize: 14, opacity: (subiendo || !archivo || tipoNoRepetibleCubierto) ? 0.65 : 1 }}>
+              <Upload className="h-4 w-4" /> {subiendo ? 'Subiendo...' : 'Confirmar y subir'}
+            </button>
           </div>
         </div>
       )}
@@ -403,7 +504,7 @@ export default function Documentos() {
                     </div>
                   </div>
                 </td>
-                <td style={{ color: 'var(--text-secondary)' }}>{d.tipo_documento}</td>
+                <td style={{ color: 'var(--text-secondary)' }}>{etiquetaDocumento(d.tipo_documento)}</td>
                 <td><EstadoBadge estado={d.estado} /></td>
                 <td style={{ maxWidth: 260 }}>
                   <div style={{ fontSize: 13, fontWeight: 700 }}>{d.confianza_validacion || 'Pendiente'}</div>
@@ -502,6 +603,95 @@ export default function Documentos() {
         onNext={() => moverPreview(1)}
         onDownload={descargar}
       />
+    </div>
+  );
+}
+
+function DocumentRequirementCard({ requisito, active, puedeSubir, onSelect, onView }) {
+  const tone = {
+    CUBIERTO: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    FALTANTE: 'border-amber-200 bg-amber-50 text-amber-700',
+    PENDIENTE: 'border-blue-200 bg-blue-50 text-blue-700',
+    OBSERVADO: 'border-violet-200 bg-violet-50 text-violet-700',
+    RECHAZADO: 'border-rose-200 bg-rose-50 text-rose-700',
+    DISPONIBLE: 'border-slate-200 bg-slate-50 text-slate-500',
+  }[requisito.state.status] || 'border-slate-200 bg-slate-50 text-slate-500';
+  const canUpload = puedeSubir && (requisito.repeatable || !requisito.state.complete);
+
+  return (
+    <div className={`rounded-2xl border p-4 shadow-sm transition ${active ? 'border-teal-300 bg-teal-50/60 ring-2 ring-teal-100' : 'border-slate-200 bg-white'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-lg border px-2 py-1 text-[11px] font-black uppercase tracking-widest ${tone}`}>
+              {requisito.state.label}
+            </span>
+            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-slate-500">
+              {requisito.requirement}
+            </span>
+          </div>
+          <h3 className="mt-3 text-base font-black text-slate-950">{requisito.label}</h3>
+          <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">{requisito.description}</p>
+        </div>
+        {requisito.repeatable ? (
+          <RotateCcw className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+        ) : (
+          <Lock className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+        <div className="text-xs font-bold text-slate-400">
+          {requisito.repeatable ? `${requisito.state.docs.length} archivo(s)` : requisito.state.latest ? 'No repetible' : 'Pendiente de archivo'}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {requisito.state.latest && (
+            <button type="button" onClick={onView} className="btn-secondary" style={{ padding: '6px 10px', fontSize: 12 }}>
+              <Eye className="h-3.5 w-3.5" /> Ver
+            </button>
+          )}
+          {canUpload && (
+            <button type="button" onClick={onSelect} className={active ? 'btn-primary' : 'btn-secondary'} style={{ padding: '6px 10px', fontSize: 12 }}>
+              {requisito.state.latest ? 'Agregar' : 'Subir'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UploadPreviewCard({ file, preview, requisito, onClear }) {
+  const isImage = preview.type.startsWith('image/');
+  const isPdf = preview.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+  return (
+    <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Previsualizacion antes de subir</p>
+          <h3 className="mt-1 text-sm font-black text-slate-950">{file.name}</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">
+            Se cargara como {requisito?.label || 'documento'} · {(file.size / 1024 / 1024).toFixed(2)} MB
+          </p>
+        </div>
+        <button type="button" onClick={onClear} className="btn-secondary" style={{ padding: '7px 10px', fontSize: 12 }}>
+          Quitar archivo
+        </button>
+      </div>
+      <div className="flex min-h-[260px] items-center justify-center p-4">
+        {preview.url && isImage && (
+          <img src={preview.url} alt={file.name} className="max-h-[360px] max-w-full rounded-xl bg-white object-contain shadow-sm" />
+        )}
+        {preview.url && isPdf && (
+          <iframe title={file.name} src={preview.url} className="h-[360px] w-full rounded-xl border border-slate-200 bg-white shadow-sm" />
+        )}
+        {preview.url && !isImage && !isPdf && (
+          <div className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-600 shadow-sm">
+            Este formato se puede subir, pero no tiene vista previa integrada.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

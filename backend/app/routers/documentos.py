@@ -14,7 +14,7 @@ from app.models.usuario import Usuario
 from app.services.auditoria_service import registrar_auditoria
 from app.services.ai_gateway import extraer_documento
 from app.services.documento_validation_service import evaluar_documento, obtener_validaciones_documento
-from app.services.estado_service import intentar_activacion_automatica, verificar_documentos_para_revision
+from app.services.estado_service import DOCUMENTOS_NO_REPETIBLES, ESTADOS_DOCUMENTO_VALIDOS, intentar_activacion_automatica, verificar_documentos_para_revision
 from app.schemas.documento import DocumentoValidacionResponse
 from typing import List
 
@@ -46,6 +46,19 @@ def adjuntar_documento(
     cliente = db.query(Cliente).filter(Cliente.id_cliente == id, Cliente.eliminado == False).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    tipo_documento = tipo_documento.upper()
+    if tipo_documento in DOCUMENTOS_NO_REPETIBLES:
+        existente_cubierto = db.query(Documento).filter(
+            Documento.id_cliente == id,
+            Documento.tipo_documento == tipo_documento,
+            Documento.estado.in_(ESTADOS_DOCUMENTO_VALIDOS)
+        ).first()
+        if existente_cubierto:
+            raise HTTPException(
+                status_code=409,
+                detail="Este requisito documental ya esta cubierto. Usa un flujo de reemplazo auditado para cambiarlo."
+            )
 
     extension = archivo.filename.split(".")[-1].upper()
     if extension not in ["PDF", "JPG", "JPEG", "PNG"]:
