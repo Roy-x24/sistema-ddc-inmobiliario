@@ -26,7 +26,7 @@ test.describe('Prellenado OCR del empleado', () => {
     await expect(page.getByText(/La IA no guarda cambios sin confirmacion humana/)).toBeVisible();
     await expect(page.getByText('Registrado').first()).toBeVisible();
     await expect(page.getByText('Detectado').first()).toBeVisible();
-    await expect(page.getByText('8-123-456')).toBeVisible();
+    await expect(page.getByTestId('ocr-field-numero_documento').getByText('8-123-456')).toBeVisible();
 
     const documentoCard = page.getByTestId('ocr-field-numero_documento');
     await documentoCard.getByRole('button', { name: /^Usar$/ }).click();

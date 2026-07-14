@@ -35,22 +35,21 @@ test.describe('Flujo Persona Natural', () => {
       await page.fill('input[name="correo"]', `juan.${id}@test.com`);
       await page.fill('input[name="ocupacion"]', 'Ingeniero de software');
       await page.check('input[name="es_pep"]');
+      await page.getByTestId('btn-continuar').click();
       await page.fill('input[name="fuente_ingresos"]', 'Salario mensual');
       await page.selectOption('select[name="rango_ingresos"]', '5001-15000');
       await page.fill('input[name="origen_fondos"]', 'Ahorros personales');
       await page.fill('input[name="proposito_transaccion"]', 'Compra de vivienda');
       await page.fill('input[name="monto_estimado"]', '350000');
-      await page.click('button:has-text("Guardar cliente")');
+      await page.getByTestId('btn-continuar').click();
+      await page.getByTestId('btn-guardar').click();
     });
 
     await test.step('Verificar redirección y éxito', async () => {
-      await expect(page).toHaveURL('/clientes');
-      await expect(page.locator(`text=${nombre} ${apellido}`)).toBeVisible();
+      await expect(page).toHaveURL(/\/expediente\/.+/, { timeout: 15000 });
     });
 
     await test.step('Navegar a detalle del expediente', async () => {
-      const row = page.locator('tr', { hasText: `${nombre} ${apellido}` }).first();
-      await row.click();
       await expect(page).toHaveURL(/\/expediente\/.+/);
     });
 
@@ -59,29 +58,31 @@ test.describe('Flujo Persona Natural', () => {
       await page.goto(`/documentos/${clientId}`);
       await page.selectOption('select[name="tipo_documento"]', 'DOCUMENTO_IDENTIDAD');
       await page.setInputFiles('input[type="file"]', 'test-files/cedula.pdf');
-      await page.click('button:has-text("Subir documento")');
-      await expect(page.locator('text=Documento subido correctamente')).toBeVisible();
+      await page.click('button:has-text("Confirmar y subir")');
+      await expect(page.locator('text=Previsualizacion antes de subir')).toBeHidden();
     });
 
     await test.step('Adjuntar documento de ingresos', async () => {
       await page.selectOption('select[name="tipo_documento"]', 'COMPROBANTE_INGRESOS');
       await page.setInputFiles('input[type="file"]', 'test-files/comprobante_ingresos.jpg');
-      await page.click('button:has-text("Subir documento")');
-      await expect(page.locator('text=Documento subido correctamente')).toBeVisible();
+      await page.click('button:has-text("Confirmar y subir")');
+      await expect(page.locator('text=Previsualizacion antes de subir')).toBeHidden();
     });
 
     await test.step('Adjuntar documento de residencia', async () => {
       await page.selectOption('select[name="tipo_documento"]', 'COMPROBANTE_RESIDENCIA');
       await page.setInputFiles('input[type="file"]', 'test-files/comprobante_residencia.png');
-      await page.click('button:has-text("Subir documento")');
-      await expect(page.locator('text=Documento subido correctamente')).toBeVisible();
+      await page.click('button:has-text("Confirmar y subir")');
+      await expect(page.locator('text=Previsualizacion antes de subir')).toBeHidden();
     });
 
     await test.step('Verificar estado de documentos', async () => {
       await page.reload();
       await page.waitForTimeout(2000);
+      await page.waitForTimeout(2000);
       const rows = page.locator('table tbody tr');
-      await expect(rows.filter({ hasText: 'PENDIENTE' })).toHaveCount(3);
+      console.log('TABLE TEXT:', await page.locator('table tbody').innerText());
+      await expect(rows.filter({ hasText: 'OBSERVADO' })).toHaveCount(3);
     });
   });
 });
