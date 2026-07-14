@@ -214,12 +214,13 @@ export default function RegistroNatural() {
           <Boton type="button" variant="secundario" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
             Atrás
           </Boton>
-          {step < 2 ? (
-            <Boton type="button" variant="primario" onClick={() => setStep(Math.min(2, step + 1))} style={{ padding: '12px 28px' }}>
+          {step < 2 && (
+            <Boton key="btn-continuar" data-testid="btn-continuar" type="button" variant="primario" onClick={() => setStep(Math.min(2, step + 1))} style={{ padding: '12px 28px' }}>
               Continuar
             </Boton>
-          ) : (
-            <Boton type="submit" variant="primario" loading={isSubmitting} style={{ padding: '12px 28px' }}>
+          )}
+          {step >= 2 && (
+            <Boton key="btn-guardar" data-testid="btn-guardar" type="submit" variant="primario" loading={isSubmitting} style={{ padding: '12px 28px' }}>
               {isSubmitting ? 'Guardando...' : 'Guardar cliente'}
             </Boton>
           )}
